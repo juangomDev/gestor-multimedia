@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
-import { ToastProvider, useToast } from './context/ToastContext';
+import { ToastProvider } from './context/ToastContext';
+import { useAuth } from './context/useAuth';
+import { useToast } from './context/useToast';
 import { Sidebar } from './components/layout/Sidebar';
 import { ImagesView } from './views/ImagesView';
 import { TablesCatalogView } from './views/TablesCatalogView';
 import { TableDataStudioView } from './views/TableDataStudioView';
 import { LoginView } from './views/LoginView';
 import { UserProfilesView } from './views/UserProfilesView';
+import { SettingsView } from './views/SettingsView';
 import { DropzoneOverlay } from './components/upload/DropzoneOverlay';
 import { UploadModal } from './components/upload/UploadModal';
-import { SettingsModal } from './components/common/SettingsModal';
-import { ImportShortCodeModal } from './components/common/ImportShortCodeModal';
-import { UserAdminModal } from './components/auth/UserAdminModal';
 import { CreateFolderModal } from './components/folders/CreateFolderModal';
 import { MoveToFolderModal } from './components/folders/MoveToFolderModal';
+import { StatusBar } from './components/layout/StatusBar';
 import { imagesService } from './services/imagesService';
 import { tablesService } from './services/tablesService';
 import { storageService } from './services/storageService';
+import { authService } from './services/authService';
 import type { ImageItem, TableItem, FolderItem } from './types/media';
 
 // Feature Flag: Las carpetas quedan congeladas en el frontend hasta que se implemente la persistencia en PostgreSQL en monolith-backend
@@ -24,14 +26,14 @@ const ENABLE_FOLDERS = false;
 
 const MainApp: React.FC = () => {
   const { showToast } = useToast();
-  const [activeView, setActiveView] = useState<'images' | 'tables' | 'profiles' | 'login'>('images');
+  const { isAuthenticated } = useAuth();
+  const [activeView, setActiveView] = useState<'images' | 'tables' | 'profiles' | 'login' | 'settings'>(
+    () => (authService.getSession()?.token ? 'images' : 'login')
+  );
   const [selectedTableForStudio, setSelectedTableForStudio] = useState<TableItem | null>(null);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isImportOpen, setIsImportOpen] = useState(false);
-  const [isUserAdminOpen, setIsUserAdminOpen] = useState(false);
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
   const [movingTarget, setMovingTarget] = useState<{
     item: ImageItem | TableItem;
@@ -68,8 +70,24 @@ const MainApp: React.FC = () => {
   };
 
   useEffect(() => {
-    refreshItems();
-    syncRemote();
+    let isCancelled = false;
+    Promise.allSettled([
+      imagesService.fetchRemoteImages(),
+      tablesService.fetchRemoteTables(),
+    ])
+      .then(() => {
+        if (!isCancelled) {
+          setImages(imagesService.getImages());
+          setTables(tablesService.getTables());
+        }
+      })
+      .catch((e) => {
+        console.warn('Remote sync error:', e);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   const handleFilesUpload = async (fileList: FileList) => {
@@ -148,7 +166,8 @@ const MainApp: React.FC = () => {
     images.reduce((acc, i) => acc + (Number(i.sizeBytes) || 0), 0) +
     tables.reduce((acc, t) => acc + (Number(t.sizeBytes) || 0), 0);
 
-  if (activeView === 'login') {
+  // Auth Guard: si el usuario no tiene sesión o la vista es 'login', mostrar LoginView
+  if (!isAuthenticated || activeView === 'login') {
     return (
       <LoginView
         onLoginSuccess={() => setActiveView('images')}
@@ -196,8 +215,6 @@ const MainApp: React.FC = () => {
         activeView={activeView}
         onViewChange={setActiveView}
         onOpenUpload={() => setIsUploadOpen(true)}
-        onOpenConfig={() => setIsSettingsOpen(true)}
-        onOpenImport={() => setIsImportOpen(true)}
         onSync={handleManualSync}
         imagesCount={images.length}
         tablesCount={tables.length}
@@ -222,32 +239,50 @@ const MainApp: React.FC = () => {
           boxShadow: 'var(--shadow-sm)',
         }}
       >
-        {activeView === 'images' && (
-          <ImagesView
-            images={images}
-            activeFolder={ENABLE_FOLDERS ? activeFolder : null}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onOpenUpload={() => setIsUploadOpen(true)}
-            onDeleteImage={handleDeleteImage}
-            onMoveImageToFolder={ENABLE_FOLDERS ? (img) => setMovingTarget({ item: img, type: 'image' }) : undefined}
-          />
-        )}
-        {activeView === 'tables' && (
-          <TablesCatalogView
-            tables={tables}
-            activeFolder={ENABLE_FOLDERS ? activeFolder : null}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onOpenStudio={setSelectedTableForStudio}
-            onOpenUpload={() => setIsUploadOpen(true)}
-            onDeleteTable={handleDeleteTable}
-            onMoveTableToFolder={ENABLE_FOLDERS ? (tbl) => setMovingTarget({ item: tbl, type: 'table' }) : undefined}
-          />
-        )}
-        {activeView === 'profiles' && (
-          <UserProfilesView onBackToGallery={() => setActiveView('images')} />
-        )}
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          {activeView === 'images' && (
+            <ImagesView
+              images={images}
+              activeFolder={ENABLE_FOLDERS ? activeFolder : null}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onOpenUpload={() => setIsUploadOpen(true)}
+              onDeleteImage={handleDeleteImage}
+              onMoveImageToFolder={ENABLE_FOLDERS ? (img) => setMovingTarget({ item: img, type: 'image' }) : undefined}
+            />
+          )}
+          {activeView === 'tables' && (
+            <TablesCatalogView
+              tables={tables}
+              activeFolder={ENABLE_FOLDERS ? activeFolder : null}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onOpenStudio={setSelectedTableForStudio}
+              onOpenUpload={() => setIsUploadOpen(true)}
+              onDeleteTable={handleDeleteTable}
+              onMoveTableToFolder={ENABLE_FOLDERS ? (tbl) => setMovingTarget({ item: tbl, type: 'table' }) : undefined}
+            />
+          )}
+          {activeView === 'profiles' && (
+            <UserProfilesView onBackToGallery={() => setActiveView('images')} />
+          )}
+          {activeView === 'settings' && (
+            <SettingsView
+              onBackToGallery={() => setActiveView('images')}
+              onConfigSaved={() => {
+                refreshItems();
+                syncRemote();
+              }}
+              onItemImported={() => {
+                refreshItems();
+                syncRemote();
+              }}
+              folderId={ENABLE_FOLDERS ? activeFolderId : null}
+            />
+          )}
+        </div>
+
+        <StatusBar totalBytes={totalBytes} />
       </main>
 
       <DropzoneOverlay onFilesDropped={handleFilesUpload} />
@@ -258,32 +293,6 @@ const MainApp: React.FC = () => {
         onFilesSelected={handleFilesUpload}
         folderName={ENABLE_FOLDERS ? activeFolder?.name : undefined}
       />
-
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        onSaved={() => {
-          refreshItems();
-          syncRemote();
-        }}
-      />
-
-      <ImportShortCodeModal
-        isOpen={isImportOpen}
-        onClose={() => setIsImportOpen(false)}
-        onImported={() => {
-          refreshItems();
-          syncRemote();
-        }}
-        folderId={activeFolderId}
-      />
-
-      {isUserAdminOpen && (
-        <UserAdminModal
-          isOpen={isUserAdminOpen}
-          onClose={() => setIsUserAdminOpen(false)}
-        />
-      )}
 
       {ENABLE_FOLDERS && (
         <CreateFolderModal

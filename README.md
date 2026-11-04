@@ -41,18 +41,20 @@ gestor-multimedia/
 │   │   ├── tablesService.ts   # Subida, paginación server-side y descarga
 │   │   └── storageService.ts  # Persistencia y caché local
 │   ├── components/
-│   │   ├── layout/            # Header con diagnóstico y Sidebar de navegación
+│   │   ├── layout/            # Sidebar de navegación con perfil y estado
 │   │   ├── images/            # ImageCard e ImageInspector (zoom)
 │   │   ├── tables/            # DataGrid de alta densidad y TableCard
-│   │   ├── auth/              # LoginModal, UserMenu, UserAdminModal
 │   │   ├── upload/            # DropzoneOverlay y UploadModal
-│   │   ├── folders/           # CreateFolderModal
-│   │   ├── health/            # HealthBadge interactivo con latencia
-│   │   └── common/            # Button, Badge, Modal, Toast
+│   │   ├── folders/           # CreateFolderModal y MoveToFolderModal
+│   │   ├── health/            # HealthBadge interactivo con latencia en vivo
+│   │   └── common/            # Button, Modal, Toast
 │   ├── views/
 │   │   ├── ImagesView.tsx          # Espacio de trabajo de imágenes
 │   │   ├── TablesCatalogView.tsx   # Catálogo de datasets registrados
-│   │   └── TableDataStudioView.tsx # Data Studio analítico a pantalla completa
+│   │   ├── TableDataStudioView.tsx # Data Studio analítico a pantalla completa
+│   │   ├── SettingsView.tsx        # Configuración API & Ingesta por ShortCode
+│   │   ├── LoginView.tsx           # Pantalla de acceso y autenticación JWT
+│   │   └── UserProfilesView.tsx    # Gestión y directorio de perfiles de usuario
 │   └── utils/
 │       ├── formatters.ts      # Formateo de bytes, fechas y URLs
 │       └── clipboard.ts       # Copiado al portapapeles con fallback

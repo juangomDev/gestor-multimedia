@@ -4,7 +4,7 @@ import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { formatBytes, formatDate, buildPublicAssetUrl } from '../../utils/formatters';
 import { copyToClipboard } from '../../utils/clipboard';
-import { useToast } from '../../context/ToastContext';
+import { useToast } from '../../context/useToast';
 import { storageService } from '../../services/storageService';
 import type { ImageItem } from '../../types/media';
 import styles from './ImageInspector.module.css';

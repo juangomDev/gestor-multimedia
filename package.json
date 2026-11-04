@@ -9,6 +9,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "oxlint",
+    "types:sync": "npx openapi-typescript ../monolith-backend/openapi.json -o src/types/api.generated.ts",
     "preview": "vite preview"
   },
   "dependencies": {

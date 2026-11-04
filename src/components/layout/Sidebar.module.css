@@ -132,54 +132,12 @@
   color: var(--accent-primary);
 }
 
-/* Bottom Section */
+/* Bottom Section: Account Card */
 .bottomSection {
   display: flex;
   flex-direction: column;
-  gap: 12px;
   padding-top: 14px;
   border-top: 1px solid var(--border-subtle);
-}
-
-/* Health area: small, discreet */
-.healthRow {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 0 4px;
-}
-
-/* Storage Footer Widget */
-.storageWidget {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.storageHeader {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.6875rem;
-  color: var(--text-muted);
-}
-
-.progressBar {
-  width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.progressFill {
-  height: 100%;
-  background: var(--accent-primary);
-  border-radius: var(--radius-full);
-  transition: width var(--transition-smooth);
 }
 
 /* User Account & Logout Card (Reference style) */
@@ -255,11 +213,4 @@
 .logoutBtn:hover {
   color: var(--color-danger);
   background: var(--color-danger-bg);
-}
-
-.versionTag {
-  font-size: 0.6875rem;
-  color: var(--text-muted);
-  text-align: center;
-  opacity: 0.6;
 }

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { User, Lock, Eye, EyeOff, LogIn, AlertCircle, Sparkles, ArrowRight } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 import { Button } from '../components/common/Button';
 import { HealthBadge } from '../components/health/HealthBadge';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/useAuth';
+import { useToast } from '../context/useToast';
 import styles from './LoginView.module.css';
 
 interface LoginViewProps {
@@ -13,7 +13,6 @@ interface LoginViewProps {
 
 export const LoginView: React.FC<LoginViewProps> = ({
   onLoginSuccess,
-  onExploreDemo,
 }) => {
   const { login, loginAsLocalAdmin } = useAuth();
   const { showToast } = useToast();
@@ -59,24 +58,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
     }
   };
 
-  const fillAdminCredentials = () => {
-    setUsername('admin');
-    setPassword('AdminPass123!');
-    setError(null);
-  };
-
   return (
     <div className={styles.wrapper} data-testid="login-view">
       <div className={styles.card}>
         <div className={styles.brandHeader}>
-          <div className={styles.brandRow}>
-            <span className={styles.brandTitle}>Multimedia</span>
-            <span className={styles.brandBadge}>STUDIO</span>
-          </div>
           <h1 className={styles.title}>Iniciar Sesión</h1>
-          <p className={styles.subtitle}>
-            Ingresa tus credenciales para administrar imágenes, datasets y perfiles.
-          </p>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
@@ -142,33 +128,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
           >
             {loading ? 'Validando...' : 'Entrar al Dashboard'}
           </Button>
-
-          <div className={styles.quickFillSection}>
-            <span className={styles.quickFillTitle}>Acceso Rápido / Pruebas</span>
-            <div className={styles.quickFillBtns}>
-              <button
-                type="button"
-                onClick={fillAdminCredentials}
-                className={styles.quickBtn}
-                title="Autocompletar usuario admin y contraseña de seed"
-              >
-                <Sparkles size={13} />
-                <span>Admin Maestro</span>
-              </button>
-
-              {onExploreDemo && (
-                <button
-                  type="button"
-                  onClick={onExploreDemo}
-                  className={styles.quickBtn}
-                  title="Entrar al dashboard sin iniciar sesión"
-                >
-                  <span>Modo Explorador</span>
-                  <ArrowRight size={13} />
-                </button>
-              )}
-            </div>
-          </div>
         </form>
 
         <div className={styles.footer}>

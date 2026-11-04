@@ -1,0 +1,82 @@
+.statusBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px 24px;
+  border-top: 1px solid var(--border-subtle);
+  background: transparent;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.statusItems {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.statusBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--radius-xs);
+  transition: all var(--transition-fast);
+}
+
+.statusBtn:hover {
+  color: var(--text-main);
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.dotOk {
+  background: var(--color-success);
+  box-shadow: 0 0 6px rgba(134, 239, 172, 0.6);
+}
+
+.dotDegraded {
+  background: var(--color-warning);
+  box-shadow: 0 0 6px rgba(254, 215, 170, 0.6);
+}
+
+.dotDown {
+  background: var(--color-danger);
+  box-shadow: 0 0 6px rgba(252, 165, 165, 0.6);
+}
+
+.separator {
+  color: rgba(148, 163, 184, 0.35);
+  font-size: 0.6875rem;
+  user-select: none;
+}
+
+.storageText {
+  color: var(--text-muted);
+}
+
+.storageBold {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+.versionText {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}

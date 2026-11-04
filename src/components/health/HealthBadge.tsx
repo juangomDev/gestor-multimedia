@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { healthService } from '../../services/healthService';
 import type { HealthResponse } from '../../types/api';
@@ -13,7 +13,7 @@ export const HealthBadge: React.FC<HealthBadgeProps> = ({ onStatusChange, size =
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [checking, setChecking] = useState<boolean>(false);
 
-  const check = async () => {
+  const check = useCallback(async () => {
     setChecking(true);
     try {
       const res = await healthService.checkHealth();
@@ -22,13 +22,24 @@ export const HealthBadge: React.FC<HealthBadgeProps> = ({ onStatusChange, size =
     } finally {
       setChecking(false);
     }
-  };
+  }, [onStatusChange]);
 
   useEffect(() => {
-    check();
-    const interval = setInterval(check, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    let isMounted = true;
+    healthService.checkHealth().then((res) => {
+      if (isMounted) {
+        setHealth(res);
+        onStatusChange?.(res);
+      }
+    });
+    const interval = setInterval(() => {
+      void check();
+    }, 30000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [check, onStatusChange]);
 
   const isOk = health?.status === 'ok';
   const isDegraded = health?.status === 'degraded' && health.db === 'up';

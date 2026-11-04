@@ -7,7 +7,11 @@ export interface ImageItem {
   mimeType: string;
   sizeBytes: number;
   url: string;
+  urlWithVersion?: string;
+  width?: number | null;
+  height?: number | null;
   createdAt: string;
+  updatedAt?: string;
   folderId?: string | null;
   // Local fallback/preview support
   demoPreviewUrl?: string;
@@ -22,7 +26,10 @@ export interface TableItem {
   columns?: string[];
   sizeBytes: number;
   url: string;
+  urlWithVersion?: string;
+  metadataCard?: any;
   createdAt: string;
+  updatedAt?: string;
   folderId?: string | null;
   // Local fallback/preview support
   demoRows?: Record<string, any>[];
@@ -33,7 +40,10 @@ export interface FolderItem {
   id: string;
   name: string;
   type: MediaCategory;
-  color?: string;
+  color?: string | null;
+  isPrivate?: boolean;
   itemCount?: number;
+  userId?: string;
+  myPermission?: 'READ' | 'EDIT';
   createdAt: string;
 }

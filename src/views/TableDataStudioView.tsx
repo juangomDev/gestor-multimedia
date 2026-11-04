@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   ArrowLeft,
   Download,
@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { tablesService } from '../services/tablesService';
 import { copyToClipboard } from '../utils/clipboard';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../context/useToast';
 import { Button } from '../components/common/Button';
 import type { TableItem } from '../types/media';
 import styles from './TableDataStudioView.module.css';
@@ -34,36 +34,71 @@ export const TableDataStudioView: React.FC<TableDataStudioViewProps> = ({ table,
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortAsc, setSortAsc] = useState<boolean>(true);
 
-  const loadData = async (targetPage: number, targetLimit: number) => {
-    setLoading(true);
-    try {
-      const res = await tablesService.getTableData(table.shortCode, targetPage, targetLimit);
-      setRows(res.data);
-      setTotalRows(res.meta.total);
-      setTotalPages(res.meta.totalPages);
-      setPage(res.meta.page);
+  const loadData = useCallback(
+    async (targetPage: number, targetLimit: number) => {
+      setLoading(true);
+      try {
+        const res = await tablesService.getTableData(table.shortCode, targetPage, targetLimit);
+        setRows(res.data);
+        setTotalRows(res.meta.total);
+        setTotalPages(res.meta.totalPages);
+        setPage(res.meta.page);
 
-      if (res.data.length > 0 && (!columns || columns.length === 0)) {
-        setColumns(Object.keys(res.data[0]));
+        if (res.data.length > 0 && (!columns || columns.length === 0)) {
+          setColumns(Object.keys(res.data[0]));
+        }
+      } catch {
+        if (table.demoRows) {
+          setRows(table.demoRows);
+          setColumns(table.columns || Object.keys(table.demoRows[0] || {}));
+          setTotalRows(table.demoRows.length);
+          setTotalPages(1);
+        } else {
+          showToast('No se pudieron consultar los datos del backend', 'error');
+        }
+      } finally {
+        setLoading(false);
       }
-    } catch {
-      // Fallback for demo or offline sandbox
-      if (table.demoRows) {
-        setRows(table.demoRows);
-        setColumns(table.columns || Object.keys(table.demoRows[0] || {}));
-        setTotalRows(table.demoRows.length);
-        setTotalPages(1);
-      } else {
-        showToast('No se pudieron consultar los datos del backend', 'error');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [table.shortCode, table.columns, table.demoRows, columns, showToast]
+  );
 
   useEffect(() => {
-    loadData(page, limit);
-  }, [table.shortCode, page, limit]);
+    let isCancelled = false;
+    tablesService
+      .getTableData(table.shortCode, page, limit)
+      .then((res) => {
+        if (isCancelled) return;
+        setRows(res.data);
+        setTotalRows(res.meta.total);
+        setTotalPages(res.meta.totalPages);
+        setPage(res.meta.page);
+
+        if (res.data.length > 0 && (!columns || columns.length === 0)) {
+          setColumns(Object.keys(res.data[0]));
+        }
+      })
+      .catch(() => {
+        if (isCancelled) return;
+        if (table.demoRows) {
+          setRows(table.demoRows);
+          setColumns(table.columns || Object.keys(table.demoRows[0] || {}));
+          setTotalRows(table.demoRows.length);
+          setTotalPages(1);
+        } else {
+          showToast('No se pudieron consultar los datos del backend', 'error');
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [table.shortCode, table.columns, table.demoRows, page, limit, columns, showToast]);
 
   const handleCopyUrl = async () => {
     const success = await copyToClipboard(table.url);

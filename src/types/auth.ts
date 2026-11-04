@@ -1,10 +1,11 @@
-export type Role = 'ADMIN' | 'USER';
+export type Role = 'ADMIN' | 'MANAGER' | 'COLLABORATOR' | 'USER';
 
 export interface User {
   id: string;
   username: string;
   role: Role;
   isActive: boolean;
+  createdById?: string | null;
   createdAt: string;
   updatedAt?: string;
 }

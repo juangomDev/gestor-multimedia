@@ -3,7 +3,7 @@ import { FolderPlus } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { storageService } from '../../services/storageService';
-import { useToast } from '../../context/ToastContext';
+import { useToast } from '../../context/useToast';
 import type { MediaCategory, FolderItem } from '../../types/media';
 import styles from './CreateFolderModal.module.css';
 

@@ -21,10 +21,9 @@ describe('LoginView Component', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders login heading, brand title, and input fields', () => {
+  it('renders login heading and input fields', () => {
     renderLoginView();
 
-    expect(screen.getByText('Multimedia')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Iniciar Sesión/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/Nombre de Usuario/i)).toBeInTheDocument();
     expect(screen.getByLabelText('Contraseña')).toBeInTheDocument();
@@ -43,7 +42,7 @@ describe('LoginView Component', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/usuario y contraseña/i);
   });
 
-  it('fills admin credentials when clicking Admin Maestro quick button and logs in', async () => {
+  it('allows typing credentials and submitting form', async () => {
     const loginSpy = vi.spyOn(authService, 'login').mockResolvedValue({
       token: 'mock.admin.jwt',
       user: { id: 'admin-id', username: 'admin', role: 'ADMIN' },
@@ -52,18 +51,13 @@ describe('LoginView Component', () => {
     const onLoginSuccess = vi.fn();
     renderLoginView(onLoginSuccess);
 
-    const quickFillBtn = screen.getByRole('button', { name: /Admin Maestro/i });
-
-    await act(async () => {
-      fireEvent.click(quickFillBtn);
-    });
-
-    expect(screen.getByLabelText(/Nombre de Usuario/i)).toHaveValue('admin');
-    expect(screen.getByLabelText('Contraseña')).toHaveValue('AdminPass123!');
-
+    const userInput = screen.getByLabelText(/Nombre de Usuario/i);
+    const passInput = screen.getByLabelText('Contraseña');
     const submitBtn = screen.getByRole('button', { name: /Entrar al Dashboard/i });
 
     await act(async () => {
+      fireEvent.change(userInput, { target: { value: 'admin' } });
+      fireEvent.change(passInput, { target: { value: 'AdminPass123!' } });
       fireEvent.click(submitBtn);
     });
 

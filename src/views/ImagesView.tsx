@@ -16,6 +16,8 @@ interface ImagesViewProps {
   onMoveImageToFolder?: (image: ImageItem) => void;
 }
 
+export type FormatFilter = 'ALL' | 'PNG' | 'JPG' | 'WEBP' | 'SVG';
+
 export const ImagesView: React.FC<ImagesViewProps> = ({
   images,
   activeFolder,
@@ -25,7 +27,7 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
   onDeleteImage,
   onMoveImageToFolder,
 }) => {
-  const [selectedFormat, setSelectedFormat] = useState<'ALL' | 'PNG' | 'JPG' | 'WEBP'>('ALL');
+  const [selectedFormat, setSelectedFormat] = useState<FormatFilter>('ALL');
   const [inspectingImage, setInspectingImage] = useState<ImageItem | null>(null);
 
   const filteredImages = useMemo(() => {
@@ -36,7 +38,7 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
       }
 
       // Format filter
-      if (selectedFormat === 'PNG' && !img.mimeType.includes('png') && !img.originalName.endsWith('.png')) {
+      if (selectedFormat === 'PNG' && !img.mimeType.includes('png') && !/\.png$/i.test(img.originalName)) {
         return false;
       }
       if (
@@ -46,7 +48,10 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
       ) {
         return false;
       }
-      if (selectedFormat === 'WEBP' && !img.mimeType.includes('webp') && !img.originalName.endsWith('.webp')) {
+      if (selectedFormat === 'WEBP' && !img.mimeType.includes('webp') && !/\.webp$/i.test(img.originalName)) {
+        return false;
+      }
+      if (selectedFormat === 'SVG' && !img.mimeType.includes('svg') && !/\.svg$/i.test(img.originalName)) {
         return false;
       }
 
@@ -94,6 +99,7 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
               />
               {searchQuery && (
                 <button
+                  type="button"
                   onClick={() => onSearchChange('')}
                   className={styles.clearSearchBtn}
                   aria-label="Limpiar búsqueda"
@@ -104,11 +110,14 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
             </div>
           )}
 
-          {/* Format Tabs */}
-          <div className={styles.filterTabs}>
-            {(['ALL', 'PNG', 'JPG', 'WEBP'] as const).map((fmt) => (
+          {/* Format Tabs (Pill style) */}
+          <div className={styles.filterTabs} role="tablist" aria-label="Filtro de formato">
+            {(['ALL', 'PNG', 'JPG', 'WEBP', 'SVG'] as const).map((fmt) => (
               <button
                 key={fmt}
+                type="button"
+                role="tab"
+                aria-selected={selectedFormat === fmt}
                 className={`${styles.filterTab} ${selectedFormat === fmt ? styles.active : ''}`}
                 onClick={() => setSelectedFormat(fmt)}
               >
@@ -117,9 +126,15 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
             ))}
           </div>
 
-          <Button variant="primary" size="sm" icon={<Upload size={14} />} onClick={onOpenUpload}>
-            Subir
-          </Button>
+          <button
+            type="button"
+            className={styles.uploadHeaderBtn}
+            onClick={onOpenUpload}
+            title="Subir imágenes"
+          >
+            <Upload size={14} />
+            <span>Subir</span>
+          </button>
         </div>
       </div>
 

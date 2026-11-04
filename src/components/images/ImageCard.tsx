@@ -1,8 +1,8 @@
 import React from 'react';
 import { Copy, Trash2, Eye, FolderInput, ExternalLink } from 'lucide-react';
-import { formatBytes, formatDate, buildPublicAssetUrl } from '../../utils/formatters';
+import { buildPublicAssetUrl } from '../../utils/formatters';
 import { copyToClipboard } from '../../utils/clipboard';
-import { useToast } from '../../context/ToastContext';
+import { useToast } from '../../context/useToast';
 import { storageService } from '../../services/storageService';
 import type { ImageItem } from '../../types/media';
 import styles from './ImageCard.module.css';
@@ -23,7 +23,15 @@ export const ImageCard: React.FC<ImageCardProps> = ({
   const { showToast } = useToast();
   const [imgError, setImgError] = React.useState(false);
 
-  const handleCopy = async (e: React.MouseEvent) => {
+  const handleCopyShortCode = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const success = await copyToClipboard(image.shortCode);
+    if (success) {
+      showToast(`Código '${image.shortCode}' copiado al portapapeles`, 'success');
+    }
+  };
+
+  const handleCopyUrl = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const success = await copyToClipboard(image.url);
     if (success) {
@@ -46,7 +54,16 @@ export const ImageCard: React.FC<ImageCardProps> = ({
       data-testid={`image-card-${image.shortCode}`}
     >
       <div className={styles.thumbnailWrapper}>
-        <span className={styles.shortCodeBadge}>{image.shortCode}</span>
+        <button
+          type="button"
+          onClick={handleCopyShortCode}
+          className={styles.shortCodeBadge}
+          title="Copiar código al portapapeles (1 clic)"
+          aria-label={`Copiar código ${image.shortCode}`}
+        >
+          <Copy size={11} className={styles.badgeCopyIcon} />
+          <span>{image.shortCode}</span>
+        </button>
 
         <img
           src={displayUrl}
@@ -64,7 +81,11 @@ export const ImageCard: React.FC<ImageCardProps> = ({
 
         <div className={styles.overlayActions}>
           <button
-            onClick={() => onOpenInspector(image)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenInspector(image);
+            }}
             className={styles.actionBtn}
             title="Previsualizar con zoom"
             aria-label="Previsualizar"
@@ -83,7 +104,8 @@ export const ImageCard: React.FC<ImageCardProps> = ({
             <ExternalLink size={15} />
           </a>
           <button
-            onClick={handleCopy}
+            type="button"
+            onClick={handleCopyUrl}
             className={styles.actionBtn}
             title="Copiar URL directa /i/..."
             aria-label="Copiar URL"
@@ -92,6 +114,7 @@ export const ImageCard: React.FC<ImageCardProps> = ({
           </button>
           {onMoveToFolder && (
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onMoveToFolder(image);
@@ -104,6 +127,7 @@ export const ImageCard: React.FC<ImageCardProps> = ({
             </button>
           )}
           <button
+            type="button"
             onClick={handleDelete}
             className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
             title="Eliminar imagen"
@@ -118,10 +142,6 @@ export const ImageCard: React.FC<ImageCardProps> = ({
         <span className={styles.fileName} title={image.originalName}>
           {image.originalName}
         </span>
-        <div className={styles.metaRow}>
-          <span>{formatBytes(image.sizeBytes)}</span>
-          <span>{formatDate(image.createdAt)}</span>
-        </div>
       </div>
     </div>
   );

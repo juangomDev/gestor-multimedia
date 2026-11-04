@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Users,
   UserPlus,
@@ -14,8 +14,8 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { Button } from '../components/common/Button';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/useAuth';
+import { useToast } from '../context/useToast';
 import { storageService } from '../services/storageService';
 import { copyToClipboard } from '../utils/clipboard';
 import { formatDate } from '../utils/formatters';
@@ -37,10 +37,6 @@ export const UserProfilesView: React.FC<UserProfilesViewProps> = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastCreated, setLastCreated] = useState<{ username: string; pass: string } | null>(null);
   const [profiles, setProfiles] = useState<User[]>(() => storageService.getCreatedUsers());
-
-  useEffect(() => {
-    setProfiles(storageService.getCreatedUsers());
-  }, []);
 
   const generateRandomPassword = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*';

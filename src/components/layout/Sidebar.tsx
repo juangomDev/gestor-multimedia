@@ -1,22 +1,18 @@
 import React from 'react';
-import { Image, Table2, Upload, Settings, FileCode2, RefreshCw, LogOut, Users } from 'lucide-react';
-import { formatBytes } from '../../utils/formatters';
-import { HealthBadge } from '../health/HealthBadge';
-import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../../context/ToastContext';
+import { Image, Table2, Upload, Settings, RefreshCw, LogOut, Users } from 'lucide-react';
+import { useAuth } from '../../context/useAuth';
+import { useToast } from '../../context/useToast';
 import type { FolderItem } from '../../types/media';
 import styles from './Sidebar.module.css';
 
 export interface SidebarProps {
-  activeView: 'images' | 'tables' | 'profiles' | 'login';
-  onViewChange: (view: 'images' | 'tables' | 'profiles' | 'login') => void;
+  activeView: 'images' | 'tables' | 'profiles' | 'login' | 'settings';
+  onViewChange: (view: 'images' | 'tables' | 'profiles' | 'login' | 'settings') => void;
   onOpenUpload: () => void;
-  onOpenConfig: () => void;
-  onOpenImport: () => void;
   onSync: () => void;
   imagesCount: number;
   tablesCount: number;
-  totalBytes: number;
+  totalBytes?: number;
   folders?: FolderItem[];
   activeFolderId?: string | null;
   onFolderChange?: (folderId: string | null) => void;
@@ -28,19 +24,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeView,
   onViewChange,
   onOpenUpload,
-  onOpenConfig,
-  onOpenImport,
   onSync,
   imagesCount,
   tablesCount,
-  totalBytes,
 }) => {
   const { user, logout } = useAuth();
   const { showToast } = useToast();
   const isEffectiveAdmin = user ? user.role === 'ADMIN' : true;
-
-  const maxStorageBytes = 50 * 1024 * 1024 * 1024; // 50 GB
-  const percentage = Math.min(100, (totalBytes / maxStorageBytes) * 100);
 
   const handleLogoutClick = () => {
     logout();
@@ -98,17 +88,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className={styles.navGroup}>
           <span className={styles.navTitle}>Configuración</span>
 
-          <button onClick={onOpenConfig} className={styles.navItem}>
+          <button
+            onClick={() => onViewChange('settings')}
+            className={`${styles.navItem} ${activeView === 'settings' ? styles.active : ''}`}
+          >
             <div className={styles.itemLabel}>
               <Settings size={17} />
               <span>Configuración API</span>
-            </div>
-          </button>
-
-          <button onClick={onOpenImport} className={styles.navItem}>
-            <div className={styles.itemLabel}>
-              <FileCode2 size={17} />
-              <span>Importar por Código</span>
             </div>
           </button>
 
@@ -133,28 +119,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Bottom Section: Health, Storage, Account & Logout */}
+      {/* Bottom Section: User Account & Logout Card */}
       <div className={styles.bottomSection}>
-        {/* API Health: Discreet, subtle, not flashy at bottom */}
-        <div className={styles.healthRow}>
-          <HealthBadge size="sm" />
-        </div>
-
-        {/* Storage Widget */}
-        <div className={styles.storageWidget}>
-          <div className={styles.storageHeader}>
-            <span>Almacenamiento</span>
-            <span style={{ fontWeight: 600 }}>{formatBytes(totalBytes)} / 50 GB</span>
-          </div>
-          <div className={styles.progressBar}>
-            <div
-              className={styles.progressFill}
-              style={{ width: `${Math.max(2, percentage)}%` }}
-            />
-          </div>
-        </div>
-
-        {/* User Account & Logout Card */}
         <div className={styles.userAccountCard}>
           <div className={styles.userInfoGroup}>
             <div className={styles.avatarCircle}>{initials}</div>
@@ -165,6 +131,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={handleLogoutClick}
             className={styles.logoutBtn}
             title="Cerrar Sesión"
@@ -173,8 +140,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <LogOut size={15} />
           </button>
         </div>
-
-        <div className={styles.versionTag}>Version v0.30.10</div>
       </div>
     </aside>
   );

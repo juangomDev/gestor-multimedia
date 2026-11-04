@@ -49,7 +49,7 @@
 .controlsRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -57,17 +57,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 6px 10px;
-  min-width: 240px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 9999px;
+  padding: 6px 14px;
+  min-width: 230px;
   transition: all var(--transition-fast);
 }
 
 .searchBox:focus-within {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.15);
+  border-color: rgba(96, 165, 250, 0.5);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.12);
+  background: rgba(15, 23, 42, 0.7);
 }
 
 .searchIcon {
@@ -96,6 +97,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
 }
 
 .clearSearchBtn:hover {
@@ -104,31 +106,63 @@
 
 .filterTabs {
   display: flex;
-  gap: 4px;
-  background: var(--bg-card);
+  align-items: center;
+  gap: 2px;
+  background: rgba(15, 23, 42, 0.45);
   padding: 3px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
 }
 
 .filterTab {
-  padding: 5px 10px;
-  border-radius: var(--radius-xs);
+  padding: 5px 12px;
+  border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-muted);
+  background: transparent;
+  border: none;
   transition: all var(--transition-fast);
   cursor: pointer;
+  user-select: none;
 }
 
 .filterTab:hover {
   color: var(--text-main);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .filterTab.active {
-  background: var(--accent-primary-bg);
-  color: var(--accent-primary);
+  background: rgba(96, 165, 250, 0.16);
+  color: #93c5fd;
   font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.uploadHeaderBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  font-size: 0.78125rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.uploadHeaderBtn:hover {
+  background: linear-gradient(135deg, #60a5fa 0%, #818cf8 100%);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.5);
+  transform: translateY(-1px);
+}
+
+.uploadHeaderBtn:active {
+  transform: translateY(0);
 }
 
 /* Reduced card size grid (~25% smaller, minmax 195px) */
