@@ -58,7 +58,7 @@ describe('UserProfilesView Component', () => {
       user: {
         id: 'new-collab-id',
         username: 'colaborador_test',
-        role: 'USER',
+        role: 'COLLABORATOR',
         isActive: true,
         createdAt: new Date().toISOString(),
       },
@@ -79,7 +79,7 @@ describe('UserProfilesView Component', () => {
     expect(createSpy).toHaveBeenCalledWith({
       username: 'colaborador_test',
       password: 'Secr3tPass!',
-      role: 'USER',
+      role: 'COLLABORATOR',
     });
 
     expect(screen.getByText(/¡Perfil creado exitosamente!/i)).toBeInTheDocument();

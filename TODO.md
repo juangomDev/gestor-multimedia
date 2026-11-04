@@ -10,14 +10,14 @@
 
 | Métrica / Dimensión | Estado Actual | Detalle |
 |---|:---:|---|
-| **Pruebas Automatizadas (Vitest)** | **87 / 87 (100% pasando)** | 22 suites en verde, 0 fallos |
-| **Linter (Oxlint)** | **0 advertencias, 0 errores** | 67 archivos analizados con 116 reglas |
-| **Compilación (TypeScript / Vite)** | **Compilación Limpia (0 errores)** | Bundle listo para producción generado en 589ms |
-| **Cobertura de Endpoints Backend** | **38 / 38 Mapeados** | 7 Implementados / 5 Parciales / 26 Planificados |
-| **Módulos Base Completados** | **10 / 18 Módulos (55.5%)** | Módulos 1 al 10 finalizados y testeados |
+| **Pruebas Automatizadas (Vitest)** | **109 / 109 (100% pasando)** | 26 suites en verde, 0 fallos |
+| **Linter (Oxlint)** | **0 advertencias, 0 errores** | 73 archivos analizados con 116 reglas |
+| **Compilación (TypeScript / Vite)** | **Compilación Limpia (0 errores)** | Bundle listo para producción generado en 541ms |
+| **Cobertura de Endpoints Backend** | **38 / 38 Mapeados** | 12 Implementados / 4 Parciales / 22 Planificados |
+| **Módulos Base Completados** | **11 / 18 Módulos (61.1%)** | Módulos 1 al 11 finalizados y testeados |
 | **Capa de Transporte HTTP** | **Completa (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`)** | Métodos extendidos, soporte `FormData`, streams y RFC 7807 |
 | **Contrato y Tipado OpenAPI 3.1** | **Sincronizado al 100%** | Generado en `src/types/api.generated.ts` (4.705 LOC) con script `types:sync` |
-| **Siguiente Módulo Activo** | ⏳ **Módulo 11 o Módulo 13** | Tokens Rotativos / Sesión o Carpetas en PostgreSQL con RBAC |
+| **Siguiente Módulo Activo** | ⏳ **Módulo 12** | Suite de Administración Jerárquica de Usuarios (RBAC) |
 
 ---
 
@@ -28,11 +28,11 @@
 | **1** | `GET` | `/health` | Módulo 1 / 17 | `HealthBadge.tsx`, `StatusBar.tsx`, `SettingsView.tsx` | `healthService.ts` | ✅ Parcial / ⏳ Extendido |
 | **2** | `GET` | `/docs` | Módulo 17 | `ApiDocsModal.tsx` / `SettingsView.tsx` (Scalar UI) | `apiClient.ts` | ⏳ Pendiente |
 | **3** | `GET` | `/openapi.json` | Módulo 10 / 17 | `openapi.json` -> `src/types/api.ts` (Generador) | Scripts de tipado | ✅ Implementado |
-| **4** | `POST` | `/api/v1/auth/login` | Módulo 4 / 11 | `LoginView.tsx` (Login con roles RBAC) | `authService.ts` | ✅ Parcial / ⏳ Refactor |
-| **5** | `POST` | `/api/v1/auth/refresh` | Módulo 11 | `apiClient.ts` (Interceptor de 401 automático) | `authService.ts` | ⏳ Pendiente |
-| **6** | `POST` | `/api/v1/auth/logout` | Módulo 11 | `Sidebar.tsx` / `UserMenu.tsx` (Cierre en servidor) | `authService.ts` | ⏳ Pendiente |
-| **7** | `GET` | `/api/v1/auth/me` | Módulo 11 | `AuthContext.tsx` (Validación de sesión activa) | `authService.ts` | ⏳ Pendiente |
-| **8** | `PATCH` | `/api/v1/auth/password` | Módulo 11 | `ChangePasswordModal.tsx` (Autogestión de clave) | `authService.ts` | ⏳ Pendiente |
+| **4** | `POST` | `/api/v1/auth/login` | Módulo 4 / 11 | `LoginView.tsx` (Login con roles RBAC) | `authService.ts` | ✅ Implementado |
+| **5** | `POST` | `/api/v1/auth/refresh` | Módulo 11 | `apiClient.ts` (Interceptor de 401 automático) | `authService.ts` | ✅ Implementado |
+| **6** | `POST` | `/api/v1/auth/logout` | Módulo 11 | `Sidebar.tsx` / `UserMenu.tsx` (Cierre en servidor) | `authService.ts` | ✅ Implementado |
+| **7** | `GET` | `/api/v1/auth/me` | Módulo 11 | `AuthContext.tsx` (Validación de sesión activa) | `authService.ts` | ✅ Implementado |
+| **8** | `PATCH` | `/api/v1/auth/password` | Módulo 11 | `ChangePasswordModal.tsx` (Autogestión de clave) | `authService.ts` | ✅ Implementado |
 | **9** | `POST` | `/api/v1/users` | Módulo 12 | `UserProfilesView.tsx` (Jerarquía ADMIN > MGR > COL) | `usersService.ts` | ⏳ Pendiente |
 | **10** | `GET` | `/api/v1/users` | Módulo 12 | `UserProfilesView.tsx` (Listado dinámico DB) | `usersService.ts` | ⏳ Pendiente |
 | **11** | `PATCH` | `/api/v1/users/:id/status` | Módulo 12 | `UserProfilesView.tsx` (Toggle Activar/Suspender) | `usersService.ts` | ⏳ Pendiente |
@@ -154,24 +154,24 @@
 > **Rutas Backend:** `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`, `PATCH /api/v1/auth/password`.  
 > **Roles:** `ADMIN`, `MANAGER`, `COLLABORATOR` (eliminación total de referencias al rol legacy `USER`).
 
-- [ ] **11.1 Renovación Transparente de Token (Interceptor de Refresco)**
-  - [ ] `11.1.1` Implementar en `apiClient.ts` una cola de peticiones con interceptor: si una petición falla con `401 UNAUTHORIZED` y no es la ruta de login, invocar `POST /api/v1/auth/refresh` con `credentials: 'include'`.
-  - [ ] `11.1.2` Si el refresco es exitoso, actualizar token en memoria/localStorage y reintentar la petición original sin interrumpir al usuario.
-  - [ ] `11.1.3` Si el refresco falla (`SESSION_REVOKED` o refresh token expirado), ejecutar logout limpio en frontend y redirigir a `LoginView`.
+- [x] **11.1 Renovación Transparente de Token (Interceptor de Refresco)**
+  - [x] `11.1.1` Implementar en `apiClient.ts` una cola de peticiones con interceptor: si una petición falla con `401 UNAUTHORIZED` y no es la ruta de login, invocar `POST /api/v1/auth/refresh` con `credentials: 'include'`.
+  - [x] `11.1.2` Si el refresco es exitoso, actualizar token en memoria/localStorage y reintentar la petición original sin interrumpir al usuario.
+  - [x] `11.1.3` Si el refresco falla (`SESSION_REVOKED` o refresh token expirado), ejecutar logout limpio en frontend y redirigir a `LoginView`.
 
-- [ ] **11.2 Validación de Sesión Activa al Iniciar (`GET /api/v1/auth/me`)**
-  - [ ] `11.2.1` Integrar llamada a `GET /api/v1/auth/me` en la inicialización de `AuthContext.tsx` para sincronizar datos reales del usuario (`id`, `username`, `role`, `isActive`, `createdById`).
-  - [ ] `11.2.2` Soportar roles estrictos `ADMIN`, `MANAGER`, `COLLABORATOR` en la interfaz de usuario con badges de color específicos.
+- [x] **11.2 Validación de Sesión Activa al Iniciar (`GET /api/v1/auth/me`)**
+  - [x] `11.2.1` Integrar llamada a `GET /api/v1/auth/me` en la inicialización de `AuthContext.tsx` para sincronizar datos reales del usuario (`id`, `username`, `role`, `isActive`, `createdById`).
+  - [x] `11.2.2` Soportar roles estrictos `ADMIN`, `MANAGER`, `COLLABORATOR` en la interfaz de usuario con badges de color específicos.
 
-- [ ] **11.3 Cierre de Sesión Seguro en Servidor (`POST /api/v1/auth/logout`)**
-  - [ ] `11.3.1` Actualizar `authService.logout()` para realizar petición `POST /api/v1/auth/logout` antes de limpiar el estado local, revocando el `tokenVersion` en PostgreSQL y limpiando la cookie HttpOnly.
-  - [ ] `11.3.2` Conectar el botón de desconexión del `Sidebar.tsx` con feedback visual toast.
+- [x] **11.3 Cierre de Sesión Seguro en Servidor (`POST /api/v1/auth/logout`)**
+  - [x] `11.3.1` Actualizar `authService.logout()` para realizar petición `POST /api/v1/auth/logout` antes de limpiar el estado local, revocando el `tokenVersion` en PostgreSQL y limpiando la cookie HttpOnly.
+  - [x] `11.3.2` Conectar el botón de desconexión del `Sidebar.tsx` con feedback visual toast.
 
-- [ ] **11.4 Autogestión de Contraseña Propia (`PATCH /api/v1/auth/password`)**
-  - [ ] `11.4.1` Crear componente modal `ChangePasswordModal.tsx` con campos: Contraseña Actual, Nueva Contraseña y Confirmación.
-  - [ ] `11.4.2` Validar longitud mínima de 6 caracteres y coincidencia antes de enviar a `PATCH /api/v1/auth/password`.
-  - [ ] `11.4.3` Añadir botón de acceso rápido "Cambiar Contraseña" en la tarjeta de perfil del `Sidebar.tsx` y en `SettingsView.tsx`.
-  - [ ] `11.4.4` Pruebas unitarias para `ChangePasswordModal.test.tsx` y `authService.password.test.ts`.
+- [x] **11.4 Autogestión de Contraseña Propia (`PATCH /api/v1/auth/password`)**
+  - [x] `11.4.1` Crear componente modal `ChangePasswordModal.tsx` con campos: Contraseña Actual, Nueva Contraseña y Confirmación.
+  - [x] `11.4.2` Validar longitud mínima de 6 caracteres y coincidencia antes de enviar a `PATCH /api/v1/auth/password`.
+  - [x] `11.4.3` Añadir botón de acceso rápido "Cambiar Contraseña" en la tarjeta de perfil del `Sidebar.tsx` y en `SettingsView.tsx`.
+  - [x] `11.4.4` Pruebas unitarias para `ChangePasswordModal.test.tsx` y `authService.password.test.ts`.
 
 ---
 

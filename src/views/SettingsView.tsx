@@ -12,9 +12,11 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/common/Button';
 import { storageService, DEFAULT_CONFIG } from '../services/storageService';
+import { KeyRound, ShieldCheck } from 'lucide-react';
 import { healthService } from '../services/healthService';
 import { cleanBaseUrl, buildPublicAssetUrl } from '../utils/formatters';
 import { useToast } from '../context/useToast';
+import { useAuth } from '../context/useAuth';
 import type { MediaCategory, ImageItem, TableItem } from '../types/media';
 import type { HealthResponse } from '../types/api';
 import styles from './SettingsView.module.css';
@@ -24,6 +26,7 @@ export interface SettingsViewProps {
   onConfigSaved?: () => void;
   onItemImported?: () => void;
   folderId?: string | null;
+  onOpenChangePassword?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -31,7 +34,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onConfigSaved,
   onItemImported,
   folderId,
+  onOpenChangePassword,
 }) => {
+  const { user } = useAuth();
   const { showToast } = useToast();
 
   // Inicializar estado directamente desde storageService (cumpliendo con React 19 sin setState en useEffect)
@@ -362,6 +367,56 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </Button>
             </div>
           </form>
+        </section>
+
+        {/* Panel 3: Mi Perfil & Seguridad de Sesión */}
+        <section className={styles.card} aria-labelledby="user-profile-security-heading">
+          <div className={styles.cardHeader}>
+            <div className={`${styles.cardIcon} ${styles.cardIconPurple}`}>
+              <ShieldCheck size={20} />
+            </div>
+            <div className={styles.cardHeaderTexts}>
+              <h2 id="user-profile-security-heading" className={styles.cardTitle}>
+                Mi Perfil & Seguridad
+              </h2>
+              <span className={styles.cardSubtitle}>
+                Gestión de credenciales y datos de sesión activa en Monolith Backend.
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.form}>
+            <div className={styles.previewBox}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className={styles.previewLabel}>Usuario Activo</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                  {user?.username || 'admin'}
+                </span>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '10px',
+                }}
+              >
+                <span className={styles.previewLabel}>Rol de Sistema</span>
+                <span className={styles.badgePill}>{user?.role || 'ADMIN'}</span>
+              </div>
+            </div>
+
+            <div className={styles.actions} style={{ justifyContent: 'flex-start' }}>
+              <Button
+                type="button"
+                variant="primary"
+                icon={<KeyRound size={16} />}
+                onClick={onOpenChangePassword}
+              >
+                Cambiar Contraseña
+              </Button>
+            </div>
+          </div>
         </section>
       </div>
 

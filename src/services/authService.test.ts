@@ -25,14 +25,16 @@ describe('authService', () => {
     expect(storageService.getToken()).toBe('jwt.token.xyz');
   });
 
-  it('logout removes session', () => {
+  it('logout removes session', async () => {
     storageService.saveSession({
       token: 'token',
-      user: { id: '1', username: 'user', role: 'USER' },
+      user: { id: '1', username: 'user', role: 'COLLABORATOR' },
     });
 
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ message: 'Sesión cerrada exitosamente' });
+
     expect(authService.isAuthenticated()).toBe(true);
-    authService.logout();
+    await authService.logout();
     expect(authService.isAuthenticated()).toBe(false);
     expect(authService.getSession()).toBeNull();
   });
@@ -42,7 +44,7 @@ describe('authService', () => {
       user: {
         id: 'new-user-1',
         username: 'colaborador',
-        role: 'USER' as const,
+        role: 'COLLABORATOR' as const,
         isActive: true,
         createdAt: new Date().toISOString(),
       },
@@ -53,14 +55,14 @@ describe('authService', () => {
     const result = await authService.createUser({
       username: 'colaborador',
       password: 'secretPassword',
-      role: 'USER',
+      role: 'COLLABORATOR',
     });
 
     expect(result).toEqual(mockCreated);
     expect(postSpy).toHaveBeenCalledWith('/api/v1/users', {
       username: 'colaborador',
       password: 'secretPassword',
-      role: 'USER',
+      role: 'COLLABORATOR',
     });
   });
 });

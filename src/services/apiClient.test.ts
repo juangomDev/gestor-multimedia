@@ -14,7 +14,7 @@ describe('apiClient', () => {
 
   it('makes GET request and parses JSON response with Authorization and X-API-Key', async () => {
     storageService.saveConfig({ baseUrl: 'http://localhost:3000', apiKey: 'test-api-key' });
-    storageService.saveSession({ token: 'jwt.token.abc', user: { id: '1', username: 'test', role: 'USER' } });
+    storageService.saveSession({ token: 'jwt.token.abc', user: { id: '1', username: 'test', role: 'COLLABORATOR' } });
 
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

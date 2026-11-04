@@ -1,4 +1,4 @@
-export type Role = 'ADMIN' | 'MANAGER' | 'COLLABORATOR' | 'USER';
+export type Role = 'ADMIN' | 'MANAGER' | 'COLLABORATOR';
 
 export interface User {
   id: string;
@@ -16,6 +16,8 @@ export interface UserSession {
     id: string;
     username: string;
     role: Role;
+    isActive?: boolean;
+    createdById?: string | null;
   };
 }
 
@@ -28,4 +30,26 @@ export interface CreateUserInput {
   username: string;
   password: string;
   role?: Role;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
+}
+
+export interface LogoutResponse {
+  message: string;
+}
+
+export interface RefreshResponse {
+  token: string;
+  user?: {
+    id?: string;
+    username?: string;
+    role?: Role;
+  };
 }

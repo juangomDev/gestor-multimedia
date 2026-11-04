@@ -14,6 +14,7 @@ import { DropzoneOverlay } from './components/upload/DropzoneOverlay';
 import { UploadModal } from './components/upload/UploadModal';
 import { CreateFolderModal } from './components/folders/CreateFolderModal';
 import { MoveToFolderModal } from './components/folders/MoveToFolderModal';
+import { ChangePasswordModal } from './components/auth/ChangePasswordModal';
 import { StatusBar } from './components/layout/StatusBar';
 import { imagesService } from './services/imagesService';
 import { tablesService } from './services/tablesService';
@@ -35,6 +36,7 @@ const MainApp: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [movingTarget, setMovingTarget] = useState<{
     item: ImageItem | TableItem;
     type: 'image' | 'table';
@@ -224,6 +226,7 @@ const MainApp: React.FC = () => {
         onOpenNewFolder={() => setIsNewFolderOpen(true)}
         folders={folders}
         foldersEnabled={ENABLE_FOLDERS}
+        onOpenChangePassword={() => setIsChangePasswordOpen(true)}
       />
 
       <main
@@ -278,6 +281,7 @@ const MainApp: React.FC = () => {
                 syncRemote();
               }}
               folderId={ENABLE_FOLDERS ? activeFolderId : null}
+              onOpenChangePassword={() => setIsChangePasswordOpen(true)}
             />
           )}
         </div>
@@ -292,6 +296,11 @@ const MainApp: React.FC = () => {
         onClose={() => setIsUploadOpen(false)}
         onFilesSelected={handleFilesUpload}
         folderName={ENABLE_FOLDERS ? activeFolder?.name : undefined}
+      />
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
       />
 
       {ENABLE_FOLDERS && (

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Table2, Upload, Settings, RefreshCw, LogOut, Users } from 'lucide-react';
+import { Image, Table2, Upload, Settings, RefreshCw, LogOut, Users, KeyRound } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
 import { useToast } from '../../context/useToast';
 import type { FolderItem } from '../../types/media';
@@ -18,6 +18,7 @@ export interface SidebarProps {
   onFolderChange?: (folderId: string | null) => void;
   onOpenNewFolder?: () => void;
   foldersEnabled?: boolean;
+  onOpenChangePassword?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -27,19 +28,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSync,
   imagesCount,
   tablesCount,
+  onOpenChangePassword,
 }) => {
   const { user, logout } = useAuth();
   const { showToast } = useToast();
   const isEffectiveAdmin = user ? user.role === 'ADMIN' : true;
 
-  const handleLogoutClick = () => {
-    logout();
-    onViewChange('login');
-    showToast('Sesión cerrada. Redirigiendo a pantalla de login...', 'info');
+  const handleLogoutClick = async () => {
+    try {
+      await logout();
+      onViewChange('login');
+      showToast('Sesión cerrada exitosamente en el servidor', 'info');
+    } catch {
+      onViewChange('login');
+      showToast('Sesión local cerrada', 'info');
+    }
   };
 
   const displayName = user?.username || 'Admin';
-  const displayRole = user?.role ? `${user.role.toLowerCase()}@multimedia.local` : 'admin@dokploy.local';
+  const roleName = user?.role || 'ADMIN';
   const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
@@ -126,19 +133,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className={styles.avatarCircle}>{initials}</div>
             <div className={styles.userText}>
               <span className={styles.accountName}>{displayName}</span>
-              <span className={styles.accountSub}>{displayRole}</span>
+              <span
+                className={`${styles.roleBadge} ${
+                  roleName === 'ADMIN'
+                    ? styles.roleAdmin
+                    : roleName === 'MANAGER'
+                    ? styles.roleManager
+                    : styles.roleCollaborator
+                }`}
+              >
+                {roleName}
+              </span>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleLogoutClick}
-            className={styles.logoutBtn}
-            title="Cerrar Sesión"
-            aria-label="Cerrar sesión"
-          >
-            <LogOut size={15} />
-          </button>
+          <div className={styles.userActionsGroup}>
+            {onOpenChangePassword && (
+              <button
+                type="button"
+                onClick={onOpenChangePassword}
+                className={styles.actionBtn}
+                title="Cambiar Contraseña"
+                aria-label="Cambiar contraseña"
+              >
+                <KeyRound size={15} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleLogoutClick}
+              className={styles.logoutBtn}
+              title="Cerrar Sesión"
+              aria-label="Cerrar sesión"
+            >
+              <LogOut size={15} />
+            </button>
+          </div>
         </div>
       </div>
     </aside>

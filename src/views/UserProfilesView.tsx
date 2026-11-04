@@ -70,13 +70,13 @@ export const UserProfilesView: React.FC<UserProfilesViewProps> = () => {
       const res = await createUser({
         username: cleanUser,
         password,
-        role: 'USER',
+        role: 'COLLABORATOR',
       });
 
       const newUser: User = {
         id: res.user.id || `usr-${Date.now()}`,
         username: res.user.username,
-        role: res.user.role || 'USER',
+        role: res.user.role || 'COLLABORATOR',
         isActive: res.user.isActive ?? true,
         createdAt: res.user.createdAt || new Date().toISOString(),
       };
@@ -98,7 +98,7 @@ export const UserProfilesView: React.FC<UserProfilesViewProps> = () => {
         const localUser: User = {
           id: `usr-loc-${Date.now()}`,
           username: cleanUser,
-          role: 'USER',
+          role: 'COLLABORATOR',
           isActive: true,
           createdAt: new Date().toISOString(),
         };

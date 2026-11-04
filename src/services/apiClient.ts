@@ -20,6 +20,7 @@ export interface RequestOptions extends RequestInit {
   skipAuth?: boolean;
   timeoutMs?: number;
   responseType?: 'json' | 'text' | 'blob' | 'arrayBuffer';
+  _retry?: boolean;
 }
 
 export interface DownloadResult {
@@ -66,6 +67,93 @@ export class ApiError extends Error {
 }
 
 export class ApiClient {
+  private isRefreshing = false;
+  private refreshSubscribers: Array<(token: string | null, error?: any) => void> = [];
+  private unauthorizedListeners: Array<() => void> = [];
+
+  public onUnauthorized(listener: () => void): () => void {
+    this.unauthorizedListeners.push(listener);
+    return () => {
+      this.unauthorizedListeners = this.unauthorizedListeners.filter((l) => l !== listener);
+    };
+  }
+
+  private notifyUnauthorized(): void {
+    this.unauthorizedListeners.forEach((l) => {
+      try {
+        l();
+      } catch (err) {
+        console.warn('Error in onUnauthorized listener:', err);
+      }
+    });
+  }
+
+  private subscribeTokenRefresh(cb: (token: string | null, error?: any) => void): void {
+    this.refreshSubscribers.push(cb);
+  }
+
+  private onRefreshed(token: string | null, error?: any): void {
+    this.refreshSubscribers.forEach((cb) => cb(token, error));
+    this.refreshSubscribers = [];
+  }
+
+  private async handleTokenRefresh<T>(
+    path: string,
+    options: RequestOptions,
+    originalError: ApiError
+  ): Promise<T> {
+    if (this.isRefreshing) {
+      return new Promise<T>((resolve, reject) => {
+        this.subscribeTokenRefresh((newToken, error) => {
+          if (error || !newToken) {
+            reject(originalError);
+          } else {
+            resolve(this.request<T>(path, { ...options, _retry: true }));
+          }
+        });
+      });
+    }
+
+    this.isRefreshing = true;
+
+    try {
+      const refreshUrl = this.resolveUrl('/api/v1/auth/refresh');
+      const refreshResponse = await fetch(refreshUrl, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!refreshResponse.ok) {
+        throw new Error(`Refresh failed with status ${refreshResponse.status}`);
+      }
+
+      const refreshData = await refreshResponse.json();
+      const newToken = refreshData.token;
+      if (!newToken) {
+        throw new Error('Refresh response missing token');
+      }
+
+      storageService.saveToken(newToken);
+      if (refreshData.user) {
+        storageService.updateSessionUser(refreshData.user);
+      }
+
+      this.isRefreshing = false;
+      this.onRefreshed(newToken);
+
+      return this.request<T>(path, { ...options, _retry: true });
+    } catch (refreshErr) {
+      this.isRefreshing = false;
+      this.onRefreshed(null, refreshErr);
+      storageService.saveSession(null);
+      this.notifyUnauthorized();
+      throw originalError;
+    }
+  }
+
   private getHeaders(options?: RequestOptions, isFormData: boolean = false): Headers {
     const headers = new Headers(options?.headers);
     const config = storageService.getConfig();
@@ -123,6 +211,7 @@ export class ApiClient {
 
     try {
       const response = await fetch(url, {
+        credentials: options.credentials || 'include',
         ...options,
         headers,
         signal: controller.signal,
@@ -139,7 +228,7 @@ export class ApiClient {
         const detail = errData.detail || errData.message || `Error del servidor (${response.status})`;
         const code = errData.code || errData.error || 'HTTP_ERROR';
 
-        throw new ApiError(
+        const apiError = new ApiError(
           response.status,
           code,
           detail,
@@ -151,6 +240,16 @@ export class ApiClient {
             invalidParams: errData.invalidParams,
           }
         );
+
+        const isAuthRoute =
+          path.includes('/api/v1/auth/login') ||
+          path.includes('/api/v1/auth/refresh');
+
+        if (response.status === 401 && !options.skipAuth && !options._retry && !isAuthRoute) {
+          return this.handleTokenRefresh<T>(path, options, apiError);
+        }
+
+        throw apiError;
       }
 
       // Si es 204 No Content

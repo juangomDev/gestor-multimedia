@@ -50,10 +50,39 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('user-name')).toHaveTextContent('admin');
     expect(screen.getByTestId('is-admin')).toHaveTextContent('ADMIN');
 
-    act(() => {
+    await act(async () => {
       screen.getByText('Logout').click();
     });
 
     expect(screen.getByTestId('auth-status')).toHaveTextContent('GUEST');
+  });
+
+  it('synchronizes user profile via GET /api/v1/auth/me on mount when token exists', async () => {
+    vi.spyOn(authService, 'getSession').mockReturnValue({
+      token: 'jwt.token.stored',
+      user: { id: 'u-cached', username: 'cached_name', role: 'ADMIN' },
+    });
+    vi.spyOn(authService, 'isAuthenticated').mockReturnValue(true);
+
+    const getMeSpy = vi.spyOn(authService, 'getMe').mockResolvedValue({
+      user: {
+        id: 'u-db-123',
+        username: 'server_name',
+        role: 'ADMIN',
+        isActive: true,
+        createdAt: '2026-01-01',
+      },
+    });
+
+    await act(async () => {
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      );
+    });
+
+    expect(getMeSpy).toHaveBeenCalled();
+    expect(screen.getByTestId('user-name')).toHaveTextContent('server_name');
   });
 });

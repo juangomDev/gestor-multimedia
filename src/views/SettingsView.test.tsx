@@ -5,19 +5,25 @@ import { ToastProvider } from '../context/ToastContext';
 import { storageService, DEFAULT_CONFIG } from '../services/storageService';
 import { healthService } from '../services/healthService';
 
+import { AuthProvider } from '../context/AuthContext';
+
 const renderSettingsView = (props: {
   onBackToGallery?: () => void;
   onConfigSaved?: () => void;
   onItemImported?: () => void;
+  onOpenChangePassword?: () => void;
 } = {}) => {
   return render(
-    <ToastProvider>
-      <SettingsView
-        onBackToGallery={props.onBackToGallery || vi.fn()}
-        onConfigSaved={props.onConfigSaved}
-        onItemImported={props.onItemImported}
-      />
-    </ToastProvider>
+    <AuthProvider>
+      <ToastProvider>
+        <SettingsView
+          onBackToGallery={props.onBackToGallery || vi.fn()}
+          onConfigSaved={props.onConfigSaved}
+          onItemImported={props.onItemImported}
+          onOpenChangePassword={props.onOpenChangePassword}
+        />
+      </ToastProvider>
+    </AuthProvider>
   );
 };
 
@@ -154,5 +160,20 @@ describe('SettingsView Component', () => {
     });
 
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders profile security section and triggers onOpenChangePassword', async () => {
+    const onOpenChangePassword = vi.fn();
+    renderSettingsView({ onOpenChangePassword });
+
+    expect(screen.getByRole('heading', { name: /Mi Perfil & Seguridad/i })).toBeInTheDocument();
+    const changePassBtn = screen.getByRole('button', { name: /Cambiar Contraseña/i });
+    expect(changePassBtn).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(changePassBtn);
+    });
+
+    expect(onOpenChangePassword).toHaveBeenCalledTimes(1);
   });
 });

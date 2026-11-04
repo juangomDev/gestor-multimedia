@@ -58,6 +58,31 @@ export const storageService = {
     return session?.token || null;
   },
 
+  saveToken(token: string): void {
+    const current = this.getSession();
+    if (current) {
+      this.saveSession({ ...current, token });
+    } else {
+      this.saveSession({
+        token,
+        user: { id: '', username: '', role: 'COLLABORATOR' },
+      });
+    }
+  },
+
+  updateSessionUser(userData: Partial<UserSession['user']>): void {
+    const current = this.getSession();
+    if (current) {
+      this.saveSession({
+        ...current,
+        user: {
+          ...current.user,
+          ...userData,
+        },
+      });
+    }
+  },
+
   // Images
   getImages(): ImageItem[] {
     try {
