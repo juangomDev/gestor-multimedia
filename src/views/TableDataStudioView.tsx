@@ -1,26 +1,25 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  ArrowLeft,
-  Download,
-  Copy,
-  ChevronLeft,
-  ChevronRight,
-  ArrowUpDown,
-  Search,
-  RefreshCw,
-} from 'lucide-react';
+import { ArrowLeft, Download, Copy, RefreshCw } from 'lucide-react';
 import { tablesService } from '../services/tablesService';
 import { copyToClipboard } from '../utils/clipboard';
 import { useToast } from '../context/useToast';
 import { Button } from '../components/common/Button';
+import { DataStudioToolbar } from '../components/tables/DataStudioToolbar';
+import { DataGrid } from '../components/tables/DataGrid';
 import type { TableItem } from '../types/media';
 import styles from './TableDataStudioView.module.css';
 
-interface TableDataStudioViewProps {
+/**
+ * Propiedades del visor analítico Data Studio a pantalla completa.
+ */
+export interface TableDataStudioViewProps {
   table: TableItem;
   onBack: () => void;
 }
 
+/**
+ * Vista de análisis tabular en pantalla completa con paginación server-side, búsqueda y ordenamiento.
+ */
 export const TableDataStudioView: React.FC<TableDataStudioViewProps> = ({ table, onBack }) => {
   const { showToast } = useToast();
   const [page, setPage] = useState(1);
@@ -34,6 +33,9 @@ export const TableDataStudioView: React.FC<TableDataStudioViewProps> = ({ table,
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortAsc, setSortAsc] = useState<boolean>(true);
 
+  /**
+   * Consulta una página de registros del dataset desde el backend o usa filas locales de respaldo.
+   */
   const loadData = useCallback(
     async (targetPage: number, targetLimit: number) => {
       setLoading(true);
@@ -100,6 +102,9 @@ export const TableDataStudioView: React.FC<TableDataStudioViewProps> = ({ table,
     };
   }, [table.shortCode, table.columns, table.demoRows, page, limit, columns, showToast]);
 
+  /**
+   * Copia la URL del endpoint público del dataset al portapapeles.
+   */
   const handleCopyUrl = async () => {
     const success = await copyToClipboard(table.url);
     if (success) {
@@ -107,11 +112,17 @@ export const TableDataStudioView: React.FC<TableDataStudioViewProps> = ({ table,
     }
   };
 
+  /**
+   * Abre la URL de descarga directa del archivo original en una nueva pestaña.
+   */
   const handleDownload = () => {
     const url = tablesService.getDownloadUrl(table.shortCode);
     window.open(url, '_blank');
   };
 
+  /**
+   * Alterna el ordenamiento ascendente/descendente para la columna seleccionada.
+   */
   const handleSort = (col: string) => {
     if (sortCol === col) {
       setSortAsc(!sortAsc);
@@ -121,7 +132,6 @@ export const TableDataStudioView: React.FC<TableDataStudioViewProps> = ({ table,
     }
   };
 
-  // Filter & Sort
   const processedRows = useMemo(() => {
     let result = [...rows];
 
@@ -146,30 +156,8 @@ export const TableDataStudioView: React.FC<TableDataStudioViewProps> = ({ table,
     return result;
   }, [rows, searchQuery, sortCol, sortAsc]);
 
-  const renderCellContent = (value: any) => {
-    if (value === null || value === undefined) {
-      return <span style={{ color: 'var(--text-disabled)', fontStyle: 'italic' }}>null</span>;
-    }
-
-    const str = String(value);
-    const upper = str.toUpperCase();
-
-    if (upper === 'ACTIVE' || upper === 'COMPLETADO' || upper === 'SUCCESS') {
-      return <span className={`${styles.statusBadge} ${styles.statusActive}`}>{str}</span>;
-    }
-    if (upper === 'PENDING' || upper === 'EN_PROGRESO' || upper === 'OBSERVACION') {
-      return <span className={`${styles.statusBadge} ${styles.statusPending}`}>{str}</span>;
-    }
-    if (upper === 'FAILED' || upper === 'ERROR' || upper === 'INACTIVE') {
-      return <span className={`${styles.statusBadge} ${styles.statusFailed}`}>{str}</span>;
-    }
-
-    return str;
-  };
-
   return (
     <div className={styles.studio} data-testid="table-data-studio">
-      {/* Top Header */}
       <div className={styles.topBar}>
         <div className={styles.titleGroup}>
           <Button variant="secondary" size="sm" icon={<ArrowLeft size={16} />} onClick={onBack}>
@@ -209,146 +197,31 @@ export const TableDataStudioView: React.FC<TableDataStudioViewProps> = ({ table,
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className={styles.toolbar}>
-        <div className={styles.toolbarLeft}>
-          <div style={{ position: 'relative', width: '100%' }}>
-            <Search
-              size={15}
-              style={{ position: 'absolute', left: 10, top: 9, color: 'var(--text-muted)' }}
-            />
-            <input
-              type="text"
-              className={styles.searchInput}
-              style={{ paddingLeft: 32 }}
-              placeholder="Filtrar filas por cualquier valor..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
+      <DataStudioToolbar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        limit={limit}
+        onLimitChange={(newLimit) => {
+          setLimit(newLimit);
+          setPage(1);
+        }}
+        page={page}
+        totalPages={totalPages}
+        loading={loading}
+        onPageChange={setPage}
+      />
 
-        <div className={styles.toolbarRight}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem' }}>
-            <span style={{ color: 'var(--text-muted)' }}>Filas por pág:</span>
-            <select
-              value={limit}
-              onChange={(e) => {
-                setLimit(Number(e.target.value));
-                setPage(1);
-              }}
-              className={styles.select}
-            >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-              <option value={250}>250</option>
-            </select>
-          </div>
-
-          <div className={styles.pagination}>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page <= 1 || loading}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              aria-label="Página anterior"
-            >
-              <ChevronLeft size={16} />
-            </Button>
-
-            <span className={styles.pageIndicator}>
-              Página {page} de {Math.max(1, totalPages)}
-            </span>
-
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page >= totalPages || loading}
-              onClick={() => setPage((p) => p + 1)}
-              aria-label="Página siguiente"
-            >
-              <ChevronRight size={16} />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Grid Container */}
-      <div className={styles.gridContainer}>
-        {loading && rows.length === 0 ? (
-          <div
-            style={{
-              padding: 60,
-              textAlign: 'center',
-              color: 'var(--text-muted)',
-              fontSize: '0.875rem',
-            }}
-          >
-            Cargando dataset desde el servidor...
-          </div>
-        ) : processedRows.length === 0 ? (
-          <div
-            style={{
-              padding: 60,
-              textAlign: 'center',
-              color: 'var(--text-muted)',
-              fontSize: '0.875rem',
-            }}
-          >
-            {searchQuery
-              ? 'No se encontraron filas que coincidan con la búsqueda.'
-              : 'El archivo no contiene filas de datos.'}
-          </div>
-        ) : (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th
-                  className={styles.th}
-                  style={{ width: 50, textAlign: 'center', cursor: 'default' }}
-                >
-                  #
-                </th>
-                {columns.map((col) => (
-                  <th key={col} className={styles.th} onClick={() => handleSort(col)}>
-                    <div className={styles.thContent}>
-                      <span>{col}</span>
-                      <ArrowUpDown size={12} style={{ opacity: sortCol === col ? 1 : 0.4 }} />
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {processedRows.map((row, idx) => (
-                <tr
-                  key={idx}
-                  className={`${styles.row} ${idx % 2 === 1 ? styles.rowStriped : ''}`}
-                >
-                  <td
-                    className={styles.td}
-                    style={{
-                      width: 50,
-                      textAlign: 'center',
-                      color: 'var(--text-muted)',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '0.6875rem',
-                    }}
-                  >
-                    {(page - 1) * limit + idx + 1}
-                  </td>
-                  {columns.map((col) => (
-                    <td key={col} className={styles.td}>
-                      {renderCellContent(row[col])}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <DataGrid
+        columns={columns}
+        rows={processedRows}
+        rawRowsCount={rows.length}
+        loading={loading}
+        searchQuery={searchQuery}
+        page={page}
+        limit={limit}
+        sortCol={sortCol}
+        onSort={handleSort}
+      />
     </div>
   );
 };

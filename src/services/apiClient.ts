@@ -1,159 +1,44 @@
 import { storageService } from './storageService';
 import { cleanBaseUrl } from '../utils/formatters';
+import {
+  ApiError,
+  buildApiErrorFromResponse,
+  extractFilenameFromDisposition,
+  type InvalidParam,
+  type ProblemDetails,
+  type RequestOptions,
+  type DownloadResult,
+} from './http/apiError';
+import { TokenRefreshQueue } from './http/tokenRefreshQueue';
 
-export interface InvalidParam {
-  name: string;
-  reason: string;
-}
+export {
+  ApiError,
+  type InvalidParam,
+  type ProblemDetails,
+  type RequestOptions,
+  type DownloadResult,
+};
 
-export interface ProblemDetails {
-  type?: string;
-  title?: string;
-  status?: number;
-  detail?: string;
-  code?: string;
-  instance?: string;
-  invalidParams?: InvalidParam[];
-}
-
-export interface RequestOptions extends RequestInit {
-  skipAuth?: boolean;
-  timeoutMs?: number;
-  responseType?: 'json' | 'text' | 'blob' | 'arrayBuffer';
-  _retry?: boolean;
-}
-
-export interface DownloadResult {
-  blob: Blob;
-  filename: string;
-  contentType: string;
-  sizeBytes: number;
-}
-
-export class ApiError extends Error {
-  status: number;
-  code: string;
-  detail: string;
-  title?: string;
-  type?: string;
-  instance?: string;
-  invalidParams?: InvalidParam[];
-  details?: any;
-
-  constructor(
-    status: number,
-    code: string,
-    message: string,
-    details?: any,
-    options?: {
-      title?: string;
-      type?: string;
-      instance?: string;
-      invalidParams?: InvalidParam[];
-    }
-  ) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-    this.code = code;
-    this.detail = message;
-    this.details = details;
-    this.title = options?.title;
-    this.type = options?.type;
-    this.instance = options?.instance;
-    this.invalidParams = options?.invalidParams;
-    Object.setPrototypeOf(this, new.target.prototype);
-  }
-}
-
+/**
+ * Cliente HTTP centralizado para comunicación con `monolith-backend`.
+ * Incluye inyección de credenciales, soporte RFC 7807 y rotación transparente de tokens JWT (`401`).
+ */
 export class ApiClient {
-  private isRefreshing = false;
-  private refreshSubscribers: Array<(token: string | null, error?: any) => void> = [];
-  private unauthorizedListeners: Array<() => void> = [];
+  private refreshQueue = new TokenRefreshQueue();
 
+  /**
+   * Suscribe un listener para ser notificado cuando la sesión expira definitivamente.
+   *
+   * @param listener Callback a ejecutar cuando falla la renovación del token.
+   * @returns Función para eliminar la suscripción.
+   */
   public onUnauthorized(listener: () => void): () => void {
-    this.unauthorizedListeners.push(listener);
-    return () => {
-      this.unauthorizedListeners = this.unauthorizedListeners.filter((l) => l !== listener);
-    };
+    return this.refreshQueue.onUnauthorized(listener);
   }
 
-  private notifyUnauthorized(): void {
-    this.unauthorizedListeners.forEach((l) => {
-      try {
-        l();
-      } catch (err) {
-        console.warn('Error in onUnauthorized listener:', err);
-      }
-    });
-  }
-
-  private subscribeTokenRefresh(cb: (token: string | null, error?: any) => void): void {
-    this.refreshSubscribers.push(cb);
-  }
-
-  private onRefreshed(token: string | null, error?: any): void {
-    this.refreshSubscribers.forEach((cb) => cb(token, error));
-    this.refreshSubscribers = [];
-  }
-
-  private async handleTokenRefresh<T>(
-    path: string,
-    options: RequestOptions,
-    originalError: ApiError
-  ): Promise<T> {
-    if (this.isRefreshing) {
-      return new Promise<T>((resolve, reject) => {
-        this.subscribeTokenRefresh((newToken, error) => {
-          if (error || !newToken) {
-            reject(originalError);
-          } else {
-            resolve(this.request<T>(path, { ...options, _retry: true }));
-          }
-        });
-      });
-    }
-
-    this.isRefreshing = true;
-
-    try {
-      const refreshUrl = this.resolveUrl('/api/v1/auth/refresh');
-      const refreshResponse = await fetch(refreshUrl, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!refreshResponse.ok) {
-        throw new Error(`Refresh failed with status ${refreshResponse.status}`);
-      }
-
-      const refreshData = await refreshResponse.json();
-      const newToken = refreshData.token;
-      if (!newToken) {
-        throw new Error('Refresh response missing token');
-      }
-
-      storageService.saveToken(newToken);
-      if (refreshData.user) {
-        storageService.updateSessionUser(refreshData.user);
-      }
-
-      this.isRefreshing = false;
-      this.onRefreshed(newToken);
-
-      return this.request<T>(path, { ...options, _retry: true });
-    } catch (refreshErr) {
-      this.isRefreshing = false;
-      this.onRefreshed(null, refreshErr);
-      storageService.saveSession(null);
-      this.notifyUnauthorized();
-      throw originalError;
-    }
-  }
-
+  /**
+   * Construye las cabeceras HTTP de autenticación y tipo de contenido.
+   */
   private getHeaders(options?: RequestOptions, isFormData: boolean = false): Headers {
     const headers = new Headers(options?.headers);
     const config = storageService.getConfig();
@@ -169,7 +54,6 @@ export class ApiClient {
     }
 
     if (isFormData) {
-      // Los navegadores calculan automáticamente el Content-Type multipart con boundary
       headers.delete('Content-Type');
     } else if (!headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json');
@@ -178,29 +62,29 @@ export class ApiClient {
     return headers;
   }
 
+  /**
+   * Resuelve una ruta relativa contra el `baseUrl` configurado en el cliente.
+   */
   private resolveUrl(path: string): string {
     const base = cleanBaseUrl(storageService.getConfig().baseUrl);
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
     return `${base}${cleanPath}`;
   }
 
-  private extractFilename(contentDisposition: string | null, fallback: string): string {
-    if (!contentDisposition) return fallback;
-    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
-    if (utf8Match?.[1]) {
-      try {
-        return decodeURIComponent(utf8Match[1]);
-      } catch {
-        return utf8Match[1];
-      }
-    }
-    const standardMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
-    if (standardMatch?.[1]) {
-      return standardMatch[1];
-    }
-    return fallback;
+  /**
+   * Verifica si la ruta corresponde a un endpoint de autenticación exento de intercepción 401.
+   */
+  private isAuthRoute(path: string): boolean {
+    return path.includes('/api/v1/auth/login') || path.includes('/api/v1/auth/refresh');
   }
 
+  /**
+   * Ejecuta una petición HTTP genérica con timeout, decodificación RFC 7807 y reintento 401.
+   *
+   * @param path Ruta relativa del endpoint (ej. `/api/v1/images`).
+   * @param options Opciones de configuración de la petición.
+   * @returns Promesa con la respuesta tipada `T`.
+   */
   async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     const url = this.resolveUrl(path);
     const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
@@ -218,46 +102,32 @@ export class ApiClient {
       });
 
       if (!response.ok) {
-        let errData: any = {};
-        try {
-          errData = await response.json();
-        } catch {
-          errData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
-        }
-
-        const detail = errData.detail || errData.message || `Error del servidor (${response.status})`;
-        const code = errData.code || errData.error || 'HTTP_ERROR';
-
-        const apiError = new ApiError(
-          response.status,
-          code,
-          detail,
-          errData.details || errData.invalidParams,
-          {
-            title: errData.title,
-            type: errData.type,
-            instance: errData.instance,
-            invalidParams: errData.invalidParams,
-          }
+        const apiError = await buildApiErrorFromResponse(
+          response,
+          'HTTP_ERROR',
+          'Error del servidor'
         );
 
-        const isAuthRoute =
-          path.includes('/api/v1/auth/login') ||
-          path.includes('/api/v1/auth/refresh');
-
-        if (response.status === 401 && !options.skipAuth && !options._retry && !isAuthRoute) {
-          return this.handleTokenRefresh<T>(path, options, apiError);
+        if (
+          response.status === 401 &&
+          !options.skipAuth &&
+          !options._retry &&
+          !this.isAuthRoute(path)
+        ) {
+          return this.refreshQueue.handleTokenRefresh<T>(
+            this.resolveUrl('/api/v1/auth/refresh'),
+            () => this.request<T>(path, { ...options, _retry: true }),
+            apiError
+          );
         }
 
         throw apiError;
       }
 
-      // Si es 204 No Content
       if (response.status === 204) {
         return undefined as T;
       }
 
-      // Tipos de respuesta explícitos
       if (options.responseType === 'blob') {
         return (await response.blob()) as unknown as T;
       }
@@ -269,14 +139,21 @@ export class ApiClient {
       }
 
       const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('application/json') || contentType.includes('application/problem+json')) {
+      if (
+        contentType.includes('application/json') ||
+        contentType.includes('application/problem+json')
+      ) {
         return (await response.json()) as T;
       }
 
       return (await response.text()) as T;
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        throw new ApiError(408, 'TIMEOUT', 'La solicitud al servidor excedió el tiempo límite (15s)');
+        throw new ApiError(
+          408,
+          'TIMEOUT',
+          'La solicitud al servidor excedió el tiempo límite (15s)'
+        );
       }
       if (err instanceof ApiError) {
         throw err;
@@ -287,75 +164,110 @@ export class ApiClient {
     }
   }
 
+  /**
+   * Realiza una petición HTTP `GET`.
+   */
   async get<T>(path: string, options?: RequestOptions): Promise<T> {
     return this.request<T>(path, { ...options, method: 'GET' });
   }
 
+  /**
+   * Realiza una petición HTTP `POST` soportando JSON o `FormData`.
+   */
   async post<T>(path: string, body?: any, options?: RequestOptions): Promise<T> {
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     return this.request<T>(path, {
       ...options,
       method: 'POST',
-      body: isFormData ? body : (body !== undefined ? JSON.stringify(body) : undefined),
+      body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
   }
 
+  /**
+   * Realiza una petición HTTP `PUT` soportando JSON o `FormData`.
+   */
   async put<T>(path: string, body?: any, options?: RequestOptions): Promise<T> {
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     return this.request<T>(path, {
       ...options,
       method: 'PUT',
-      body: isFormData ? body : (body !== undefined ? JSON.stringify(body) : undefined),
+      body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
   }
 
+  /**
+   * Realiza una petición HTTP `PATCH` soportando JSON o `FormData`.
+   */
   async patch<T>(path: string, body?: any, options?: RequestOptions): Promise<T> {
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     return this.request<T>(path, {
       ...options,
       method: 'PATCH',
-      body: isFormData ? body : (body !== undefined ? JSON.stringify(body) : undefined),
+      body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
   }
 
+  /**
+   * Realiza una petición HTTP `DELETE`.
+   */
   async delete<T>(path: string, options?: RequestOptions): Promise<T> {
     return this.request<T>(path, { ...options, method: 'DELETE' });
   }
 
-  async download(path: string, defaultFilename = 'download', options?: RequestOptions): Promise<DownloadResult> {
+  /**
+   * Descarga un recurso binario extrayendo el nombre de archivo de `Content-Disposition`,
+   * incluyendo credenciales y soporte de renovación automática ante respuestas `401`.
+   *
+   * @param path Ruta del recurso a descargar.
+   * @param defaultFilename Nombre de archivo de respaldo.
+   * @param options Opciones adicionales de la solicitud.
+   * @returns Promesa con el `Blob` y metadatos del archivo descargado.
+   */
+  async download(
+    path: string,
+    defaultFilename = 'download',
+    options: RequestOptions = {}
+  ): Promise<DownloadResult> {
     const url = this.resolveUrl(path);
     const headers = this.getHeaders(options);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), options?.timeoutMs || 30000);
+    const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs || 30000);
 
     try {
       const response = await fetch(url, {
+        credentials: options.credentials || 'include',
         ...options,
         headers,
         signal: controller.signal,
       });
 
       if (!response.ok) {
-        let errData: any = {};
-        try {
-          errData = await response.json();
-        } catch {
-          errData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
+        const apiError = await buildApiErrorFromResponse(
+          response,
+          'DOWNLOAD_ERROR',
+          'Error al descargar'
+        );
+
+        if (
+          response.status === 401 &&
+          !options.skipAuth &&
+          !options._retry &&
+          !this.isAuthRoute(path)
+        ) {
+          return this.refreshQueue.handleTokenRefresh<DownloadResult>(
+            this.resolveUrl('/api/v1/auth/refresh'),
+            () => this.download(path, defaultFilename, { ...options, _retry: true }),
+            apiError
+          );
         }
-        const detail = errData.detail || errData.message || `Error al descargar (${response.status})`;
-        const code = errData.code || errData.error || 'DOWNLOAD_ERROR';
-        throw new ApiError(response.status, code, detail, errData.details, {
-          title: errData.title,
-          type: errData.type,
-          instance: errData.instance,
-          invalidParams: errData.invalidParams,
-        });
+
+        throw apiError;
       }
 
       const blob = await response.blob();
       const contentDisposition = response.headers.get('content-disposition');
-      const filename = this.extractFilename(contentDisposition, defaultFilename);
+      const filename = extractFilenameFromDisposition(contentDisposition, defaultFilename);
       const contentType = response.headers.get('content-type') || 'application/octet-stream';
 
       return {
@@ -369,7 +281,11 @@ export class ApiClient {
       if (err.name === 'AbortError') {
         throw new ApiError(408, 'TIMEOUT', 'La descarga excedió el tiempo límite (30s)');
       }
-      throw new ApiError(0, 'NETWORK_ERROR', err.message || 'Error al conectar para descargar el archivo');
+      throw new ApiError(
+        0,
+        'NETWORK_ERROR',
+        err.message || 'Error al conectar para descargar el archivo'
+      );
     } finally {
       clearTimeout(timeoutId);
     }

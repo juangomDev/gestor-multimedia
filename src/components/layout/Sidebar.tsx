@@ -1,10 +1,25 @@
 import React from 'react';
-import { Image, Table2, Upload, Settings, RefreshCw, LogOut, Users, KeyRound } from 'lucide-react';
+import {
+  Image,
+  Table2,
+  Upload,
+  Settings,
+  RefreshCw,
+  LogOut,
+  Users,
+  KeyRound,
+  Folder,
+  FolderPlus,
+  FolderRoot,
+} from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
 import { useToast } from '../../context/useToast';
 import type { FolderItem } from '../../types/media';
 import styles from './Sidebar.module.css';
 
+/**
+ * Propiedades del componente de navegación lateral `Sidebar`.
+ */
 export interface SidebarProps {
   activeView: 'images' | 'tables' | 'profiles' | 'login' | 'settings';
   onViewChange: (view: 'images' | 'tables' | 'profiles' | 'login' | 'settings') => void;
@@ -21,6 +36,10 @@ export interface SidebarProps {
   onOpenChangePassword?: () => void;
 }
 
+/**
+ * Barra lateral de navegación principal con espacios multimedia, árbol de carpetas,
+ * herramientas de configuración y tarjeta de sesión activa.
+ */
 export const Sidebar: React.FC<SidebarProps> = ({
   activeView,
   onViewChange,
@@ -28,12 +47,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSync,
   imagesCount,
   tablesCount,
+  folders = [],
+  activeFolderId = null,
+  onFolderChange,
+  onOpenNewFolder,
+  foldersEnabled = false,
   onOpenChangePassword,
 }) => {
   const { user, logout } = useAuth();
   const { showToast } = useToast();
-  const isEffectiveAdmin = user ? user.role === 'ADMIN' : true;
+  const canManageProfiles = user ? user.role === 'ADMIN' || user.role === 'MANAGER' : false;
 
+  /**
+   * Cierra la sesión activa en el servidor y redirige a la vista de login.
+   */
   const handleLogoutClick = async () => {
     try {
       await logout();
@@ -49,22 +76,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const roleName = user?.role || 'ADMIN';
   const initials = displayName.slice(0, 2).toUpperCase();
 
+  const currentMediaCategory = activeView === 'tables' ? 'table' : 'image';
+  const visibleFolders = folders.filter((f) => f.type === currentMediaCategory);
+  const showFoldersSection =
+    foldersEnabled && (activeView === 'images' || activeView === 'tables');
+
   return (
     <aside className={styles.sidebar}>
       <div className={styles.topSection}>
-        {/* Simple minimal header requested by user: "Multimedia" */}
         <div className={styles.header}>
           <span className={styles.brandTitle}>Multimedia</span>
           <span className={styles.badgeSaaS}>Studio</span>
         </div>
 
-        {/* Primary Action Button */}
         <button onClick={onOpenUpload} className={styles.uploadBtn}>
           <Upload size={16} />
           <span>Subir Archivo</span>
         </button>
 
-        {/* Espacios de Trabajo */}
         <div className={styles.navGroup}>
           <span className={styles.navTitle}>Espacios</span>
 
@@ -91,7 +120,58 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Configuración & Herramientas */}
+        {showFoldersSection && (
+          <div className={styles.navGroup} data-testid="sidebar-folders-section">
+            <div className={styles.navTitleRow}>
+              <span className={styles.navTitle}>Carpetas</span>
+              {onOpenNewFolder && (
+                <button
+                  type="button"
+                  onClick={onOpenNewFolder}
+                  className={styles.newFolderBtn}
+                  title="Crear nueva carpeta"
+                  aria-label="Nueva carpeta"
+                >
+                  <FolderPlus size={12} />
+                  <span>Nueva</span>
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onFolderChange?.(null)}
+              className={`${styles.navItem} ${activeFolderId === null ? styles.active : ''}`}
+            >
+              <div className={styles.itemLabel}>
+                <FolderRoot size={15} />
+                <span>Todas (Raíz)</span>
+              </div>
+            </button>
+
+            {visibleFolders.map((folder) => (
+              <button
+                key={folder.id}
+                type="button"
+                onClick={() => onFolderChange?.(folder.id)}
+                className={`${styles.navItem} ${activeFolderId === folder.id ? styles.active : ''}`}
+              >
+                <div className={styles.itemLabel}>
+                  <span
+                    className={styles.folderDot}
+                    style={{ backgroundColor: folder.color || '#3b82f6' }}
+                  />
+                  <Folder size={15} />
+                  <span>{folder.name}</span>
+                </div>
+                {folder.itemCount !== undefined && (
+                  <span className={styles.badgeCount}>{folder.itemCount}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className={styles.navGroup}>
           <span className={styles.navTitle}>Configuración</span>
 
@@ -112,7 +192,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </button>
 
-          {isEffectiveAdmin && (
+          {canManageProfiles && (
             <button
               onClick={() => onViewChange('profiles')}
               className={`${styles.navItem} ${activeView === 'profiles' ? styles.active : ''}`}
@@ -126,7 +206,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Bottom Section: User Account & Logout Card */}
       <div className={styles.bottomSection}>
         <div className={styles.userAccountCard}>
           <div className={styles.userInfoGroup}>

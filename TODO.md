@@ -10,14 +10,14 @@
 
 | Métrica / Dimensión | Estado Actual | Detalle |
 |---|:---:|---|
-| **Pruebas Automatizadas (Vitest)** | **109 / 109 (100% pasando)** | 26 suites en verde, 0 fallos |
-| **Linter (Oxlint)** | **0 advertencias, 0 errores** | 73 archivos analizados con 116 reglas |
-| **Compilación (TypeScript / Vite)** | **Compilación Limpia (0 errores)** | Bundle listo para producción generado en 541ms |
-| **Cobertura de Endpoints Backend** | **38 / 38 Mapeados** | 12 Implementados / 4 Parciales / 22 Planificados |
-| **Módulos Base Completados** | **11 / 18 Módulos (61.1%)** | Módulos 1 al 11 finalizados y testeados |
+| **Pruebas Automatizadas (Vitest)** | **123 / 123 (100% pasando)** | 30 suites en verde, 0 fallos |
+| **Linter (Oxlint)** | **0 advertencias, 0 errores** | 90 archivos analizados con 116 reglas |
+| **Compilación (TypeScript / Vite)** | **Compilación Limpia (0 errores)** | Bundle listo para producción generado en ~560ms |
+| **Cobertura de Endpoints Backend** | **38 / 38 Mapeados** | 17 Implementados / 4 Parciales / 17 Planificados |
+| **Módulos Base Completados** | **12 / 18 Módulos (66.7%)** | Módulos 1 al 12 finalizados y testeados |
 | **Capa de Transporte HTTP** | **Completa (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`)** | Métodos extendidos, soporte `FormData`, streams y RFC 7807 |
 | **Contrato y Tipado OpenAPI 3.1** | **Sincronizado al 100%** | Generado en `src/types/api.generated.ts` (4.705 LOC) con script `types:sync` |
-| **Siguiente Módulo Activo** | ⏳ **Módulo 12** | Suite de Administración Jerárquica de Usuarios (RBAC) |
+| **Siguiente Módulo Activo** | ⏳ **Módulo 13** | Descongelamiento y Gestión Total de Carpetas en PostgreSQL con RBAC |
 
 ---
 
@@ -33,11 +33,11 @@
 | **6** | `POST` | `/api/v1/auth/logout` | Módulo 11 | `Sidebar.tsx` / `UserMenu.tsx` (Cierre en servidor) | `authService.ts` | ✅ Implementado |
 | **7** | `GET` | `/api/v1/auth/me` | Módulo 11 | `AuthContext.tsx` (Validación de sesión activa) | `authService.ts` | ✅ Implementado |
 | **8** | `PATCH` | `/api/v1/auth/password` | Módulo 11 | `ChangePasswordModal.tsx` (Autogestión de clave) | `authService.ts` | ✅ Implementado |
-| **9** | `POST` | `/api/v1/users` | Módulo 12 | `UserProfilesView.tsx` (Jerarquía ADMIN > MGR > COL) | `usersService.ts` | ⏳ Pendiente |
-| **10** | `GET` | `/api/v1/users` | Módulo 12 | `UserProfilesView.tsx` (Listado dinámico DB) | `usersService.ts` | ⏳ Pendiente |
-| **11** | `PATCH` | `/api/v1/users/:id/status` | Módulo 12 | `UserProfilesView.tsx` (Toggle Activar/Suspender) | `usersService.ts` | ⏳ Pendiente |
-| **12** | `PATCH` | `/api/v1/users/:id/password` | Módulo 12 | `ResetPasswordModal.tsx` (Reset forzado por superior) | `usersService.ts` | ⏳ Pendiente |
-| **13** | `DELETE` | `/api/v1/users/:id` | Módulo 12 | `UserProfilesView.tsx` (Borrado con cascada) | `usersService.ts` | ⏳ Pendiente |
+| **9** | `POST` | `/api/v1/users` | Módulo 12 | `UserProfilesView.tsx` (Jerarquía ADMIN > MGR > COL) | `usersService.ts` | ✅ Implementado |
+| **10** | `GET` | `/api/v1/users` | Módulo 12 | `UserProfilesView.tsx` (Listado dinámico DB) | `usersService.ts` | ✅ Implementado |
+| **11** | `PATCH` | `/api/v1/users/:id/status` | Módulo 12 | `UserProfilesView.tsx` (Toggle Activar/Suspender) | `usersService.ts` | ✅ Implementado |
+| **12** | `PATCH` | `/api/v1/users/:id/password` | Módulo 12 | `ResetUserPasswordModal.tsx` (Reset forzado por superior) | `usersService.ts` | ✅ Implementado |
+| **13** | `DELETE` | `/api/v1/users/:id` | Módulo 12 | `DeleteUserModal.tsx` (Borrado con cascada) | `usersService.ts` | ✅ Implementado |
 | **14** | `GET` | `/api/v1/folders` | Módulo 13 | `Sidebar.tsx`, `FolderGrid.tsx` (Filtros, search, permisos) | `foldersService.ts` | ⏳ Pendiente |
 | **15** | `POST` | `/api/v1/folders` | Módulo 13 | `CreateFolderModal.tsx` (Creación IMAGE/TABLE con color) | `foldersService.ts` | ⏳ Pendiente |
 | **16** | `PATCH` | `/api/v1/folders/:id` | Módulo 13 | `EditFolderModal.tsx` (Renombrar, color, privacidad) | `foldersService.ts` | ⏳ Pendiente |
@@ -175,28 +175,70 @@
 
 ---
 
+## 🛠️ Brechas Reales Detectadas en el Código de los Módulos 1 al 11 y Reglas de Ingeniería
+
+> **Auditoría de Código Fuente (`src/`):** Reglas obligatorias de ingeniería (documentadas en [`AGENTS.md`](./AGENTS.md)), arquitectura pragmática por capas, refactorización de archivos >300 líneas y subsanación de brechas detectadas en los Módulos 1 al 11 antes de avanzar al Módulo 12.
+
+### 🏛️ Arquitectura Adoptada (Pragmatic Layered + Domain Components)
+- **`src/views/` (< 200 líneas):** Orquestadores ligeros de pantalla (mantienen sus rutas actuales para no romper imports de tests).
+- **`src/components/<dominio>/` (< 250 líneas):** Subcomponentes cohesivos (`settings/`, `users/`, `tables/`, `images/`, `folders/`, `chat/`, `auth/`, `layout/`, `common/`) con CSS Modules dedicados.
+- **`src/services/` (< 250 líneas):** 1 servicio por dominio del backend + `src/services/http/` para módulos auxiliares de `apiClient.ts`.
+- **`src/hooks/`:** Custom hooks creados únicamente cuando sea necesario descargar lógica de estado de `App.tsx` o de una vista para cumplir el límite de 300 líneas.
+
+- [x] **1. Primero: Crear y Aplicar Reglas de Ingeniería del Proyecto (`AGENTS.md`)**
+  - [x] `1.1` **Inmutabilidad de Tests (salvo `import`):** La lógica y aserciones de los tests existentes no se pueden modificar una vez creados. Solo las rutas de `import` pueden cambiar si la refactorización arquitectónica lo requiere (no sacrificar arquitectura por mantener `import` antiguos).
+  - [x] `1.2` **Documentación Simultánea:** Cada nueva función, método o componente debe ser documentado (TSDoc / JSDoc) a la par que se crea.
+  - [x] `1.3` **Límite Estricto Anti-"Archivos Dios" (Máximo 300 líneas):** Evitar archivos monolíticos; cada vez que un archivo de código fuente supere las **300 líneas**, se debe agregar inmediatamente a `TODO.md` una nueva tarea para refactorizarlo en módulos más pequeños y cohesivos.
+  - [x] `1.4` **Cero Sobreingeniería (Principio YAGNI):** Si algo aún no se necesita, no se va a implementar. Prohibido crear abstracciones especulativas, patrones complejos innecesarios o código "por si acaso".
+
+- [x] **2. Refactorización de "Archivos Dios" Actuales (> 300 líneas en `src/`)**
+  - [x] `2.1` Refactorizar `src/views/SettingsView.tsx` (**452 -> 108 líneas**): extraer las tarjetas de configuración (`ApiConnectionCard`, `ShortCodeImportCard`, `ProfileSecurityCard`) en `src/components/settings/`.
+  - [x] `2.2` Refactorizar `src/views/UserProfilesView.tsx` (**386 -> 58 líneas**): separar el formulario de creación (`CreateProfileCard`) y el directorio/matriz de permisos (`ProfilesDirectoryCard`) en `src/components/users/`.
+  - [x] `2.3` Refactorizar `src/services/apiClient.ts` (**379 -> 295 líneas**): extraer la cola de refresco (`TokenRefreshQueue`) y utilidades de errores RFC 7807 (`apiError.ts`) hacia `src/services/http/`.
+  - [x] `2.4` Refactorizar `src/views/TableDataStudioView.tsx` (**354 -> 223 líneas**): extraer `DataStudioToolbar.tsx` y `DataGrid.tsx` hacia `src/components/tables/`.
+  - [x] `2.5` Refactorizar `src/App.tsx` (**343 -> 248 líneas**): extraer la lógica de estado/sincronización y manejadores multimedia en `src/hooks/useMediaWorkspace.ts`.
+  - [x] `2.6` Refactorizar hojas de estilo que superaban las 300 líneas (`SettingsView.module.css` **372 -> 141 líneas** y `UserProfilesView.module.css` **361 -> 74 líneas**) acompañando la división de sus respectivos subcomponentes.
+
+- [x] **3. Desestructuración y Renderizado de Carpetas en `Sidebar.tsx` (Módulo 5 / 9)**
+  - [x] `3.1` En `src/components/layout/Sidebar.tsx`, desestructurar las propiedades `folders`, `activeFolderId`, `onFolderChange`, `onOpenNewFolder` y `foldersEnabled` declaradas en `SidebarProps`.
+  - [x] `3.2` Renderizar la sección de carpetas en el JSX del `Sidebar` cuando `foldersEnabled` sea `true`, permitiendo filtrar por carpeta activa o volver a la raíz (`null`) y abrir el modal de nueva carpeta.
+
+- [x] **4. Eliminación Real de Referencias al Rol Legacy `USER` en la UI (Módulo 11.2.2)**
+  - [x] `4.1` En `src/components/users/` (`CreateProfileCard.tsx` y `ProfilesDirectoryCard.tsx`), reemplazar las etiquetas hardcodeadas `USER` por los roles canónicos del backend (`ADMIN`, `MANAGER`, `COLLABORATOR`), respetando los tests existentes (Regla `1.1`).
+  - [x] `4.2` En `src/components/layout/Sidebar.tsx`, ajustar la validación de acceso a `Gestión de Perfiles` para contemplar tanto a `ADMIN` como a `MANAGER` (`user?.role === 'ADMIN' || user?.role === 'MANAGER'`).
+
+- [x] **5. Unificación Real de Entidades e Interfaces con el Contrato OpenAPI 3.1 (Módulo 10.2.2 y 10.2.3)**
+  - [x] `5.1` Exportar en `src/types/api.ts` y `src/types/index.ts` los alias canónicos solicitados (`Folder`, `ImageRegistry`, `TableRegistry`, `User`, `ChatAnswer`, `MetadataCard`) derivados de `api.generated.ts`.
+  - [x] `5.2` Conectar `src/types/media.ts` y `src/types/auth.ts` con los tipos oficiales generados de OpenAPI, reemplazando `metadataCard?: any` en `TableItem` por `MetadataCard`.
+
+- [x] **6. Paridad de Autenticación y Refresco de Token en `apiClient.download()` (Módulo 10.1.3 y 11.1.1)**
+  - [x] `6.1` En `src/services/apiClient.ts`, incluir `credentials: options.credentials || 'include'` por defecto en `download()`.
+  - [x] `6.2` Integrar el interceptor `handleTokenRefresh` en `apiClient.download()` cuando el servidor responda `401 UNAUTHORIZED` y `!options.skipAuth && !options._retry`, garantizando reintento transparente en descargas autenticadas.
+
+---
+
 ## 👥 Módulo 12: Suite de Administración Jerárquica de Usuarios (RBAC)
 
 > **Rutas Backend:** `GET /api/v1/users`, `POST /api/v1/users`, `PATCH /api/v1/users/:id/status`, `PATCH /api/v1/users/:id/password`, `DELETE /api/v1/users/:id`.  
 > **Regla Jerárquica:** `ADMIN` gestiona todo el sistema. `MANAGER` crea y gestiona únicamente sus colaboradores. `COLLABORATOR` no tiene acceso a gestión de usuarios.
 
-- [ ] **12.1 Servicio de Usuarios Conectado a PostgreSQL (`src/services/usersService.ts`)**
-  - [ ] `12.1.1` Implementar `listUsers()` consumiendo `GET /api/v1/users`.
-  - [ ] `12.1.2` Implementar `createUser(payload)` consumiendo `POST /api/v1/users` respetando jerarquía de roles (`MANAGER` o `COLLABORATOR`).
-  - [ ] `12.1.3` Implementar `updateUserStatus(userId, isActive)` consumiendo `PATCH /api/v1/users/:id/status`.
-  - [ ] `12.1.4` Implementar `resetUserPassword(userId, newPassword)` consumiendo `PATCH /api/v1/users/:id/password`.
-  - [ ] `12.1.5` Implementar `deleteUser(userId)` consumiendo `DELETE /api/v1/users/:id`.
+- [x] **12.1 Servicio de Usuarios Conectado a PostgreSQL (`src/services/usersService.ts`)**
+  - [x] `12.1.1` Implementar `listUsers()` consumiendo `GET /api/v1/users`.
+  - [x] `12.1.2` Implementar `createUser(payload)` consumiendo `POST /api/v1/users` respetando jerarquía de roles (`MANAGER` o `COLLABORATOR`).
+  - [x] `12.1.3` Implementar `updateUserStatus(userId, isActive)` consumiendo `PATCH /api/v1/users/:id/status`.
+  - [x] `12.1.4` Implementar `resetUserPassword(userId, newPassword)` consumiendo `PATCH /api/v1/users/:id/password`.
+  - [x] `12.1.5` Implementar `deleteUser(userId)` consumiendo `DELETE /api/v1/users/:id`.
 
-- [ ] **12.2 Rediseño y Conexión de `UserProfilesView.tsx`**
-  - [ ] `12.2.1` Sustituir la persistencia local de `storageService.getCreatedUsers()` por la carga en vivo desde `usersService.listUsers()`.
-  - [ ] `12.2.2` Adaptar el formulario de creación: permitir a un `ADMIN` seleccionar entre rol `MANAGER` y `COLLABORATOR`; forzar a rol `COLLABORATOR` si el usuario en sesión es `MANAGER`.
-  - [ ] `12.2.3` Tabla de usuarios registrados con columnas: Usuario, Rol, Creado por, Estado (`Activo` / `Suspendido`), Fecha de registro y Acciones.
-  - [ ] `12.2.4` Botón switch/toggle para suspender o reactivar usuario en 1 clic (`PATCH /api/v1/users/:id/status`).
+- [x] **12.2 Rediseño y Conexión de `UserProfilesView.tsx`**
+  - [x] `12.2.1` Sustituir la persistencia local de `storageService.getCreatedUsers()` por la carga en vivo desde `usersService.listUsers()`.
+  - [x] `12.2.2` Adaptar el formulario de creación: permitir a un `ADMIN` seleccionar entre rol `MANAGER` y `COLLABORATOR`; forzar a rol `COLLABORATOR` si el usuario en sesión es `MANAGER`.
+  - [x] `12.2.3` Tabla de usuarios registrados con columnas: Usuario, Rol, Creado por, Estado (`Activo` / `Suspendido`), Fecha de registro y Acciones.
+  - [x] `12.2.4` Botón switch/toggle para suspender o reactivar usuario en 1 clic (`PATCH /api/v1/users/:id/status`).
 
-- [ ] **12.3 Modales de Restablecimiento y Eliminación de Usuarios**
-  - [ ] `12.3.1` Crear modal `ResetUserPasswordModal.tsx` con generador automático de contraseñas seguras y botón copiar.
-  - [ ] `12.3.2` Modal de confirmación destructiva con advertencia de que la eliminación de un usuario destruye en cascada sus archivos en almacenamiento físico.
-  - [ ] `12.3.3` Pruebas de integración RTL en `UserProfilesView.test.tsx` cubriendo el flujo CRUD completo.
+- [x] **12.3 Modales de Restablecimiento y Eliminación de Usuarios**
+  - [x] `12.3.1` Crear modal `ResetUserPasswordModal.tsx` con generador automático de contraseñas seguras y botón copiar.
+  - [x] `12.3.2` Modal de confirmación destructiva con advertencia de que la eliminación de un usuario destruye en cascada sus archivos en almacenamiento físico.
+  - [x] `12.3.3` Pruebas de integración RTL en `UserProfilesView.test.tsx` (y `UserProfilesView.rbac.test.tsx` / `usersService.test.ts` respetando Regla `1.1`) cubriendo el flujo CRUD completo.
 
 ---
 

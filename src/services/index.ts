@@ -5,6 +5,7 @@ export { apiClient, ApiClient, ApiError } from './apiClient';
 export type { RequestOptions } from './apiClient';
 
 export { authService, AuthService } from './authService';
+export { usersService, UsersService } from './usersService';
 export { healthService, HealthService } from './healthService';
 export { imagesService, ImagesService } from './imagesService';
 export { tablesService, TablesService } from './tablesService';
