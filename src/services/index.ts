@@ -6,6 +6,7 @@ export type { RequestOptions } from './apiClient';
 
 export { authService, AuthService } from './authService';
 export { usersService, UsersService } from './usersService';
+export { foldersService, FoldersService } from './foldersService';
 export { healthService, HealthService } from './healthService';
 export { imagesService, ImagesService } from './imagesService';
 export { tablesService, TablesService } from './tablesService';

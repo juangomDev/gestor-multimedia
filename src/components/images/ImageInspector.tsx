@@ -1,26 +1,48 @@
 import React, { useState } from 'react';
-import { Copy, Download, Trash2, ZoomIn, ZoomOut, Grid, ExternalLink } from 'lucide-react';
+import {
+  Copy,
+  Download,
+  Trash2,
+  ZoomIn,
+  ZoomOut,
+  Grid,
+  ExternalLink,
+  Pencil,
+  RefreshCw,
+} from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { formatBytes, formatDate, buildPublicAssetUrl } from '../../utils/formatters';
 import { copyToClipboard } from '../../utils/clipboard';
 import { useToast } from '../../context/useToast';
 import { storageService } from '../../services/storageService';
+import { imagesService } from '../../services/imagesService';
 import type { ImageItem } from '../../types/media';
 import styles from './ImageInspector.module.css';
 
-interface ImageInspectorProps {
+/**
+ * Propiedades del visor de zoom e inspección de imágenes a resolución original.
+ */
+export interface ImageInspectorProps {
   image: ImageItem | null;
   isOpen: boolean;
   onClose: () => void;
   onDelete: (image: ImageItem) => void;
+  onRename?: (image: ImageItem) => void;
+  onHotSwap?: (image: ImageItem) => void;
 }
 
+/**
+ * Visor de inspección y zoom que carga la variante original completa (`/i/:short_code?variant=original`),
+ * muestra metadatos técnicos (dimensiones, peso, MIME) y permite renombrar o hacer Hot-Swap.
+ */
 export const ImageInspector: React.FC<ImageInspectorProps> = ({
   image,
   isOpen,
   onClose,
   onDelete,
+  onRename,
+  onHotSwap,
 }) => {
   const { showToast } = useToast();
   const [zoom, setZoom] = useState(1);
@@ -30,9 +52,15 @@ export const ImageInspector: React.FC<ImageInspectorProps> = ({
   if (!image) return null;
 
   const canonicalUrl = buildPublicAssetUrl(storageService.getConfig().baseUrl, 'i', image.shortCode);
-  const displayUrl = imgLoadError ? canonicalUrl : (image.demoPreviewUrl || image.url || canonicalUrl);
+  const originalVariantUrl = imagesService.getImageVariantUrl(image, 'original');
+  const displayUrl = imgLoadError
+    ? canonicalUrl
+    : image.demoPreviewUrl || originalVariantUrl;
   const curlCmd = `curl "${canonicalUrl}" --output "${image.originalName}"`;
 
+  /**
+   * Copia la URL corta pública al portapapeles.
+   */
   const handleCopyUrl = async () => {
     const success = await copyToClipboard(canonicalUrl);
     if (success) {
@@ -40,6 +68,9 @@ export const ImageInspector: React.FC<ImageInspectorProps> = ({
     }
   };
 
+  /**
+   * Copia el comando cURL de descarga al portapapeles.
+   */
   const handleCopyCurl = async () => {
     const success = await copyToClipboard(curlCmd);
     if (success) {
@@ -106,7 +137,14 @@ export const ImageInspector: React.FC<ImageInspectorProps> = ({
 
         <div className={styles.detailsBox}>
           <div>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: 8 }}>
+            <h4
+              style={{
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                color: 'var(--text-main)',
+                marginBottom: 8,
+              }}
+            >
               Detalles del Recurso
             </h4>
             <div className={styles.detailRow}>
@@ -132,6 +170,14 @@ export const ImageInspector: React.FC<ImageInspectorProps> = ({
               <span className={styles.detailLabel}>Tamaño:</span>
               <span className={styles.detailValue}>{formatBytes(image.sizeBytes)}</span>
             </div>
+            {image.width && image.height ? (
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Dimensiones:</span>
+                <span className={styles.detailValue}>
+                  {image.width} × {image.height} px
+                </span>
+              </div>
+            ) : null}
             <div className={styles.detailRow}>
               <span className={styles.detailLabel}>Fecha de Subida:</span>
               <span className={styles.detailValue}>{formatDate(image.createdAt)}</span>
@@ -152,10 +198,21 @@ export const ImageInspector: React.FC<ImageInspectorProps> = ({
           </div>
 
           <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+            <span
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--text-muted)',
+                display: 'block',
+                marginBottom: 4,
+              }}
+            >
               Comando cURL:
             </span>
-            <div className={styles.codeSnippet} onClick={handleCopyCurl} title="Clic para copiar comando">
+            <div
+              className={styles.codeSnippet}
+              onClick={handleCopyCurl}
+              title="Clic para copiar comando"
+            >
               {curlCmd}
             </div>
           </div>
@@ -164,6 +221,24 @@ export const ImageInspector: React.FC<ImageInspectorProps> = ({
             <Button variant="primary" icon={<Copy size={16} />} onClick={handleCopyUrl}>
               Copiar URL Corta
             </Button>
+            {onRename && (
+              <Button
+                variant="secondary"
+                icon={<Pencil size={15} />}
+                onClick={() => onRename(image)}
+              >
+                Renombrar Imagen
+              </Button>
+            )}
+            {onHotSwap && (
+              <Button
+                variant="secondary"
+                icon={<RefreshCw size={15} />}
+                onClick={() => onHotSwap(image)}
+              >
+                Reemplazar Binario (Hot-Swap)
+              </Button>
+            )}
             <a
               href={displayUrl}
               download={image.originalName}

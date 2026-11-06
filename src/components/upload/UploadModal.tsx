@@ -6,7 +6,7 @@ import styles from './UploadModal.module.css';
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onFilesSelected: (files: FileList) => void;
+  onFilesSelected: (files: FileList | File[]) => void;
   folderName?: string;
 }
 
@@ -20,7 +20,9 @@ export const UploadModal: React.FC<UploadModalProps> = ({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      onFilesSelected(e.target.files);
+      const selectedFiles = Array.from(e.target.files);
+      e.target.value = '';
+      onFilesSelected(selectedFiles);
       onClose();
     }
   };
@@ -31,7 +33,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/png,image/jpeg,image/webp,.csv,.xlsx,.xls"
+        accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,.svg,.csv,.xlsx,.xls"
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />

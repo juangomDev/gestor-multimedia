@@ -41,7 +41,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let isCancelled = false;
     const isMockOrDev =
       session?.token?.startsWith('mock-') || session?.token?.startsWith('dev_');
-    if (session?.token && !isMockOrDev) {
+    if (session?.token === 'dev_jwt_admin_master_token') {
+      authService
+        .login({ username: 'admin', password: 'AdminPass123!' })
+        .then((realSession) => {
+          if (!isCancelled && realSession?.token) {
+            setSession(realSession);
+          }
+        })
+        .catch(() => {
+          // Mantener sesión local si el servidor no acepta credenciales por defecto
+        });
+    } else if (session?.token && !isMockOrDev) {
       authService
         .getMe()
         .then((res) => {

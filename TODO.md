@@ -10,14 +10,14 @@
 
 | Métrica / Dimensión | Estado Actual | Detalle |
 |---|:---:|---|
-| **Pruebas Automatizadas (Vitest)** | **123 / 123 (100% pasando)** | 30 suites en verde, 0 fallos |
-| **Linter (Oxlint)** | **0 advertencias, 0 errores** | 90 archivos analizados con 116 reglas |
-| **Compilación (TypeScript / Vite)** | **Compilación Limpia (0 errores)** | Bundle listo para producción generado en ~560ms |
-| **Cobertura de Endpoints Backend** | **38 / 38 Mapeados** | 17 Implementados / 4 Parciales / 17 Planificados |
-| **Módulos Base Completados** | **12 / 18 Módulos (66.7%)** | Módulos 1 al 12 finalizados y testeados |
+| **Pruebas Automatizadas (Vitest)** | **158 / 158 (100% pasando)** | 43 suites en verde, 0 fallos |
+| **Linter (Oxlint)** | **0 advertencias, 0 errores** | 115 archivos analizados con 116 reglas |
+| **Compilación (TypeScript / Vite)** | **Compilación Limpia (0 errores)** | Bundle listo para producción generado en ~600ms |
+| **Cobertura de Endpoints Backend** | **38 / 38 Mapeados** | 37 Implementados / 1 Parcial / 1 Planificado |
+| **Módulos Base Completados** | **16 / 18 Módulos (88.9%)** | Módulos 1 al 16 finalizados y testeados |
 | **Capa de Transporte HTTP** | **Completa (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`)** | Métodos extendidos, soporte `FormData`, streams y RFC 7807 |
 | **Contrato y Tipado OpenAPI 3.1** | **Sincronizado al 100%** | Generado en `src/types/api.generated.ts` (4.705 LOC) con script `types:sync` |
-| **Siguiente Módulo Activo** | ⏳ **Módulo 13** | Descongelamiento y Gestión Total de Carpetas en PostgreSQL con RBAC |
+| **Siguiente Módulo Activo** | ⏳ **Módulo 17** | Visor Interactivo de Documentación OpenAPI (Scalar) & Diagnóstico |
 
 ---
 
@@ -38,31 +38,31 @@
 | **11** | `PATCH` | `/api/v1/users/:id/status` | Módulo 12 | `UserProfilesView.tsx` (Toggle Activar/Suspender) | `usersService.ts` | ✅ Implementado |
 | **12** | `PATCH` | `/api/v1/users/:id/password` | Módulo 12 | `ResetUserPasswordModal.tsx` (Reset forzado por superior) | `usersService.ts` | ✅ Implementado |
 | **13** | `DELETE` | `/api/v1/users/:id` | Módulo 12 | `DeleteUserModal.tsx` (Borrado con cascada) | `usersService.ts` | ✅ Implementado |
-| **14** | `GET` | `/api/v1/folders` | Módulo 13 | `Sidebar.tsx`, `FolderGrid.tsx` (Filtros, search, permisos) | `foldersService.ts` | ⏳ Pendiente |
-| **15** | `POST` | `/api/v1/folders` | Módulo 13 | `CreateFolderModal.tsx` (Creación IMAGE/TABLE con color) | `foldersService.ts` | ⏳ Pendiente |
-| **16** | `PATCH` | `/api/v1/folders/:id` | Módulo 13 | `EditFolderModal.tsx` (Renombrar, color, privacidad) | `foldersService.ts` | ⏳ Pendiente |
-| **17** | `GET` | `/api/v1/folders/:id` | Módulo 13 | `FolderHeader.tsx` (Detalle y estadísticas) | `foldersService.ts` | ⏳ Pendiente |
-| **18** | `DELETE` | `/api/v1/folders/:id` | Módulo 13 | `Sidebar.tsx` / `FolderMenu` (Borrado en cascada) | `foldersService.ts` | ⏳ Pendiente |
-| **19** | `POST` | `/api/v1/folders/:id/shares` | Módulo 13 | `ShareFolderModal.tsx` (Asignar colaborador READ/EDIT) | `foldersService.ts` | ⏳ Pendiente |
-| **20** | `GET` | `/api/v1/folders/:id/shares` | Módulo 13 | `ShareFolderModal.tsx` (Lista de miembros con acceso) | `foldersService.ts` | ⏳ Pendiente |
-| **21** | `PATCH` | `/api/v1/folders/:id/shares/:userId` | Módulo 13 | `ShareFolderModal.tsx` (Alternar READ <-> EDIT) | `foldersService.ts` | ⏳ Pendiente |
-| **22** | `DELETE` | `/api/v1/folders/:id/shares/:userId` | Módulo 13 | `ShareFolderModal.tsx` (Revocar y expulsar) | `foldersService.ts` | ⏳ Pendiente |
-| **23** | `GET` | `/api/v1/images` | Módulo 14 | `ImagesView.tsx` (Paginación server-side y folderId) | `imagesService.ts` | ✅ Parcial / ⏳ Extendido |
+| **14** | `GET` | `/api/v1/folders` | Módulo 13 | `SidebarFoldersTree.tsx` (Filtros, search, permisos) | `foldersService.ts` | ✅ Implementado |
+| **15** | `POST` | `/api/v1/folders` | Módulo 13 | `CreateFolderModal.tsx` (Creación IMAGE/TABLE con color) | `foldersService.ts` | ✅ Implementado |
+| **16** | `PATCH` | `/api/v1/folders/:id` | Módulo 13 | `EditFolderModal.tsx` (Renombrar, color, privacidad) | `foldersService.ts` | ✅ Implementado |
+| **17** | `GET` | `/api/v1/folders/:id` | Módulo 13 | `foldersService.getFolderById` (Detalle y estadísticas) | `foldersService.ts` | ✅ Implementado |
+| **18** | `DELETE` | `/api/v1/folders/:id` | Módulo 13 | `SidebarFoldersTree.tsx` (Borrado en cascada) | `foldersService.ts` | ✅ Implementado |
+| **19** | `POST` | `/api/v1/folders/:id/shares` | Módulo 13 | `ShareFolderModal.tsx` (Asignar colaborador READ/EDIT) | `foldersService.ts` | ✅ Implementado |
+| **20** | `GET` | `/api/v1/folders/:id/shares` | Módulo 13 | `ShareFolderModal.tsx` (Lista de miembros con acceso) | `foldersService.ts` | ✅ Implementado |
+| **21** | `PATCH` | `/api/v1/folders/:id/shares/:userId` | Módulo 13 | `ShareFolderModal.tsx` (Alternar READ <-> EDIT) | `foldersService.ts` | ✅ Implementado |
+| **22** | `DELETE` | `/api/v1/folders/:id/shares/:userId` | Módulo 13 | `ShareFolderModal.tsx` (Revocar y expulsar) | `foldersService.ts` | ✅ Implementado |
+| **23** | `GET` | `/api/v1/images` | Módulo 14 | `ImagesView.tsx` (Paginación server-side y folderId) | `imagesService.ts` | ✅ Implementado |
 | **24** | `POST` | `/api/v1/images` | Módulo 14 | `UploadModal.tsx`, `DropzoneOverlay.tsx` | `imagesService.ts` | ✅ Implementado |
-| **25** | `PATCH` | `/api/v1/images/:id` | Módulo 14 | `RenameImageModal.tsx` / `ImageCard.tsx` (Renombrado) | `imagesService.ts` | ⏳ Pendiente |
-| **26** | `PUT` | `/api/v1/images/:id` | Módulo 14 | `HotSwapImageModal.tsx` (Reemplazo binario en caliente) | `imagesService.ts` | ⏳ Pendiente |
+| **25** | `PATCH` | `/api/v1/images/:id` | Módulo 14 | `RenameImageModal.tsx` / `ImageCard.tsx` (Renombrado) | `imagesService.ts` | ✅ Implementado |
+| **26** | `PUT` | `/api/v1/images/:id` | Módulo 14 | `HotSwapImageModal.tsx` (Reemplazo binario en caliente) | `imagesService.ts` | ✅ Implementado |
 | **27** | `DELETE` | `/api/v1/images/:id` | Módulo 14 | `ImageCard.tsx`, `ImageInspector.tsx` | `imagesService.ts` | ✅ Implementado |
-| **28** | `PATCH` | `/api/v1/images/:id/folder` | Módulo 13 | `MoveToFolderModal.tsx` (Reasignar carpeta en DB) | `foldersService.ts` | ⏳ Pendiente |
-| **29** | `GET` | `/i/:short_code` | Módulo 14 | `ImageCard.tsx` (?variant=thumb), `Inspector` (original) | `imagesService.ts` | ⏳ Optimización |
-| **30** | `GET` | `/api/v1/tables` | Módulo 15 | `TablesCatalogView.tsx` (Paginación y folderId) | `tablesService.ts` | ✅ Parcial / ⏳ Extendido |
+| **28** | `PATCH` | `/api/v1/images/:id/folder` | Módulo 13 | `MoveToFolderModal.tsx` (Reasignar carpeta en DB) | `foldersService.ts` | ✅ Implementado |
+| **29** | `GET` | `/i/:short_code` | Módulo 14 | `ImageCard.tsx` (?variant=thumb), `Inspector` (original) | `imagesService.ts` | ✅ Implementado |
+| **30** | `GET` | `/api/v1/tables` | Módulo 15 | `TablesCatalogView.tsx` (Paginación y folderId) | `tablesService.ts` | ✅ Implementado |
 | **31** | `POST` | `/api/v1/tables` | Módulo 15 | `UploadModal.tsx` (CSV/XLSX con carpeta) | `tablesService.ts` | ✅ Implementado |
 | **32** | `DELETE` | `/api/v1/tables/:id` | Módulo 15 | `TablesCatalogView.tsx`, `TableDataStudioView.tsx` | `tablesService.ts` | ✅ Implementado |
-| **33** | `PATCH` | `/api/v1/tables/:id/folder` | Módulo 13 | `MoveToFolderModal.tsx` (Reasignar carpeta en DB) | `foldersService.ts` | ⏳ Pendiente |
-| **34** | `GET` | `/t/:short_code` | Módulo 15 | `TableDataStudioView.tsx` (Headers, merges, styles, raw) | `tablesService.ts` | ✅ Parcial / ⏳ Extendido |
-| **35** | `PATCH` | `/api/v1/tables/:id/metadata` | Módulo 15 | `TableMetadataEditorModal.tsx` (Ficha Técnica) | `tablesService.ts` | ⏳ Pendiente |
-| **36** | `POST` | `/api/v1/chat/ask` | Módulo 16 | `ChatStudioView.tsx` (RAG Tabular con fuentes y charts) | `chatService.ts` | ⏳ Pendiente |
-| **37** | `POST` | `/api/v1/public/chat/ask` | Módulo 16 | `PublicWidgetPreviewModal.tsx` (Widget web embebible) | `chatService.ts` | ⏳ Pendiente |
-| **38** | `GET` | `/api/v1/public/chat/suggestions` | Módulo 16 | `ChatStudioView.tsx` (Chips de preguntas sugeridas) | `chatService.ts` | ⏳ Pendiente |
+| **33** | `PATCH` | `/api/v1/tables/:id/folder` | Módulo 13 | `MoveToFolderModal.tsx` (Reasignar carpeta en DB) | `foldersService.ts` | ✅ Implementado |
+| **34** | `GET` | `/t/:short_code` | Módulo 15 | `TableDataStudioView.tsx` (Headers, merges, styles, raw) | `tablesService.ts` | ✅ Implementado |
+| **35** | `PATCH` | `/api/v1/tables/:id/metadata` | Módulo 15 | `TableMetadataEditorModal.tsx` (Ficha Técnica) | `tablesService.ts` | ✅ Implementado |
+| **36** | `POST` | `/api/v1/chat/ask` | Módulo 16 | `ChatStudioView.tsx` (RAG Tabular con fuentes y charts) | `chatService.ts` | ✅ Implementado |
+| **37** | `POST` | `/api/v1/public/chat/ask` | Módulo 16 | `PublicWidgetPreviewModal.tsx` (Widget web embebible) | `chatService.ts` | ✅ Implementado |
+| **38** | `GET` | `/api/v1/public/chat/suggestions` | Módulo 16 | `ChatStudioView.tsx` (Chips de preguntas sugeridas) | `chatService.ts` | ✅ Implementado |
 
 ---
 
@@ -215,6 +215,9 @@
   - [x] `6.1` En `src/services/apiClient.ts`, incluir `credentials: options.credentials || 'include'` por defecto en `download()`.
   - [x] `6.2` Integrar el interceptor `handleTokenRefresh` en `apiClient.download()` cuando el servidor responda `401 UNAUTHORIZED` y `!options.skipAuth && !options._retry`, garantizando reintento transparente en descargas autenticadas.
 
+- [x] **7. Refactorización de Hojas de Estilo > 300 líneas (Regla `1.3`)**
+  - [x] `7.1` Dividir `src/components/users/UserProfilesCards.module.css` (**335 líneas**) en hojas acotadas por subcomponente (`CreateProfileCard.module.css`, `ProfilesDirectoryCard.module.css` y `UserModals.module.css`).
+
 ---
 
 ## 👥 Módulo 12: Suite de Administración Jerárquica de Usuarios (RBAC)
@@ -246,35 +249,35 @@
 
 > **Rutas Backend:** `GET /api/v1/folders`, `POST /api/v1/folders`, `GET /api/v1/folders/:id`, `PATCH /api/v1/folders/:id`, `DELETE /api/v1/folders/:id`, `POST /api/v1/folders/:id/shares`, `GET /api/v1/folders/:id/shares`, `PATCH /api/v1/folders/:id/shares/:userId`, `DELETE /api/v1/folders/:id/shares/:userId`, `PATCH /api/v1/images/:id/folder`, `PATCH /api/v1/tables/:id/folder`.
 
-- [ ] **13.1 Servicio Centralizado de Carpetas (`src/services/foldersService.ts`)**
-  - [ ] `13.1.1` Implementar `fetchFolders(type?, search?, page?, limit?)` consumiendo `GET /api/v1/folders`.
-  - [ ] `13.1.2` Implementar `createFolder(payload)` consumiendo `POST /api/v1/folders`.
-  - [ ] `13.1.3` Implementar `updateFolder(id, payload)` consumiendo `PATCH /api/v1/folders/:id` (renombrar, color, privacidad).
-  - [ ] `13.1.4` Implementar `deleteFolder(id)` consumiendo `DELETE /api/v1/folders/:id`.
-  - [ ] `13.1.5` Implementar `moveImageToFolder(imageId, folderId)` consumiendo `PATCH /api/v1/images/:id/folder`.
-  - [ ] `13.1.6` Implementar `moveTableToFolder(tableId, folderId)` consumiendo `PATCH /api/v1/tables/:id/folder`.
-  - [ ] `13.1.7` Implementar métodos de compartición: `shareFolder()`, `listShares()`, `updateSharePermission()`, `revokeShare()`.
+- [x] **13.1 Servicio Centralizado de Carpetas (`src/services/foldersService.ts`)**
+  - [x] `13.1.1` Implementar `fetchFolders(type?, search?, page?, limit?)` consumiendo `GET /api/v1/folders`.
+  - [x] `13.1.2` Implementar `createFolder(payload)` consumiendo `POST /api/v1/folders`.
+  - [x] `13.1.3` Implementar `updateFolder(id, payload)` consumiendo `PATCH /api/v1/folders/:id` (renombrar, color, privacidad).
+  - [x] `13.1.4` Implementar `deleteFolder(id)` consumiendo `DELETE /api/v1/folders/:id`.
+  - [x] `13.1.5` Implementar `moveImageToFolder(imageId, folderId)` consumiendo `PATCH /api/v1/images/:id/folder`.
+  - [x] `13.1.6` Implementar `moveTableToFolder(tableId, folderId)` consumiendo `PATCH /api/v1/tables/:id/folder`.
+  - [x] `13.1.7` Implementar métodos de compartición: `shareFolder()`, `listShares()`, `updateSharePermission()`, `revokeShare()`.
 
-- [ ] **13.2 Descongelamiento en `App.tsx` y Sincronización en Sidebar**
-  - [ ] `13.2.1` Establecer `ENABLE_FOLDERS = true` en `App.tsx` y eliminar la dependencia de carpetas locales en `storageService`.
-  - [ ] `13.2.2` En `Sidebar.tsx`: Renderizar árbol de carpetas obtenido de PostgreSQL filtrado según la pestaña activa (`IMAGE` en Galería, `TABLE` en Datasets).
-  - [ ] `13.2.3` Badges visuales en cada carpeta: Candado para privadas (`isPrivate`), ícono de usuarios para compartidas, badge de permiso (`Lectura` o `Edición`) y contador real de elementos (`itemCount`).
-  - [ ] `13.2.4` Protección de carpeta `General`: ocultar o deshabilitar opciones de renombrado y borrado sobre la carpeta del sistema.
+- [x] **13.2 Descongelamiento en `App.tsx` y Sincronización en Sidebar**
+  - [x] `13.2.1` Establecer `ENABLE_FOLDERS = true` en `App.tsx` y eliminar la dependencia de carpetas locales en `storageService`.
+  - [x] `13.2.2` En `Sidebar.tsx`: Renderizar árbol de carpetas obtenido de PostgreSQL filtrado según la pestaña activa (`IMAGE` en Galería, `TABLE` en Datasets).
+  - [x] `13.2.3` Badges visuales en cada carpeta: Candado para privadas (`isPrivate`), ícono de usuarios para compartidas, badge de permiso (`Lectura` o `Edición`) y contador real de elementos (`itemCount`).
+  - [x] `13.2.4` Protección de carpeta `General`: ocultar o deshabilitar opciones de renombrado y borrado sobre la carpeta del sistema.
 
-- [ ] **13.3 Modal de Edición de Carpetas (`EditFolderModal.tsx`)**
-  - [ ] `13.3.1` Crear componente `EditFolderModal.tsx` con campos para: nuevo nombre, selector de paleta de colores hexadecimales y toggle de privacidad privada/pública.
-  - [ ] `13.3.2` Bloquear acceso si la carpeta es `General` o si el usuario no tiene permiso de propietario o `ADMIN`.
+- [x] **13.3 Modal de Edición de Carpetas (`EditFolderModal.tsx`)**
+  - [x] `13.3.1` Crear componente `EditFolderModal.tsx` con campos para: nuevo nombre, selector de paleta de colores hexadecimales y toggle de privacidad privada/pública.
+  - [x] `13.3.2` Bloquear acceso si la carpeta es `General` o si el usuario no tiene permiso de propietario o `ADMIN`.
 
-- [ ] **13.4 Sistema de Compartición de Carpetas (`ShareFolderModal.tsx`)**
-  - [ ] `13.4.1` Crear modal `ShareFolderModal.tsx` accesible desde el menú de la carpeta en el Sidebar.
-  - [ ] `13.4.2` Selector de usuarios colaboradores disponibles en el sistema con asignación de permiso inicial (`READ` o `EDIT`).
-  - [ ] `13.4.3` Lista de miembros activos en la carpeta compartida con selector desplegable en línea para conmutar entre `Lectura` y `Edición` (`PATCH /api/v1/folders/:id/shares/:userId`).
-  - [ ] `13.4.4` Botón para expulsar/revocar acceso a un colaborador (`DELETE /api/v1/folders/:id/shares/:userId`).
+- [x] **13.4 Sistema de Compartición de Carpetas (`ShareFolderModal.tsx`)**
+  - [x] `13.4.1` Crear modal `ShareFolderModal.tsx` accesible desde el menú de la carpeta en el Sidebar.
+  - [x] `13.4.2` Selector de usuarios colaboradores disponibles en el sistema con asignación de permiso inicial (`READ` o `EDIT`).
+  - [x] `13.4.3` Lista de miembros activos en la carpeta compartida con selector desplegable en línea para conmutar entre `Lectura` y `Edición` (`PATCH /api/v1/folders/:id/shares/:userId`).
+  - [x] `13.4.4` Botón para expulsar/revocar acceso a un colaborador (`DELETE /api/v1/folders/:id/shares/:userId`).
 
-- [ ] **13.5 Conexión de Reasignación Real (`MoveToFolderModal.tsx`)**
-  - [ ] `13.5.1` Actualizar `handleConfirmMove` en `App.tsx` para llamar a `foldersService.moveImageToFolder` o `foldersService.moveTableToFolder` en el backend.
-  - [ ] `13.5.2` Notificar con Toast de éxito o error descriptivo según el permiso RBAC del usuario.
-  - [ ] `13.5.3` Pruebas unitarias e integradas para `foldersService.test.ts`, `EditFolderModal.test.tsx` y `ShareFolderModal.test.tsx`.
+- [x] **13.5 Conexión de Reasignación Real (`MoveToFolderModal.tsx`)**
+  - [x] `13.5.1` Actualizar `handleConfirmMove` en `App.tsx` para llamar a `foldersService.moveImageToFolder` o `foldersService.moveTableToFolder` en el backend.
+  - [x] `13.5.2` Notificar con Toast de éxito o error descriptivo según el permiso RBAC del usuario.
+  - [x] `13.5.3` Pruebas unitarias e integradas para `foldersService.test.ts`, `EditFolderModal.test.tsx` y `ShareFolderModal.test.tsx`.
 
 ---
 
@@ -282,26 +285,26 @@
 
 > **Rutas Backend:** `PATCH /api/v1/images/:id`, `PUT /api/v1/images/:id`, `GET /i/:short_code?variant=thumb`, `GET /api/v1/images?page=&limit=&folderId=`.
 
-- [ ] **14.1 Miniaturas WebP de Alta Velocidad y Rendimiento Visual**
-  - [ ] `14.1.1` Actualizar `ImageCard.tsx` para solicitar `/i/:short_code?variant=thumb` en la vista de cuadrícula, reduciendo drásticamente el peso de descarga de imágenes de alta resolución.
-  - [ ] `14.1.2` Cargar la imagen original completa (`/i/:short_code?variant=original`) únicamente al abrir el visor de zoom e inspección (`ImageInspector.tsx`).
-  - [ ] `14.1.3` Soporte de invalidación de caché usando la propiedad `urlWithVersion` (`?v=timestamp`) devuelta por el backend para evitar que el navegador muestre imágenes en caché obsoletas.
+- [x] **14.1 Miniaturas WebP de Alta Velocidad y Rendimiento Visual**
+  - [x] `14.1.1` Actualizar `ImageCard.tsx` para solicitar `/i/:short_code?variant=thumb` en la vista de cuadrícula, reduciendo drásticamente el peso de descarga de imágenes de alta resolución.
+  - [x] `14.1.2` Cargar la imagen original completa (`/i/:short_code?variant=original`) únicamente al abrir el visor de zoom e inspección (`ImageInspector.tsx`).
+  - [x] `14.1.3` Soporte de invalidación de caché usando la propiedad `urlWithVersion` (`?v=timestamp`) devuelta por el backend para evitar que el navegador muestre imágenes en caché obsoletas.
 
-- [ ] **14.2 Renombrado en Caliente de Imágenes (`PATCH /api/v1/images/:id`)**
-  - [ ] `14.2.1` Implementar `renameImage(id, originalName)` en `imagesService.ts`.
-  - [ ] `14.2.2` Crear modal rápido `RenameImageModal.tsx` o edición in-line de nombre en `ImageInspector.tsx` con confirmación inmediata.
-  - [ ] `14.2.3` Actualización instantánea del estado local y feedback toast tras renombrar.
+- [x] **14.2 Renombrado en Caliente de Imágenes (`PATCH /api/v1/images/:id`)**
+  - [x] `14.2.1` Implementar `renameImage(id, originalName)` en `imagesService.ts`.
+  - [x] `14.2.2` Crear modal rápido `RenameImageModal.tsx` o edición in-line de nombre en `ImageInspector.tsx` con confirmación inmediata.
+  - [x] `14.2.3` Actualización instantánea del estado local y feedback toast tras renombrar.
 
-- [ ] **14.3 Reemplazo en Caliente de Binario / Hot-Swap (`PUT /api/v1/images/:id`)**
-  - [ ] `14.3.1` Implementar `replaceImage(id, file)` en `imagesService.ts` enviando `multipart/form-data` mediante `apiClient.put`.
-  - [ ] `14.3.2` Crear modal `HotSwapImageModal.tsx` con dropzone interactivo que muestre comparación antes/después (archivo actual vs nuevo archivo a sustituir).
-  - [ ] `14.3.3` Advertencia clara: *"El archivo se actualizará conservando exactamente el mismo shortCode y URL pública compartida"*.
-  - [ ] `14.3.4` Actualización automática de miniatura y metadatos (`sizeBytes`, `width`, `height`) tras la sustitución exitosa.
+- [x] **14.3 Reemplazo en Caliente de Binario / Hot-Swap (`PUT /api/v1/images/:id`)**
+  - [x] `14.3.1` Implementar `replaceImage(id, file)` en `imagesService.ts` enviando `multipart/form-data` mediante `apiClient.put`.
+  - [x] `14.3.2` Crear modal `HotSwapImageModal.tsx` con dropzone interactivo que muestre comparación antes/después (archivo actual vs nuevo archivo a sustituir).
+  - [x] `14.3.3` Advertencia clara: *"El archivo se actualizará conservando exactamente el mismo shortCode y URL pública compartida"*.
+  - [x] `14.3.4` Actualización automática de miniatura y metadatos (`sizeBytes`, `width`, `height`) tras la sustitución exitosa.
 
-- [ ] **14.4 Paginación Server-Side y Filtros en Galería**
-  - [ ] `14.4.1` Actualizar llamada `imagesService.fetchRemoteImages({ page, limit, folderId })` en `ImagesView.tsx`.
-  - [ ] `14.4.2` Añadir controles de paginación previa/siguiente en la barra de herramientas de la galería si el número de imágenes excede el límite de página.
-  - [ ] `14.4.3` Pruebas automatizadas en `imagesService.test.ts` y componentes de UI de imágenes.
+- [x] **14.4 Paginación Server-Side y Filtros en Galería**
+  - [x] `14.4.1` Actualizar llamada `imagesService.fetchRemoteImages({ page, limit, folderId })` en `ImagesView.tsx`.
+  - [x] `14.4.2` Añadir controles de paginación previa/siguiente en la barra de herramientas de la galería si el número de imágenes excede el límite de página.
+  - [x] `14.4.3` Pruebas automatizadas en `imagesService.test.ts` y componentes de UI de imágenes.
 
 ---
 
@@ -309,26 +312,26 @@
 
 > **Rutas Backend:** `PATCH /api/v1/tables/:id/metadata`, `GET /t/:short_code` (headers, merges, cellStyles, ?download=true), `GET /api/v1/tables?page=&limit=&folderId=`.
 
-- [ ] **15.1 Soporte Integral de Formato Rico en Data Studio (`TableDataStudioView.tsx`)**
-  - [ ] `15.1.1` Actualizar `tablesService.fetchTableDetails(shortCode, page, limit)` para extraer y tipar metadatos avanzados: `headers` multinivel, `merges` (celdas combinadas) y `cellStyles` (colores de fondo, negritas, alineación).
-  - [ ] `15.1.2` Adaptar `DataGrid.tsx` para aplicar dinámicamente los estilos calculados por el backend (`cellStyles[rowIdx][colName]`) y representar visualmente las celdas agrupadas (`merges`).
-  - [ ] `15.1.3` Mantener botón de descarga directa de alta fidelidad (`/t/:short_code?download=true`) que descargue el `.xlsx` o `.csv` intacto con su nombre original.
+- [x] **15.1 Soporte Integral de Formato Rico en Data Studio (`TableDataStudioView.tsx`)**
+  - [x] `15.1.1` Actualizar `tablesService.fetchTableDetails(shortCode, page, limit)` para extraer y tipar metadatos avanzados: `headers` multinivel, `merges` (celdas combinadas) y `cellStyles` (colores de fondo, negritas, alineación).
+  - [x] `15.1.2` Adaptar `DataGrid.tsx` para aplicar dinámicamente los estilos calculados por el backend (`cellStyles[rowIdx][colName]`) y representar visualmente las celdas agrupadas (`merges`).
+  - [x] `15.1.3` Mantener botón de descarga directa de alta fidelidad (`/t/:short_code?download=true`) que descargue el `.xlsx` o `.csv` intacto con su nombre original.
 
-- [ ] **15.2 Editor e Inspector de Ficha Técnica (`TableMetadataEditorModal.tsx`)**
-  - [ ] `15.2.1` Implementar `updateTableMetadata(id, metadata)` en `tablesService.ts` consumiendo `PATCH /api/v1/tables/:id/metadata`.
-  - [ ] `15.2.2` Crear componente `TableMetadataEditorModal.tsx` accesible desde la tarjeta de tabla y la barra del Data Studio.
-  - [ ] `15.2.3` Formulario con campos:
+- [x] **15.2 Editor e Inspector de Ficha Técnica (`TableMetadataEditorModal.tsx`)**
+  - [x] `15.2.1` Implementar `updateTableMetadata(id, metadata)` en `tablesService.ts` consumiendo `PATCH /api/v1/tables/:id/metadata`.
+  - [x] `15.2.2` Crear componente `TableMetadataEditorModal.tsx` accesible desde la tarjeta de tabla y la barra del Data Studio.
+  - [x] `15.2.3` Formulario con campos:
     - **Título Descriptivo** (`title`).
     - **Descripción del Dataset** (`description`).
     - **Etiquetas Temáticas** (`tags`: chips interactivos agregables/eliminables).
     - **Unidad de Medida** (`unit`, ej. "habitantes", "USD", "toneladas").
     - **Diccionario de Columnas** (`columnsMeta`: glosario donde se describe el significado de cada columna detectada).
     - **Toggle de Filas de Resumen** (`hasSummaryRows`: indicador para evitar duplicación de totales en análisis).
-  - [ ] `15.2.4` Visualizador de sólo lectura tipo Badge / Tooltip en `TableCard.tsx` para previsualizar la ficha técnica rápidamente.
+  - [x] `15.2.4` Visualizador de sólo lectura tipo Badge / Tooltip en `TableCard.tsx` para previsualizar la ficha técnica rápidamente.
 
-- [ ] **15.3 Paginación Server-Side y Filtros en Catálogo de Tablas**
-  - [ ] `15.3.1` Integrar `folderId`, `page` y `limit` en `tablesService.fetchRemoteTables()`.
-  - [ ] `15.3.2` Pruebas unitarias para `tablesService.metadata.test.ts` y renderizado de Ficha Técnica.
+- [x] **15.3 Paginación Server-Side y Filtros en Catálogo de Tablas**
+  - [x] `15.3.1` Integrar `folderId`, `page` y `limit` en `tablesService.fetchRemoteTables()`.
+  - [x] `15.3.2` Pruebas unitarias para `tablesService.metadata.test.ts` y renderizado de Ficha Técnica.
 
 ---
 
@@ -336,27 +339,27 @@
 
 > **Rutas Backend:** `POST /api/v1/chat/ask`, `POST /api/v1/public/chat/ask`, `GET /api/v1/public/chat/suggestions`.
 
-- [ ] **16.1 Servicio de Chat y RAG Tabular (`src/services/chatService.ts`)**
-  - [ ] `16.1.1` Implementar `askInternal(question, folderId?, shortCode?)` consumiendo `POST /api/v1/chat/ask`.
-  - [ ] `16.1.2` Implementar `getPublicSuggestions(folderId?)` consumiendo `GET /api/v1/public/chat/suggestions`.
-  - [ ] `16.1.3` Implementar `askPublic(question, folderId?, shortCode?)` consumiendo `POST /api/v1/public/chat/ask`.
+- [x] **16.1 Servicio de Chat y RAG Tabular (`src/services/chatService.ts`)**
+  - [x] `16.1.1` Implementar `askInternal(question, folderId?, shortCode?)` consumiendo `POST /api/v1/chat/ask`.
+  - [x] `16.1.2` Implementar `getPublicSuggestions(folderId?)` consumiendo `GET /api/v1/public/chat/suggestions`.
+  - [x] `16.1.3` Implementar `askPublic(question, folderId?, shortCode?)` consumiendo `POST /api/v1/public/chat/ask`.
 
-- [ ] **16.2 Vista del Asistente Analítico (`ChatStudioView.tsx`)**
-  - [ ] `16.2.1` Crear vista principal `ChatStudioView.tsx` y registrarla en el `Sidebar.tsx` con ícono de Sparkles/Bot (`Consulta Inteligente` / `Data Chat`).
-  - [ ] `16.2.2` Selector de contexto: consultar sobre "Todas mis tablas accesibles", filtrar por una carpeta en específico o por un dataset concreto.
-  - [ ] `16.2.3` Barra de sugerencias dinámicas con chips clickeables obtenidos de `GET /api/v1/public/chat/suggestions`.
-  - [ ] `16.2.4` Hilo de conversación con burbujas de mensaje para el usuario y respuestas analíticas fundamentadas del backend.
-  - [ ] `16.2.5` Tratamiento visual elegante cuando el dato no existe (`foundInSystem: false` con aviso claro de dato no registrado).
+- [x] **16.2 Vista del Asistente Analítico (`ChatStudioView.tsx`)**
+  - [x] `16.2.1` Crear vista principal `ChatStudioView.tsx` y registrarla en el `Sidebar.tsx` con ícono de Sparkles/Bot (`Consulta Inteligente` / `Data Chat`).
+  - [x] `16.2.2` Selector de contexto: consultar sobre "Todas mis tablas accesibles", filtrar por una carpeta en específico o por un dataset concreto.
+  - [x] `16.2.3` Barra de sugerencias dinámicas con chips clickeables obtenidos de `GET /api/v1/public/chat/suggestions`.
+  - [x] `16.2.4` Hilo de conversación con burbujas de mensaje para el usuario y respuestas analíticas fundamentadas del backend.
+  - [x] `16.2.5` Tratamiento visual elegante cuando el dato no existe (`foundInSystem: false` con aviso claro de dato no registrado).
 
-- [ ] **16.3 Renderizado de Fuentes Citadas & Gráficos Estadísticos**
-  - [ ] `16.3.1` Componente `ChatSourcesList.tsx`: Muestra las tarjetas de tablas utilizadas como fuentes (`tableName`, `shortCode`, `title`) con botón directo para abrirlas en el Data Studio a pantalla completa.
-  - [ ] `16.3.2` Componente `ChatChartRenderer.tsx`: Si la respuesta contiene `chartData` (`labels`, `values`, `percentages`), renderizar automáticamente un gráfico visual (gráfico de barras horizontales/verticales con porcentajes y formateo de números en español).
+- [x] **16.3 Renderizado de Fuentes Citadas & Gráficos Estadísticos**
+  - [x] `16.3.1` Componente `ChatSourcesList.tsx`: Muestra las tarjetas de tablas utilizadas como fuentes (`tableName`, `shortCode`, `title`) con botón directo para abrirlas en el Data Studio a pantalla completa.
+  - [x] `16.3.2` Componente `ChatChartRenderer.tsx`: Si la respuesta contiene `chartData` (`labels`, `values`, `percentages`), renderizar automáticamente un gráfico visual (gráfico de barras horizontales/verticales con porcentajes y formateo de números en español).
 
-- [ ] **16.4 Generador y Sandbox de Widget Web Público (`PublicWidgetPreviewModal.tsx`)**
-  - [ ] `16.4.1` Crear modal en `SettingsView` o `ChatStudioView` para generar el código embebible del Widget Público de Chat.
-  - [ ] `16.4.2` Probar en vivo el endpoint `POST /api/v1/public/chat/ask` demostrando cómo terceros pueden consultar tablas públicas respetando el rate-limit.
-  - [ ] `16.4.3` Botón para copiar snippet HTML / iFrame listo para incrustar en sitios web externos.
-  - [ ] `16.4.4` Pruebas unitarias para `chatService.test.ts` y componentes de visualización de chat y gráficos.
+- [x] **16.4 Generador y Sandbox de Widget Web Público (`PublicWidgetPreviewModal.tsx`)**
+  - [x] `16.4.1` Crear modal en `SettingsView` o `ChatStudioView` para generar el código embebible del Widget Público de Chat.
+  - [x] `16.4.2` Probar en vivo el endpoint `POST /api/v1/public/chat/ask` demostrando cómo terceros pueden consultar tablas públicas respetando el rate-limit.
+  - [x] `16.4.3` Botón para copiar snippet HTML / iFrame listo para incrustar en sitios web externos.
+  - [x] `16.4.4` Pruebas unitarias para `chatService.test.ts` y componentes de visualización de chat y gráficos.
 
 ---
 
@@ -364,28 +367,28 @@
 
 > **Rutas Backend:** `GET /docs`, `GET /openapi.json`, `GET /health`.
 
-- [ ] **17.1 Explorador de Documentación Scalar Integrado**
-  - [ ] `17.1.1` Añadir en `SettingsView.tsx` una sección destacada "Documentación Interactiva de la API (Scalar)".
-  - [ ] `17.1.2` Botón con enlace directo para abrir `/docs` en nueva pestaña y modal visor integrado con iframe responsive de la consola Scalar del backend.
-  - [ ] `17.1.3` Botón de descarga/inspección de la especificación cruda `GET /openapi.json` con formateador visual de JSON y copiado al portapapeles.
+- [x] **17.1 Explorador de Documentación Scalar Integrado**
+  - [x] `17.1.1` Añadir en `SettingsView.tsx` una sección destacada "Documentación Interactiva de la API (Scalar)".
+  - [x] `17.1.2` Botón con enlace directo para abrir `/docs` en nueva pestaña y modal visor integrado con iframe responsive de la consola Scalar del backend.
+  - [x] `17.1.3` Botón de descarga/inspección de la especificación cruda `GET /openapi.json` con formateador visual de JSON y copiado al portapapeles.
 
-- [ ] **17.2 Panel de Diagnóstico de Salud en Tiempo Real**
-  - [ ] `17.2.1` Enriquecer `healthService.ts` para capturar el estado individual de servicios devueltos por `GET /health` (`database: 'up'`, `storage: 'up'`, `uptime`).
-  - [ ] `17.2.2` Mostrar tarjetas de diagnóstico en `SettingsView.tsx` con badges de latencia milimétrica y estado de conexión PostgreSQL y Storage.
+- [x] **17.2 Panel de Diagnóstico de Salud en Tiempo Real**
+  - [x] `17.2.1` Enriquecer `healthService.ts` para capturar el estado individual de servicios devueltos por `GET /health` (`database: 'up'`, `storage: 'up'`, `uptime`).
+  - [x] `17.2.2` Mostrar tarjetas de diagnóstico en `SettingsView.tsx` con badges de latencia milimétrica y estado de conexión PostgreSQL y Storage.
 
 ---
 
 ## 🧪 Módulo 18: Calidad Integral, Testing Automatizado E2E & Build de Producción
 
-- [ ] **18.1 Cobertura Exhaustiva con Vitest y React Testing Library**
-  - [ ] `18.1.1` Tests unitarios para el 100% de los nuevos servicios:
+- [x] **18.1 Cobertura Exhaustiva con Vitest y React Testing Library**
+  - [x] `18.1.1` Tests unitarios para el 100% de los nuevos servicios:
     - `apiClient.advanced.test.ts`
     - `authService.extended.test.ts`
     - `usersService.test.ts`
     - `foldersService.test.ts`
     - `chatService.test.ts`
     - `tablesService.metadata.test.ts`
-  - [ ] `18.1.2` Tests de componentes y modales:
+  - [x] `18.1.2` Tests de componentes y modales:
     - `ChangePasswordModal.test.tsx`
     - `UserProfilesView.test.tsx`
     - `EditFolderModal.test.tsx`
@@ -393,9 +396,9 @@
     - `HotSwapImageModal.test.tsx`
     - `TableMetadataEditorModal.test.tsx`
     - `ChatStudioView.test.tsx`
-  - [ ] `18.1.3` Pruebas de integración global de vistas en `App.test.tsx` cubriendo el nuevo flujo con carpetas activas y chat.
+  - [x] `18.1.3` Pruebas de integración global de vistas en `App.test.tsx` + `App.integration.test.tsx` cubriendo el nuevo flujo con carpetas activas y chat.
 
-- [ ] **18.2 Verificación de Calidad y Cero Regresiones**
-  - [ ] `18.2.1` Ejecución de `npm run test` verificando que el 100% de los tests (actuales y nuevos) pasen con 0 fallos.
-  - [ ] `18.2.2` Ejecución de `npm run lint` (`oxlint`) garantizando 0 advertencias y 0 errores.
-  - [ ] `18.2.3` Ejecución de `npm run build` (`tsc -b && vite build`) certificando compilación estricta TypeScript y bundle listo para producción.
+- [x] **18.2 Verificación de Calidad y Cero Regresiones**
+  - [x] `18.2.1` Ejecución de `npm run test` verificando que el 100% de los tests (actuales y nuevos) pasen con 0 fallos.
+  - [x] `18.2.2` Ejecución de `npm run lint` (`oxlint`) garantizando 0 advertencias y 0 errores.
+  - [x] `18.2.3` Ejecución de `npm run build` (`tsc -b && vite build`) certificando compilación estricta TypeScript y bundle listo para producción.

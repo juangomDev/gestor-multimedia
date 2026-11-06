@@ -4,6 +4,7 @@
   --bg-panel: #121824;             /* Floating panels (Sidebar & Main content) */
   --bg-secondary: #121824;
   --bg-card: #17202f;               /* Content cards */
+  --bg-elevated: #17202f;           /* Elevated surfaces & inputs in modals */
   --bg-card-hover: #1e2b3f;         /* Interactive card hover */
   --bg-input: #0f1521;
   --bg-modal: rgba(18, 24, 36, 0.96);
@@ -12,6 +13,8 @@
 
   /* Borders & Floating Panel Delimiters */
   --border-subtle: rgba(148, 163, 184, 0.12);
+  --border-color: rgba(148, 163, 184, 0.16);
+  --border: rgba(148, 163, 184, 0.16);
   --border-panel: rgba(148, 163, 184, 0.14);
   --border-hover: rgba(147, 197, 253, 0.35);
   --border-focus: #93c5fd;
@@ -19,6 +22,8 @@
 
   /* Soft Pastel Brand Accents */
   --accent-primary: #93c5fd;       /* Pastel Periwinkle / Sky */
+  --color-primary: #3b82f6;        /* Primary Interactive Blue */
+  --primary: #3b82f6;
   --accent-primary-hover: #bfdbfe;
   --accent-primary-bg: rgba(147, 197, 253, 0.12);
   --accent-gradient: linear-gradient(135deg, #818cf8 0%, #93c5fd 100%);

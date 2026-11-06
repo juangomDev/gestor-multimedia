@@ -9,18 +9,21 @@ import { TableDataStudioView } from './views/TableDataStudioView';
 import { LoginView } from './views/LoginView';
 import { UserProfilesView } from './views/UserProfilesView';
 import { SettingsView } from './views/SettingsView';
+import { ChatStudioView } from './views/ChatStudioView';
 import { DropzoneOverlay } from './components/upload/DropzoneOverlay';
 import { UploadModal } from './components/upload/UploadModal';
 import { CreateFolderModal } from './components/folders/CreateFolderModal';
+import { EditFolderModal } from './components/folders/EditFolderModal';
+import { ShareFolderModal } from './components/folders/ShareFolderModal';
 import { MoveToFolderModal } from './components/folders/MoveToFolderModal';
 import { ChangePasswordModal } from './components/auth/ChangePasswordModal';
 import { StatusBar } from './components/layout/StatusBar';
 import { authService } from './services/authService';
 import { useMediaWorkspace } from './hooks/useMediaWorkspace';
-import type { ImageItem, TableItem } from './types/media';
+import type { ImageItem, TableItem, FolderItem } from './types/media';
 
-// Feature Flag: Las carpetas quedan congeladas en el frontend hasta que se implemente la persistencia en PostgreSQL en monolith-backend
-const ENABLE_FOLDERS = false;
+/** Feature Flag: Gestión de carpetas descongelada y conectada a PostgreSQL (`monolith-backend`). */
+const ENABLE_FOLDERS = true;
 
 /**
  * Contenedor principal autenticado que coordina el layout, vistas activas y modales globales.
@@ -28,12 +31,14 @@ const ENABLE_FOLDERS = false;
 const MainApp: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [activeView, setActiveView] = useState<
-    'images' | 'tables' | 'profiles' | 'login' | 'settings'
+    'images' | 'tables' | 'chat' | 'profiles' | 'login' | 'settings'
   >(() => (authService.getSession()?.token ? 'images' : 'login'));
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<FolderItem | null>(null);
+  const [sharingFolder, setSharingFolder] = useState<FolderItem | null>(null);
 
   const {
     images,
@@ -53,6 +58,7 @@ const MainApp: React.FC = () => {
     handleFilesUpload,
     handleDeleteImage,
     handleDeleteTable,
+    handleDeleteFolder,
     handleConfirmMove,
   } = useMediaWorkspace();
 
@@ -67,41 +73,28 @@ const MainApp: React.FC = () => {
 
   if (selectedTableForStudio) {
     return (
-      <div
-        style={{
-          height: '100vh',
-          width: '100vw',
-          background: 'var(--bg-primary)',
-          padding: '10px',
-          boxSizing: 'border-box',
-          overflow: 'hidden',
-          display: 'flex',
-        }}
-      >
+      <div style={{ height: '100vh', width: '100vw', background: 'var(--bg-primary)', padding: '10px', boxSizing: 'border-box', overflow: 'hidden', display: 'flex' }}>
         <TableDataStudioView
           table={selectedTableForStudio}
           onBack={() => setSelectedTableForStudio(null)}
+          onTableUpdated={() => refreshItems()}
         />
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        height: '100vh',
-        width: '100vw',
-        background: 'var(--bg-primary)',
-        padding: '10px',
-        gap: '10px',
-        overflow: 'hidden',
-        boxSizing: 'border-box',
-      }}
-    >
+    <div style={{ display: 'flex', height: '100vh', width: '100vw', background: 'var(--bg-primary)', padding: '10px', gap: '10px', overflow: 'hidden', boxSizing: 'border-box' }}>
       <Sidebar
         activeView={activeView}
-        onViewChange={setActiveView}
+        onViewChange={(nextView) => {
+          if (nextView === 'images' && activeFolder && activeFolder.type !== 'image') {
+            setActiveFolderId(null);
+          } else if (nextView === 'tables' && activeFolder && activeFolder.type !== 'table') {
+            setActiveFolderId(null);
+          }
+          setActiveView(nextView);
+        }}
         onOpenUpload={() => setIsUploadOpen(true)}
         onSync={handleManualSync}
         imagesCount={images.length}
@@ -110,6 +103,9 @@ const MainApp: React.FC = () => {
         activeFolderId={ENABLE_FOLDERS ? activeFolderId : null}
         onFolderChange={setActiveFolderId}
         onOpenNewFolder={() => setIsNewFolderOpen(true)}
+        onEditFolder={setEditingFolder}
+        onShareFolder={setSharingFolder}
+        onDeleteFolder={handleDeleteFolder}
         folders={folders}
         foldersEnabled={ENABLE_FOLDERS}
         onOpenChangePassword={() => setIsChangePasswordOpen(true)}
@@ -140,11 +136,12 @@ const MainApp: React.FC = () => {
           {activeView === 'images' && (
             <ImagesView
               images={images}
-              activeFolder={ENABLE_FOLDERS ? activeFolder : null}
+              activeFolder={ENABLE_FOLDERS && activeFolder?.type === 'image' ? activeFolder : null}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onOpenUpload={() => setIsUploadOpen(true)}
               onDeleteImage={handleDeleteImage}
+              onImageUpdated={() => refreshItems()}
               onMoveImageToFolder={
                 ENABLE_FOLDERS
                   ? (img) => setMovingTarget({ item: img, type: 'image' })
@@ -155,17 +152,25 @@ const MainApp: React.FC = () => {
           {activeView === 'tables' && (
             <TablesCatalogView
               tables={tables}
-              activeFolder={ENABLE_FOLDERS ? activeFolder : null}
+              activeFolder={ENABLE_FOLDERS && activeFolder?.type === 'table' ? activeFolder : null}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onOpenStudio={setSelectedTableForStudio}
               onOpenUpload={() => setIsUploadOpen(true)}
               onDeleteTable={handleDeleteTable}
+              onTableUpdated={() => refreshItems()}
               onMoveTableToFolder={
                 ENABLE_FOLDERS
                   ? (tbl) => setMovingTarget({ item: tbl, type: 'table' })
                   : undefined
               }
+            />
+          )}
+          {activeView === 'chat' && (
+            <ChatStudioView
+              folders={folders}
+              tables={tables}
+              onOpenTableInStudio={setSelectedTableForStudio}
             />
           )}
           {activeView === 'profiles' && (
@@ -210,7 +215,37 @@ const MainApp: React.FC = () => {
           isOpen={isNewFolderOpen}
           onClose={() => setIsNewFolderOpen(false)}
           type={activeView === 'images' ? 'image' : 'table'}
-          onFolderCreated={() => refreshItems()}
+          onFolderCreated={(created) => {
+            setActiveFolderId(created.id);
+            refreshItems();
+            void syncRemote();
+          }}
+        />
+      )}
+
+      {ENABLE_FOLDERS && (
+        <EditFolderModal
+          folder={editingFolder}
+          isOpen={!!editingFolder}
+          onClose={() => setEditingFolder(null)}
+          onFolderUpdated={(updated) => {
+            if (editingFolder && activeFolderId === editingFolder.id) {
+              setActiveFolderId(updated.id);
+            }
+            refreshItems();
+            void syncRemote();
+          }}
+        />
+      )}
+
+      {ENABLE_FOLDERS && (
+        <ShareFolderModal
+          folder={sharingFolder}
+          isOpen={!!sharingFolder}
+          onClose={() => setSharingFolder(null)}
+          onSharesChanged={() => {
+            void syncRemote();
+          }}
         />
       )}
 

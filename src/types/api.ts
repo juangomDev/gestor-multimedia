@@ -14,6 +14,10 @@ export interface HealthResponse {
   storage: 'writable' | 'unwritable';
   timestamp: string;
   latencyMs?: number;
+  /** Alias opcional `database` que algunas versiones del backend devuelven en lugar de `db`. */
+  database?: 'up' | 'down';
+  /** Segundos que lleva el proceso del backend en ejecución (si el backend lo expone). */
+  uptime?: number;
 }
 
 /**
@@ -28,9 +32,29 @@ export interface TablePaginationMeta {
 }
 
 /**
- * Estructura paginada devuelta al consultar registros de un dataset (/t/:short_code).
+ * Estilo visual calculado por el backend para una celda de hoja de cálculo.
+ */
+export interface TableCellStyle {
+  bg?: string;
+  backgroundColor?: string;
+  color?: string;
+  bold?: boolean;
+  italic?: boolean;
+  align?: 'left' | 'center' | 'right';
+}
+
+/**
+ * Estructura paginada devuelta al consultar registros y formato rico de un dataset (/t/:short_code).
  */
 export interface PaginatedTableResponse {
+  id?: string;
+  shortCode?: string;
+  tableName?: string;
+  columns?: string[];
+  headers?: string[][];
+  merges?: string[];
+  cellStyles?: Record<string, Record<string, TableCellStyle> | TableCellStyle>;
+  metadataCard?: MetadataCard | null;
   data: Record<string, any>[];
   meta: TablePaginationMeta;
 }

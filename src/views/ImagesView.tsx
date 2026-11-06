@@ -1,12 +1,18 @@
-import React, { useState, useMemo } from 'react';
-import { Upload, ImageIcon, Folder, Search, X } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Upload, ImageIcon, Folder, Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ImageCard } from '../components/images/ImageCard';
 import { ImageInspector } from '../components/images/ImageInspector';
+import { RenameImageModal } from '../components/images/RenameImageModal';
+import { HotSwapImageModal } from '../components/images/HotSwapImageModal';
 import { Button } from '../components/common/Button';
+import { imagesService } from '../services/imagesService';
 import type { ImageItem, FolderItem } from '../types/media';
 import styles from './ImagesView.module.css';
 
-interface ImagesViewProps {
+/**
+ * Propiedades del orquestador de la vista de Galería de Imágenes.
+ */
+export interface ImagesViewProps {
   images: ImageItem[];
   activeFolder: FolderItem | null;
   searchQuery: string;
@@ -14,10 +20,21 @@ interface ImagesViewProps {
   onOpenUpload: () => void;
   onDeleteImage: (image: ImageItem) => void;
   onMoveImageToFolder?: (image: ImageItem) => void;
+  onImageUpdated?: (updated: ImageItem) => void;
+  pageLimit?: number;
 }
 
+/**
+ * Filtro de formato de archivo de imagen en la barra de herramientas.
+ */
 export type FormatFilter = 'ALL' | 'PNG' | 'JPG' | 'WEBP' | 'SVG';
 
+const DEFAULT_PAGE_LIMIT = 24;
+
+/**
+ * Orquestador de la Galería de Imágenes con soporte para miniaturas WebP,
+ * renombrado en caliente (`PATCH`), reemplazo binario Hot-Swap (`PUT`) y paginación server-side.
+ */
 export const ImagesView: React.FC<ImagesViewProps> = ({
   images,
   activeFolder,
@@ -26,47 +43,103 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
   onOpenUpload,
   onDeleteImage,
   onMoveImageToFolder,
+  onImageUpdated,
+  pageLimit = DEFAULT_PAGE_LIMIT,
 }) => {
   const [selectedFormat, setSelectedFormat] = useState<FormatFilter>('ALL');
   const [inspectingImage, setInspectingImage] = useState<ImageItem | null>(null);
+  const [renamingImage, setRenamingImage] = useState<ImageItem | null>(null);
+  const [hotSwappingImage, setHotSwappingImage] = useState<ImageItem | null>(null);
+  const [localOverrides, setLocalOverrides] = useState<Record<string, ImageItem>>({});
+
+  const [trackedFolderId, setTrackedFolderId] = useState<string | null>(activeFolder?.id ?? null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [remoteTotal, setRemoteTotal] = useState<number | null>(null);
+
+  if ((activeFolder?.id ?? null) !== trackedFolderId) {
+    setTrackedFolderId(activeFolder?.id ?? null);
+    setCurrentPage(1);
+  }
+
+  useEffect(() => {
+    const folderIdParam = activeFolder?.id || null;
+    if (currentPage === 1 && !folderIdParam && pageLimit === DEFAULT_PAGE_LIMIT) {
+      return;
+    }
+
+    let isCancelled = false;
+    imagesService
+      .fetchRemoteImages({
+        page: currentPage,
+        limit: pageLimit,
+        folderId: folderIdParam,
+      })
+      .then(() => {
+        if (!isCancelled) {
+          const meta = imagesService.getLastPaginationMeta();
+          if (meta) {
+            setRemoteTotal(meta.total);
+          }
+        }
+      })
+      .catch(() => {
+        // Manejado internamente por imagesService
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentPage, pageLimit, activeFolder?.id]);
+
+  /**
+   * Aplica actualizaciones en caliente (renombrado o Hot-Swap) sobre el estado local y el inspector.
+   */
+  const handleLocalImageUpdate = (updated: ImageItem) => {
+    setLocalOverrides((prev) => ({
+      ...prev,
+      [updated.id]: updated,
+    }));
+    setInspectingImage((prev) => (prev && prev.id === updated.id ? updated : prev));
+    onImageUpdated?.(updated);
+  };
+
+  const mergedImages = useMemo(
+    () => images.map((img) => localOverrides[img.id] || img),
+    [images, localOverrides]
+  );
 
   const filteredImages = useMemo(() => {
-    return images.filter((img) => {
-      // Folder filter
-      if (activeFolder && img.folderId !== activeFolder.id) {
-        return false;
+    return mergedImages.filter((img) => {
+      if (activeFolder) {
+        const isGeneral = activeFolder.name.trim().toLowerCase() === 'general';
+        const matchesFolder = img.folderId === activeFolder.id || (isGeneral && !img.folderId);
+        if (!matchesFolder) {
+          return false;
+        }
       }
 
-      // Format filter
-      if (selectedFormat === 'PNG' && !img.mimeType.includes('png') && !/\.png$/i.test(img.originalName)) {
-        return false;
-      }
-      if (
-        selectedFormat === 'JPG' &&
-        !img.mimeType.includes('jpeg') &&
-        !/\.(jpe?g)$/i.test(img.originalName)
-      ) {
-        return false;
-      }
-      if (selectedFormat === 'WEBP' && !img.mimeType.includes('webp') && !/\.webp$/i.test(img.originalName)) {
-        return false;
-      }
-      if (selectedFormat === 'SVG' && !img.mimeType.includes('svg') && !/\.svg$/i.test(img.originalName)) {
-        return false;
-      }
+      if (selectedFormat === 'PNG' && !img.mimeType.includes('png') && !/\.png$/i.test(img.originalName)) return false;
+      if (selectedFormat === 'JPG' && !img.mimeType.includes('jpeg') && !/\.(jpe?g)$/i.test(img.originalName)) return false;
+      if (selectedFormat === 'WEBP' && !img.mimeType.includes('webp') && !/\.webp$/i.test(img.originalName)) return false;
+      if (selectedFormat === 'SVG' && !img.mimeType.includes('svg') && !/\.svg$/i.test(img.originalName)) return false;
 
-      // Search filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        return (
-          img.originalName.toLowerCase().includes(q) ||
-          img.shortCode.toLowerCase().includes(q)
-        );
+        return img.originalName.toLowerCase().includes(q) || img.shortCode.toLowerCase().includes(q);
       }
-
       return true;
     });
-  }, [images, activeFolder, selectedFormat, searchQuery]);
+  }, [mergedImages, activeFolder, selectedFormat, searchQuery]);
+
+  const effectiveTotal = Math.max(filteredImages.length, remoteTotal ?? 0);
+  const totalPages = Math.max(1, Math.ceil(effectiveTotal / pageLimit));
+  const showPagination = effectiveTotal > pageLimit;
+
+  const visibleImages = useMemo(() => {
+    if (filteredImages.length <= pageLimit) return filteredImages;
+    const start = (currentPage - 1) * pageLimit;
+    return filteredImages.slice(start, start + pageLimit);
+  }, [filteredImages, currentPage, pageLimit]);
 
   return (
     <div className={styles.container} data-testid="images-view">
@@ -86,7 +159,6 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
         </div>
 
         <div className={styles.controlsRow}>
-          {/* Integrated Search Box */}
           {onSearchChange && (
             <div className={styles.searchBox}>
               <Search size={14} className={styles.searchIcon} />
@@ -110,7 +182,6 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
             </div>
           )}
 
-          {/* Format Tabs (Pill style) */}
           <div className={styles.filterTabs} role="tablist" aria-label="Filtro de formato">
             {(['ALL', 'PNG', 'JPG', 'WEBP', 'SVG'] as const).map((fmt) => (
               <button
@@ -126,6 +197,34 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
             ))}
           </div>
 
+          {showPagination && (
+            <div className={styles.paginationControls} data-testid="gallery-pagination">
+              <button
+                type="button"
+                className={styles.pageBtn}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                aria-label="Página anterior"
+              >
+                <ChevronLeft size={14} />
+                <span>Anterior</span>
+              </button>
+              <span className={styles.pageIndicator}>
+                Página {currentPage} de {totalPages}
+              </span>
+              <button
+                type="button"
+                className={styles.pageBtn}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                aria-label="Página siguiente"
+              >
+                <span>Siguiente</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
+
           <button
             type="button"
             className={styles.uploadHeaderBtn}
@@ -138,7 +237,7 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
         </div>
       </div>
 
-      {filteredImages.length === 0 ? (
+      {visibleImages.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>
             <ImageIcon size={28} />
@@ -157,13 +256,15 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
         </div>
       ) : (
         <div className={styles.grid}>
-          {filteredImages.map((image) => (
+          {visibleImages.map((image) => (
             <ImageCard
               key={image.id || image.shortCode}
               image={image}
               onOpenInspector={setInspectingImage}
               onDelete={onDeleteImage}
               onMoveToFolder={onMoveImageToFolder}
+              onRename={setRenamingImage}
+              onHotSwap={setHotSwappingImage}
             />
           ))}
         </div>
@@ -174,6 +275,22 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
         isOpen={!!inspectingImage}
         onClose={() => setInspectingImage(null)}
         onDelete={onDeleteImage}
+        onRename={setRenamingImage}
+        onHotSwap={setHotSwappingImage}
+      />
+
+      <RenameImageModal
+        image={renamingImage}
+        isOpen={!!renamingImage}
+        onClose={() => setRenamingImage(null)}
+        onImageRenamed={handleLocalImageUpdate}
+      />
+
+      <HotSwapImageModal
+        image={hotSwappingImage}
+        isOpen={!!hotSwappingImage}
+        onClose={() => setHotSwappingImage(null)}
+        onImageReplaced={handleLocalImageUpdate}
       />
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { healthService } from '../../services/healthService';
+import { storageService } from '../../services/storageService';
 import { formatBytes } from '../../utils/formatters';
 import type { HealthResponse } from '../../types/api';
 import styles from './StatusBar.module.css';
@@ -49,6 +50,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({ totalBytes }) => {
     ? 'Backend Degradado'
     : 'Backend Offline';
 
+  const token = storageService.getToken();
+  const isLocalToken = Boolean(token && (token.startsWith('dev_') || token.startsWith('mock-')));
+
   return (
     <footer className={styles.statusBar} role="status" aria-label="Estado del sistema">
       <div className={styles.statusItems}>
@@ -62,6 +66,25 @@ export const StatusBar: React.FC<StatusBarProps> = ({ totalBytes }) => {
           <span>{healthLabel}</span>
           <RefreshCw size={10} className={checking ? 'animate-spin' : ''} />
         </button>
+
+        <span className={styles.separator}>•</span>
+
+        <span
+          className={styles.storageText}
+          title={
+            isLocalToken
+              ? 'Usando token local de demostración (dev_*)'
+              : 'Autenticado con token JWT real del servidor'
+          }
+        >
+          Sesión:{' '}
+          <strong
+            className={styles.storageBold}
+            style={{ color: isLocalToken ? 'var(--color-warning)' : 'var(--color-success)' }}
+          >
+            {isLocalToken ? 'Token Local' : token ? 'JWT Servidor' : 'Invitado'}
+          </strong>
+        </span>
 
         <span className={styles.separator}>•</span>
 

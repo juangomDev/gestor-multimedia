@@ -16,7 +16,8 @@
   color: var(--text-secondary);
 }
 
-.input {
+.input,
+.select {
   background: var(--bg-input);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
@@ -26,19 +27,22 @@
   transition: all var(--transition-fast);
 }
 
-.input:focus {
+.input:focus,
+.select:focus {
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  outline: none;
 }
 
 .colors {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .colorBtn {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid transparent;
@@ -52,6 +56,117 @@
 .colorBtn.selected {
   border-color: #ffffff;
   transform: scale(1.15);
+}
+
+.privacyToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-main);
+}
+
+.privacyInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.privacyText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.privacyTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.privacySub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.alertError,
+.alertWarning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+}
+
+.alertError {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: var(--color-danger);
+}
+
+.alertWarning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+}
+
+.shareAddRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.membersList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.memberItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.memberLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.memberRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iconBtn {
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.iconBtn:hover {
+  color: var(--text-main);
+  background: var(--bg-surface-hover);
 }
 
 .actions {

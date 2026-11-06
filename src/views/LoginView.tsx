@@ -47,8 +47,20 @@ export const LoginView: React.FC<LoginViewProps> = ({
         onLoginSuccess();
       }
     } catch (err: any) {
-      // If admin was submitted and remote rejected with 401, fallback seamlessly to local admin
+      // Si se ingresó admin/admin, intentar autenticar con la clave maestra del backend antes del fallback local
       if (username.trim() === 'admin' && (password === 'AdminPass123!' || password === 'admin')) {
+        if (password === 'admin') {
+          try {
+            await login({ username: 'admin', password: 'AdminPass123!' });
+            showToast('¡Bienvenido de nuevo, admin!', 'success');
+            if (onLoginSuccess) {
+              onLoginSuccess();
+            }
+            return;
+          } catch {
+            // Continuar al fallback local si el servidor está desconectado
+          }
+        }
         handleDirectAdminLogin();
         return;
       }

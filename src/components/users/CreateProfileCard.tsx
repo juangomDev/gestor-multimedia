@@ -17,7 +17,7 @@ import { usersService } from '../../services/usersService';
 import { storageService } from '../../services/storageService';
 import { copyToClipboard } from '../../utils/clipboard';
 import type { User, Role } from '../../types/auth';
-import styles from './UserProfilesCards.module.css';
+import styles from './CreateProfileCard.module.css';
 
 /**
  * Propiedades del formulario de creación de perfiles de usuario con jerarquía RBAC.

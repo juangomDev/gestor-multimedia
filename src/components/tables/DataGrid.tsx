@@ -1,9 +1,10 @@
 import React from 'react';
-import { ArrowUpDown } from 'lucide-react';
+import { ArrowUpDown, Combine } from 'lucide-react';
+import type { TableCellStyle } from '../../types/api';
 import styles from '../../views/TableDataStudioView.module.css';
 
 /**
- * Propiedades del componente de grilla de datos tabulares de alta densidad.
+ * Propiedades del componente de grilla de datos tabulares de alta densidad con soporte de formato rico.
  */
 export interface DataGridProps {
   columns: string[];
@@ -15,6 +16,9 @@ export interface DataGridProps {
   limit: number;
   sortCol: string | null;
   onSort: (column: string) => void;
+  headers?: string[][];
+  merges?: string[];
+  cellStyles?: Record<string, Record<string, TableCellStyle> | TableCellStyle>;
 }
 
 /**
@@ -45,7 +49,70 @@ function renderCellContent(value: any): React.ReactNode {
 }
 
 /**
- * Grilla de datos de alta densidad con cabeceras fijas (sticky headers) y ordenamiento por columna.
+ * Resuelve el objeto `CSSProperties` para una celda a partir del mapa `cellStyles` devuelto por el backend.
+ */
+function resolveCellStyle(
+  cellStyles: DataGridProps['cellStyles'],
+  rowIdx: number,
+  colName: string,
+  colIdx: number
+): React.CSSProperties | undefined {
+  if (!cellStyles) return undefined;
+
+  let rawStyle: TableCellStyle | undefined;
+  const rowBucket = cellStyles[String(rowIdx)];
+  if (rowBucket && typeof rowBucket === 'object' && !('bold' in rowBucket) && !('bg' in rowBucket)) {
+    const mapBucket = rowBucket as Record<string, TableCellStyle>;
+    rawStyle = mapBucket[colName] || mapBucket[String(colIdx)];
+  } else {
+    rawStyle =
+      (cellStyles[`${rowIdx}:${colName}`] as TableCellStyle | undefined) ||
+      (cellStyles[`${rowIdx}:${colIdx}`] as TableCellStyle | undefined);
+  }
+
+  if (!rawStyle) return undefined;
+
+  const css: React.CSSProperties = {};
+  if (rawStyle.bg || rawStyle.backgroundColor) {
+    css.backgroundColor = rawStyle.bg || rawStyle.backgroundColor;
+  }
+  if (rawStyle.color) {
+    css.color = rawStyle.color;
+  }
+  if (rawStyle.bold) {
+    css.fontWeight = 700;
+  }
+  if (rawStyle.italic) {
+    css.fontStyle = 'italic';
+  }
+  if (rawStyle.align) {
+    css.textAlign = rawStyle.align;
+  }
+
+  return Object.keys(css).length > 0 ? css : undefined;
+}
+
+/**
+ * Agrupa cabeceras consecutivas idénticas en una fila multinivel para representar celdas combinadas (`colSpan`).
+ */
+function groupHeaderRow(headerRow: string[], targetLength: number): Array<{ label: string; span: number }> {
+  const normalized = Array.from({ length: targetLength }, (_, i) => headerRow[i] ?? '');
+  const groups: Array<{ label: string; span: number }> = [];
+
+  for (const label of normalized) {
+    const prev = groups[groups.length - 1];
+    if (prev && prev.label === label && label !== '') {
+      prev.span += 1;
+    } else {
+      groups.push({ label, span: 1 });
+    }
+  }
+  return groups;
+}
+
+/**
+ * Grilla de datos de alta densidad con cabeceras multinivel (`headers`), celdas combinadas (`merges`)
+ * y estilos dinámicos por celda (`cellStyles`).
  */
 export const DataGrid: React.FC<DataGridProps> = ({
   columns,
@@ -57,9 +124,39 @@ export const DataGrid: React.FC<DataGridProps> = ({
   limit,
   sortCol,
   onSort,
+  headers,
+  merges,
+  cellStyles,
 }) => {
+  const extraHeaderRows =
+    headers && headers.length > 1 ? headers.slice(0, headers.length - 1) : [];
+
   return (
     <div className={styles.gridContainer}>
+      {merges && merges.length > 0 && (
+        <div
+          data-testid="merges-indicator"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '6px 14px',
+            background: 'rgba(59, 130, 246, 0.08)',
+            borderBottom: '1px solid var(--border-subtle)',
+            fontSize: '0.75rem',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          <Combine size={13} style={{ color: 'var(--accent-primary)' }} />
+          <span>
+            Celdas agrupadas detectadas ({merges.length}):{' '}
+            <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-main)' }}>
+              {merges.slice(0, 6).join(', ')}
+            </strong>
+          </span>
+        </div>
+      )}
+
       {loading && rawRowsCount === 0 ? (
         <div
           style={{
@@ -87,6 +184,32 @@ export const DataGrid: React.FC<DataGridProps> = ({
       ) : (
         <table className={styles.table}>
           <thead>
+            {extraHeaderRows.map((hRow, hIdx) => {
+              const grouped = groupHeaderRow(hRow, columns.length);
+              return (
+                <tr key={`multi-header-${hIdx}`} data-testid={`multi-header-row-${hIdx}`}>
+                  <th
+                    className={styles.th}
+                    style={{ width: 50, textAlign: 'center', cursor: 'default' }}
+                  />
+                  {grouped.map((grp, gIdx) => (
+                    <th
+                      key={`${hIdx}-${gIdx}`}
+                      colSpan={grp.span}
+                      className={styles.th}
+                      style={{
+                        textAlign: grp.span > 1 ? 'center' : 'left',
+                        background: 'rgba(59, 130, 246, 0.09)',
+                        color: 'var(--accent-primary)',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {grp.label}
+                    </th>
+                  ))}
+                </tr>
+              );
+            })}
             <tr>
               <th
                 className={styles.th}
@@ -122,11 +245,19 @@ export const DataGrid: React.FC<DataGridProps> = ({
                 >
                   {(page - 1) * limit + idx + 1}
                 </td>
-                {columns.map((col) => (
-                  <td key={col} className={styles.td}>
-                    {renderCellContent(row[col])}
-                  </td>
-                ))}
+                {columns.map((col, colIdx) => {
+                  const customStyle = resolveCellStyle(cellStyles, idx, col, colIdx);
+                  return (
+                    <td
+                      key={col}
+                      className={styles.td}
+                      style={customStyle}
+                      data-testid={`cell-${idx}-${col}`}
+                    >
+                      {renderCellContent(row[col])}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
@@ -135,4 +266,3 @@ export const DataGrid: React.FC<DataGridProps> = ({
     </div>
   );
 };
-

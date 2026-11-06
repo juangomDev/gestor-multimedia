@@ -13,7 +13,7 @@ import { useToast } from '../../context/useToast';
 import { copyToClipboard } from '../../utils/clipboard';
 import { formatDate } from '../../utils/formatters';
 import type { User } from '../../types/auth';
-import styles from './UserProfilesCards.module.css';
+import styles from './ProfilesDirectoryCard.module.css';
 
 /**
  * Propiedades del directorio de perfiles registrados y matriz de permisos RBAC.

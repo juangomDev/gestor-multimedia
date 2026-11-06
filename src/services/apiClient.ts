@@ -1,4 +1,4 @@
-import { storageService } from './storageService';
+import { storageService, DEFAULT_CONFIG } from './storageService';
 import { cleanBaseUrl } from '../utils/formatters';
 import {
   ApiError,
@@ -28,9 +28,6 @@ export class ApiClient {
 
   /**
    * Suscribe un listener para ser notificado cuando la sesión expira definitivamente.
-   *
-   * @param listener Callback a ejecutar cuando falla la renovación del token.
-   * @returns Función para eliminar la suscripción.
    */
   public onUnauthorized(listener: () => void): () => void {
     return this.refreshQueue.onUnauthorized(listener);
@@ -45,10 +42,14 @@ export class ApiClient {
     const token = storageService.getToken();
 
     if (!options?.skipAuth) {
-      if (token) {
+      const isDevFallbackToken = Boolean(token && token.startsWith('dev_'));
+      if (token && !isDevFallbackToken) {
         headers.set('Authorization', `Bearer ${token}`);
       }
-      if (config.apiKey) {
+      if (
+        config.apiKey &&
+        (!token || isDevFallbackToken || config.apiKey !== DEFAULT_CONFIG.apiKey)
+      ) {
         headers.set('X-API-Key', config.apiKey);
       }
     }
@@ -72,10 +73,16 @@ export class ApiClient {
   }
 
   /**
-   * Verifica si la ruta corresponde a un endpoint de autenticación exento de intercepción 401.
+   * Verifica si la ruta corresponde a un endpoint de autenticación o si la sesión es local/demo.
    */
   private isAuthRoute(path: string): boolean {
-    return path.includes('/api/v1/auth/login') || path.includes('/api/v1/auth/refresh');
+    const token = storageService.getToken();
+    const isDemoToken = Boolean(token && (token.startsWith('dev_') || token.startsWith('mock-')));
+    return (
+      isDemoToken ||
+      path.includes('/api/v1/auth/login') ||
+      path.includes('/api/v1/auth/refresh')
+    );
   }
 
   /**
@@ -176,11 +183,8 @@ export class ApiClient {
    */
   async post<T>(path: string, body?: any, options?: RequestOptions): Promise<T> {
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
-    return this.request<T>(path, {
-      ...options,
-      method: 'POST',
-      body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    const payload = isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined;
+    return this.request<T>(path, { ...options, method: 'POST', body: payload });
   }
 
   /**
@@ -188,11 +192,8 @@ export class ApiClient {
    */
   async put<T>(path: string, body?: any, options?: RequestOptions): Promise<T> {
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
-    return this.request<T>(path, {
-      ...options,
-      method: 'PUT',
-      body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    const payload = isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined;
+    return this.request<T>(path, { ...options, method: 'PUT', body: payload });
   }
 
   /**
@@ -200,11 +201,8 @@ export class ApiClient {
    */
   async patch<T>(path: string, body?: any, options?: RequestOptions): Promise<T> {
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
-    return this.request<T>(path, {
-      ...options,
-      method: 'PATCH',
-      body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    const payload = isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined;
+    return this.request<T>(path, { ...options, method: 'PATCH', body: payload });
   }
 
   /**

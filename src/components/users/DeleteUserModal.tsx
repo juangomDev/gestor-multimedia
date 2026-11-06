@@ -3,7 +3,7 @@ import { AlertTriangle, Trash2 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import type { User } from '../../types/auth';
-import styles from './UserProfilesCards.module.css';
+import styles from './UserModals.module.css';
 
 /**
  * Propiedades del modal de confirmación destructiva para eliminación de usuarios.

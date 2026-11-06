@@ -4,6 +4,8 @@ import { storageService } from '../services/storageService';
 import { ApiConnectionCard } from '../components/settings/ApiConnectionCard';
 import { ShortCodeImportCard } from '../components/settings/ShortCodeImportCard';
 import { ProfileSecurityCard } from '../components/settings/ProfileSecurityCard';
+import { HealthDiagnosticsCard } from '../components/settings/HealthDiagnosticsCard';
+import { ApiDocsCard } from '../components/settings/ApiDocsCard';
 import styles from './SettingsView.module.css';
 
 /**
@@ -74,6 +76,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         />
 
         <ProfileSecurityCard onOpenChangePassword={onOpenChangePassword} />
+
+        <HealthDiagnosticsCard />
+
+        <ApiDocsCard />
       </div>
 
       <section className={styles.infoBanner} aria-label="Información de Endpoints">

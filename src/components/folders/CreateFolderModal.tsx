@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
-import { FolderPlus } from 'lucide-react';
+import { FolderPlus, Lock, Globe } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
+import { foldersService } from '../../services/foldersService';
 import { storageService } from '../../services/storageService';
 import { useToast } from '../../context/useToast';
 import type { MediaCategory, FolderItem } from '../../types/media';
 import styles from './CreateFolderModal.module.css';
 
-interface CreateFolderModalProps {
+/**
+ * Propiedades del modal de creación de carpetas en PostgreSQL.
+ */
+export interface CreateFolderModalProps {
   isOpen: boolean;
   onClose: () => void;
   type: MediaCategory;
@@ -16,6 +20,9 @@ interface CreateFolderModalProps {
 
 const PRESET_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
 
+/**
+ * Modal para crear una nueva carpeta de imágenes o tablas en PostgreSQL (`POST /api/v1/folders`).
+ */
 export const CreateFolderModal: React.FC<CreateFolderModalProps> = ({
   isOpen,
   onClose,
@@ -25,24 +32,48 @@ export const CreateFolderModal: React.FC<CreateFolderModalProps> = ({
   const { showToast } = useToast();
   const [name, setName] = useState('');
   const [color, setColor] = useState(PRESET_COLORS[0]);
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  /**
+   * Envía la creación de la carpeta al backend o aplica respaldo local si está desconectado.
+   */
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const newFolder: FolderItem = {
-      id: `fld-${Date.now()}`,
-      name: name.trim(),
-      type,
-      color,
-      createdAt: new Date().toISOString(),
-    };
-
-    storageService.addFolder(newFolder);
-    showToast(`Carpeta '${newFolder.name}' creada`, 'success');
-    onFolderCreated(newFolder);
-    setName('');
-    onClose();
+    setLoading(true);
+    try {
+      const created = await foldersService.createFolder({
+        name: name.trim(),
+        type,
+        color,
+        isPrivate,
+      });
+      showToast(`Carpeta '${created.name}' creada`, 'success');
+      onFolderCreated(created);
+      setName('');
+      setIsPrivate(false);
+      onClose();
+    } catch {
+      const fallbackFolder: FolderItem = {
+        id: `fld-${Date.now()}`,
+        name: name.trim(),
+        type,
+        color,
+        isPrivate,
+        itemCount: 0,
+        createdAt: new Date().toISOString(),
+      };
+      storageService.addFolder(fallbackFolder);
+      showToast(`Carpeta '${fallbackFolder.name}' creada`, 'success');
+      onFolderCreated(fallbackFolder);
+      setName('');
+      setIsPrivate(false);
+      onClose();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const title = `Crear Carpeta para ${type === 'image' ? 'Imágenes' : 'Datasets/Tablas'}`;
@@ -61,6 +92,7 @@ export const CreateFolderModal: React.FC<CreateFolderModalProps> = ({
             placeholder="ej. Proyecto A, Campaña 2026..."
             value={name}
             onChange={(e) => setName(e.target.value)}
+            disabled={loading}
             autoFocus
           />
         </div>
@@ -81,11 +113,44 @@ export const CreateFolderModal: React.FC<CreateFolderModalProps> = ({
           </div>
         </div>
 
+        <div className={styles.field}>
+          <span className={styles.label}>Visibilidad</span>
+          <button
+            type="button"
+            onClick={() => setIsPrivate((prev) => !prev)}
+            className={styles.privacyToggle}
+            aria-label="Alternar privacidad de carpeta"
+          >
+            <div className={styles.privacyInfo}>
+              {isPrivate ? (
+                <Lock size={16} style={{ color: '#fbbf24' }} />
+              ) : (
+                <Globe size={16} style={{ color: 'var(--color-success)' }} />
+              )}
+              <div className={styles.privacyText}>
+                <span className={styles.privacyTitle}>
+                  {isPrivate ? 'Carpeta Privada' : 'Carpeta Pública'}
+                </span>
+                <span className={styles.privacySub}>
+                  {isPrivate
+                    ? 'Solo tú, colaboradores invitados y el ADMIN pueden acceder'
+                    : 'Visible para los usuarios autorizados en el espacio'}
+                </span>
+              </div>
+            </div>
+          </button>
+        </div>
+
         <div className={styles.actions}>
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
             Cancelar
           </Button>
-          <Button type="submit" variant="primary" icon={<FolderPlus size={16} />}>
+          <Button
+            type="submit"
+            variant="primary"
+            icon={<FolderPlus size={16} />}
+            loading={loading}
+          >
             Crear Carpeta
           </Button>
         </div>

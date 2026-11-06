@@ -40,3 +40,19 @@ export function buildPublicAssetUrl(baseUrl: string, type: 'i' | 't', shortCode:
   const clean = cleanBaseUrl(baseUrl);
   return `${clean}/${type}/${shortCode}`;
 }
+
+/**
+ * Convierte segundos de actividad en un texto compacto (`2d 3h`, `4h 12m`, `2m 5s`, `35s`).
+ * @param seconds Segundos de uptime del backend.
+ * @returns Texto legible.
+ */
+export function formatUptime(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s % 60}s`;
+  return `${s}s`;
+}

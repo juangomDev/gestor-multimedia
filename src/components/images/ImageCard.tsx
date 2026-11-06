@@ -1,28 +1,43 @@
 import React from 'react';
-import { Copy, Trash2, Eye, FolderInput, ExternalLink } from 'lucide-react';
+import { Copy, Trash2, Eye, FolderInput, ExternalLink, Pencil, RefreshCw } from 'lucide-react';
 import { buildPublicAssetUrl } from '../../utils/formatters';
 import { copyToClipboard } from '../../utils/clipboard';
 import { useToast } from '../../context/useToast';
 import { storageService } from '../../services/storageService';
+import { imagesService } from '../../services/imagesService';
 import type { ImageItem } from '../../types/media';
 import styles from './ImageCard.module.css';
 
-interface ImageCardProps {
+/**
+ * Propiedades de la tarjeta de imagen en la cuadrícula de la galería.
+ */
+export interface ImageCardProps {
   image: ImageItem;
   onOpenInspector: (image: ImageItem) => void;
   onDelete: (image: ImageItem) => void;
   onMoveToFolder?: (image: ImageItem) => void;
+  onRename?: (image: ImageItem) => void;
+  onHotSwap?: (image: ImageItem) => void;
 }
 
+/**
+ * Tarjeta visual de imagen optimizada con miniaturas WebP (`/i/:short_code?variant=thumb`)
+ * y soporte de invalidación de caché mediante `urlWithVersion`.
+ */
 export const ImageCard: React.FC<ImageCardProps> = ({
   image,
   onOpenInspector,
   onDelete,
   onMoveToFolder,
+  onRename,
+  onHotSwap,
 }) => {
   const { showToast } = useToast();
   const [imgError, setImgError] = React.useState(false);
 
+  /**
+   * Copia el `shortCode` de la imagen al portapapeles con 1 clic.
+   */
   const handleCopyShortCode = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const success = await copyToClipboard(image.shortCode);
@@ -31,6 +46,9 @@ export const ImageCard: React.FC<ImageCardProps> = ({
     }
   };
 
+  /**
+   * Copia la URL corta pública al portapapeles.
+   */
   const handleCopyUrl = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const success = await copyToClipboard(image.url);
@@ -39,13 +57,19 @@ export const ImageCard: React.FC<ImageCardProps> = ({
     }
   };
 
+  /**
+   * Dispara la eliminación de la imagen sin abrir el inspector.
+   */
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     onDelete(image);
   };
 
   const canonicalUrl = buildPublicAssetUrl(storageService.getConfig().baseUrl, 'i', image.shortCode);
-  const displayUrl = imgError ? canonicalUrl : (image.demoPreviewUrl || image.url || canonicalUrl);
+  const thumbVariantUrl = imagesService.getImageVariantUrl(image, 'thumb');
+  const displayUrl = imgError
+    ? canonicalUrl
+    : image.demoPreviewUrl || thumbVariantUrl;
 
   return (
     <div
@@ -112,6 +136,34 @@ export const ImageCard: React.FC<ImageCardProps> = ({
           >
             <Copy size={16} />
           </button>
+          {onRename && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRename(image);
+              }}
+              className={styles.actionBtn}
+              title="Renombrar imagen"
+              aria-label="Renombrar"
+            >
+              <Pencil size={15} />
+            </button>
+          )}
+          {onHotSwap && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onHotSwap(image);
+              }}
+              className={styles.actionBtn}
+              title="Reemplazar binario en caliente (Hot-Swap)"
+              aria-label="Reemplazar binario"
+            >
+              <RefreshCw size={15} />
+            </button>
+          )}
           {onMoveToFolder && (
             <button
               type="button"

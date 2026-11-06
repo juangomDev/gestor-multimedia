@@ -8,12 +8,11 @@ import {
   LogOut,
   Users,
   KeyRound,
-  Folder,
-  FolderPlus,
-  FolderRoot,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
 import { useToast } from '../../context/useToast';
+import { SidebarFoldersTree } from '../folders/SidebarFoldersTree';
 import type { FolderItem } from '../../types/media';
 import styles from './Sidebar.module.css';
 
@@ -21,8 +20,8 @@ import styles from './Sidebar.module.css';
  * Propiedades del componente de navegación lateral `Sidebar`.
  */
 export interface SidebarProps {
-  activeView: 'images' | 'tables' | 'profiles' | 'login' | 'settings';
-  onViewChange: (view: 'images' | 'tables' | 'profiles' | 'login' | 'settings') => void;
+  activeView: 'images' | 'tables' | 'chat' | 'profiles' | 'login' | 'settings';
+  onViewChange: (view: 'images' | 'tables' | 'chat' | 'profiles' | 'login' | 'settings') => void;
   onOpenUpload: () => void;
   onSync: () => void;
   imagesCount: number;
@@ -32,12 +31,15 @@ export interface SidebarProps {
   activeFolderId?: string | null;
   onFolderChange?: (folderId: string | null) => void;
   onOpenNewFolder?: () => void;
+  onEditFolder?: (folder: FolderItem) => void;
+  onShareFolder?: (folder: FolderItem) => void;
+  onDeleteFolder?: (folder: FolderItem) => void;
   foldersEnabled?: boolean;
   onOpenChangePassword?: () => void;
 }
 
 /**
- * Barra lateral de navegación principal con espacios multimedia, árbol de carpetas,
+ * Barra lateral de navegación principal con espacios multimedia, árbol de carpetas PostgreSQL,
  * herramientas de configuración y tarjeta de sesión activa.
  */
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -51,6 +53,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeFolderId = null,
   onFolderChange,
   onOpenNewFolder,
+  onEditFolder,
+  onShareFolder,
+  onDeleteFolder,
   foldersEnabled = false,
   onOpenChangePassword,
 }) => {
@@ -77,7 +82,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const initials = displayName.slice(0, 2).toUpperCase();
 
   const currentMediaCategory = activeView === 'tables' ? 'table' : 'image';
-  const visibleFolders = folders.filter((f) => f.type === currentMediaCategory);
   const showFoldersSection =
     foldersEnabled && (activeView === 'images' || activeView === 'tables');
 
@@ -118,58 +122,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <span className={styles.badgeCount}>{tablesCount}</span>
           </button>
+
+          <button
+            onClick={() => onViewChange('chat')}
+            className={`${styles.navItem} ${activeView === 'chat' ? styles.active : ''}`}
+          >
+            <div className={styles.itemLabel}>
+              <Sparkles size={17} />
+              <span>Consulta Inteligente (Data Chat)</span>
+            </div>
+          </button>
         </div>
 
         {showFoldersSection && (
-          <div className={styles.navGroup} data-testid="sidebar-folders-section">
-            <div className={styles.navTitleRow}>
-              <span className={styles.navTitle}>Carpetas</span>
-              {onOpenNewFolder && (
-                <button
-                  type="button"
-                  onClick={onOpenNewFolder}
-                  className={styles.newFolderBtn}
-                  title="Crear nueva carpeta"
-                  aria-label="Nueva carpeta"
-                >
-                  <FolderPlus size={12} />
-                  <span>Nueva</span>
-                </button>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => onFolderChange?.(null)}
-              className={`${styles.navItem} ${activeFolderId === null ? styles.active : ''}`}
-            >
-              <div className={styles.itemLabel}>
-                <FolderRoot size={15} />
-                <span>Todas (Raíz)</span>
-              </div>
-            </button>
-
-            {visibleFolders.map((folder) => (
-              <button
-                key={folder.id}
-                type="button"
-                onClick={() => onFolderChange?.(folder.id)}
-                className={`${styles.navItem} ${activeFolderId === folder.id ? styles.active : ''}`}
-              >
-                <div className={styles.itemLabel}>
-                  <span
-                    className={styles.folderDot}
-                    style={{ backgroundColor: folder.color || '#3b82f6' }}
-                  />
-                  <Folder size={15} />
-                  <span>{folder.name}</span>
-                </div>
-                {folder.itemCount !== undefined && (
-                  <span className={styles.badgeCount}>{folder.itemCount}</span>
-                )}
-              </button>
-            ))}
-          </div>
+          <SidebarFoldersTree
+            folders={folders}
+            currentMediaCategory={currentMediaCategory}
+            activeFolderId={activeFolderId}
+            onFolderChange={onFolderChange}
+            onOpenNewFolder={onOpenNewFolder}
+            onEditFolder={onEditFolder}
+            onShareFolder={onShareFolder}
+            onDeleteFolder={onDeleteFolder}
+          />
         )}
 
         <div className={styles.navGroup}>

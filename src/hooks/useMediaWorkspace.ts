@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { imagesService } from '../services/imagesService';
 import { tablesService } from '../services/tablesService';
+import { foldersService } from '../services/foldersService';
 import { storageService } from '../services/storageService';
+import { useAuth } from '../context/useAuth';
 import { useToast } from '../context/useToast';
 import type { ImageItem, TableItem, FolderItem } from '../types/media';
 
@@ -15,9 +17,10 @@ export interface MovingTarget {
 
 /**
  * Custom hook que encapsula el estado y operaciones del espacio de trabajo multimedia
- * (imágenes, tablas, carpetas, sincronización remota, subida y eliminación).
+ * (imágenes, tablas, carpetas en PostgreSQL, sincronización remota, subida, reasignación y eliminación).
  */
 export function useMediaWorkspace() {
+  const { isAuthenticated } = useAuth();
   const { showToast } = useToast();
   const [selectedTableForStudio, setSelectedTableForStudio] = useState<TableItem | null>(null);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
@@ -37,16 +40,22 @@ export function useMediaWorkspace() {
   }, []);
 
   /**
-   * Sincroniza imágenes y tablas con la base de datos remota del backend.
+   * Sincroniza imágenes, tablas y carpetas con PostgreSQL en `monolith-backend`.
    */
   const syncRemote = useCallback(async () => {
     try {
-      await Promise.allSettled([
+      const [, , foldersRes] = await Promise.allSettled([
         imagesService.fetchRemoteImages(),
         tablesService.fetchRemoteTables(),
+        foldersService.fetchFolders(),
       ]);
       setImages(imagesService.getImages());
       setTables(tablesService.getTables());
+      if (foldersRes.status === 'fulfilled') {
+        setFolders(foldersRes.value);
+      } else {
+        setFolders(storageService.getFolders());
+      }
     } catch (e) {
       console.warn('Remote sync error:', e);
     }
@@ -62,15 +71,22 @@ export function useMediaWorkspace() {
   }, [showToast, syncRemote]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     let isCancelled = false;
     Promise.allSettled([
       imagesService.fetchRemoteImages(),
       tablesService.fetchRemoteTables(),
+      foldersService.fetchFolders(),
     ])
-      .then(() => {
+      .then(([, , foldersRes]) => {
         if (!isCancelled) {
           setImages(imagesService.getImages());
           setTables(tablesService.getTables());
+          if (foldersRes.status === 'fulfilled') {
+            setFolders(foldersRes.value);
+          } else {
+            setFolders(storageService.getFolders());
+          }
         }
       })
       .catch((e) => {
@@ -80,19 +96,33 @@ export function useMediaWorkspace() {
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [isAuthenticated]);
 
   /**
    * Procesa y sube una lista de archivos (imágenes o hojas de cálculo) al backend.
    */
   const handleFilesUpload = useCallback(
-    async (fileList: FileList) => {
+    async (fileList: FileList | File[]) => {
       const files = Array.from(fileList);
       showToast(`Iniciando subida de ${files.length} archivo(s)...`, 'info');
+      const currentFolders = storageService.getFolders();
+      const currentActiveFolder = currentFolders.find((f) => f.id === activeFolderId) || null;
+      const imageFolderId =
+        currentActiveFolder && currentActiveFolder.type === 'image'
+          ? activeFolderId
+          : currentActiveFolder === null
+          ? activeFolderId
+          : null;
+      const tableFolderId =
+        currentActiveFolder && currentActiveFolder.type === 'table'
+          ? activeFolderId
+          : currentActiveFolder === null
+          ? activeFolderId
+          : null;
 
       for (const file of files) {
         const isImage =
-          file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif)$/i.test(file.name);
+          file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name);
         const isTable =
           file.type === 'text/csv' ||
           file.type.includes('spreadsheet') ||
@@ -106,10 +136,10 @@ export function useMediaWorkspace() {
 
         try {
           if (isImage) {
-            const item = await imagesService.uploadImage(file, activeFolderId);
+            const item = await imagesService.uploadImage(file, imageFolderId);
             showToast(`Imagen '${item.originalName}' subida (${item.shortCode})`, 'success');
           } else {
-            const item = await tablesService.uploadTable(file, activeFolderId);
+            const item = await tablesService.uploadTable(file, tableFolderId);
             showToast(`Tabla '${item.tableName}' subida (${item.shortCode})`, 'success');
           }
         } catch (err: any) {
@@ -159,22 +189,71 @@ export function useMediaWorkspace() {
   );
 
   /**
-   * Confirma la reasignación de carpeta para la imagen o tabla seleccionada.
+   * Elimina una carpeta en cascada en PostgreSQL (`DELETE /api/v1/folders/:id`) protegiendo `General`.
+   */
+  const handleDeleteFolder = useCallback(
+    async (folder: FolderItem) => {
+      if (folder.name.trim().toLowerCase() === 'general') {
+        showToast('La carpeta del sistema "General" no puede eliminarse', 'error');
+        return;
+      }
+      try {
+        await foldersService.deleteFolder(folder.id);
+        setFolders((prev) => prev.filter((f) => f.id !== folder.id));
+        setActiveFolderId((prev) => (prev === folder.id ? null : prev));
+        showToast(`Carpeta '${folder.name}' eliminada`, 'info');
+        void syncRemote();
+      } catch (err: any) {
+        showToast(
+          err?.detail || err?.message || `No se pudo eliminar la carpeta '${folder.name}'`,
+          'error'
+        );
+      }
+    },
+    [showToast, syncRemote]
+  );
+
+  /**
+   * Confirma la reasignación de carpeta en PostgreSQL (`PATCH /api/v1/images/:id/folder` o `/tables/:id/folder`).
    */
   const handleConfirmMove = useCallback(
-    (targetFolderId: string | null) => {
+    async (targetFolderId: string | null) => {
       if (!movingTarget) return;
-      if (movingTarget.type === 'image') {
-        storageService.moveImageToFolder((movingTarget.item as ImageItem).id, targetFolderId);
-        showToast('Imagen movida con éxito', 'success');
-      } else {
-        storageService.moveTableToFolder((movingTarget.item as TableItem).id, targetFolderId);
-        showToast('Tabla movida con éxito', 'success');
+      const resolvedFolderId =
+        targetFolderId ??
+        folders.find(
+          (f) =>
+            f.type === movingTarget.type && f.name.trim().toLowerCase() === 'general'
+        )?.id ??
+        null;
+
+      try {
+        if (movingTarget.type === 'image') {
+          await foldersService.moveImageToFolder(
+            (movingTarget.item as ImageItem).id,
+            resolvedFolderId
+          );
+          showToast('Imagen movida con éxito', 'success');
+        } else {
+          await foldersService.moveTableToFolder(
+            (movingTarget.item as TableItem).id,
+            resolvedFolderId
+          );
+          showToast('Tabla movida con éxito', 'success');
+        }
+        setMovingTarget(null);
+        refreshItems();
+        void syncRemote();
+      } catch (err: any) {
+        showToast(
+          err?.detail ||
+            err?.message ||
+            'Error o permisos RBAC insuficientes para mover el archivo',
+          'error'
+        );
       }
-      setMovingTarget(null);
-      refreshItems();
     },
-    [movingTarget, refreshItems, showToast]
+    [folders, movingTarget, refreshItems, showToast, syncRemote]
   );
 
   const activeFolder = folders.find((f) => f.id === activeFolderId) || null;
@@ -200,6 +279,7 @@ export function useMediaWorkspace() {
     handleFilesUpload,
     handleDeleteImage,
     handleDeleteTable,
+    handleDeleteFolder,
     handleConfirmMove,
   };
 }

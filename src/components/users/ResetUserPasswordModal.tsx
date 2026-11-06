@@ -6,7 +6,7 @@ import { usersService } from '../../services/usersService';
 import { copyToClipboard } from '../../utils/clipboard';
 import { useToast } from '../../context/useToast';
 import type { User } from '../../types/auth';
-import styles from './UserProfilesCards.module.css';
+import styles from './UserModals.module.css';
 
 /**
  * Propiedades del modal de restablecimiento de contraseña por superior jerárquico.

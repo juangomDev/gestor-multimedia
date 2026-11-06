@@ -53,7 +53,7 @@ export interface TableItem extends Partial<Omit<ApiTable, 'id' | 'shortCode' | '
 /**
  * Representación de una carpeta o proyecto en el frontend, conectada al contrato OpenAPI (`ApiFolder`).
  */
-export interface FolderItem extends Partial<Omit<ApiFolder, 'id' | 'name' | 'type' | 'createdAt'>> {
+export interface FolderItem extends Partial<Omit<ApiFolder, 'id' | 'name' | 'type' | 'createdAt' | 'myPermission'>> {
   id: string;
   name: string;
   type: MediaCategory;
@@ -61,6 +61,11 @@ export interface FolderItem extends Partial<Omit<ApiFolder, 'id' | 'name' | 'typ
   isPrivate?: boolean;
   itemCount?: number;
   userId?: string;
-  myPermission?: 'READ' | 'EDIT';
+  owner?: {
+    id?: string;
+    username?: string;
+  };
+  myPermission?: 'ADMIN' | 'READ' | 'EDIT';
+  isShared?: boolean;
   createdAt: string;
 }
