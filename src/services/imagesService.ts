@@ -8,6 +8,7 @@ export interface FetchImagesOptions {
   page?: number;
   limit?: number;
   folderId?: string | null;
+  search?: string;
 }
 
 /** Metadatos de paginación devueltos por `GET /api/v1/images`. */
@@ -136,13 +137,11 @@ export class ImagesService {
     }
     const shortCode = res?.shortCode || existing?.shortCode || id;
     const canonicalUrl = buildPublicAssetUrl(storageService.getConfig().baseUrl, 'i', shortCode);
-
     const updated: ImageItem = {
       ...(existing || { id, shortCode, mimeType: 'image/png', sizeBytes: 0, url: canonicalUrl, createdAt: new Date().toISOString() }),
       ...res, id: res?.id || id, shortCode, originalName: res?.originalName || trimmed,
       url: canonicalUrl, updatedAt: res?.updatedAt || new Date().toISOString(),
     };
-
     return this.upsertLocalImage(id, updated);
   }
 
@@ -217,6 +216,7 @@ export class ImagesService {
       if (options?.page !== undefined) params.set('page', String(options.page));
       if (options?.limit !== undefined) params.set('limit', String(options.limit));
       if (options?.folderId) params.set('folderId', options.folderId);
+      if (options?.search) params.set('search', options.search.trim());
 
       const qs = params.toString();
       const res = await apiClient.get<{
@@ -251,7 +251,7 @@ export class ImagesService {
       const totalPages = res.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, limit)));
       this.lastPaginationMeta = { total, page, limit, totalPages };
 
-      if (options?.folderId || (options?.page && options.page > 1)) {
+      if (options?.folderId || (options?.page && options.page > 1) || options?.search) {
         const fetchedIds = new Set(items.map((i) => i.id));
         const others = storageService.getImages().filter((i) => !fetchedIds.has(i.id));
         storageService.saveImages([...items, ...others]);

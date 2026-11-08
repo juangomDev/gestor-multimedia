@@ -1,5 +1,5 @@
 import React from 'react';
-import { Copy, Trash2, Eye, FolderInput, ExternalLink, Pencil, RefreshCw } from 'lucide-react';
+import { Copy, Trash2, Eye, FolderInput, ExternalLink, Pencil, RefreshCw, CheckSquare, Square } from 'lucide-react';
 import { buildPublicAssetUrl } from '../../utils/formatters';
 import { copyToClipboard } from '../../utils/clipboard';
 import { useToast } from '../../context/useToast';
@@ -18,6 +18,8 @@ export interface ImageCardProps {
   onMoveToFolder?: (image: ImageItem) => void;
   onRename?: (image: ImageItem) => void;
   onHotSwap?: (image: ImageItem) => void;
+  isSelected?: boolean;
+  onToggleSelect?: (image: ImageItem) => void;
 }
 
 /**
@@ -31,6 +33,8 @@ export const ImageCard: React.FC<ImageCardProps> = ({
   onMoveToFolder,
   onRename,
   onHotSwap,
+  isSelected = false,
+  onToggleSelect,
 }) => {
   const { showToast } = useToast();
   const [imgError, setImgError] = React.useState(false);
@@ -76,8 +80,36 @@ export const ImageCard: React.FC<ImageCardProps> = ({
       className={styles.card}
       onClick={() => onOpenInspector(image)}
       data-testid={`image-card-${image.shortCode}`}
+      style={isSelected ? { borderColor: 'var(--accent-primary)', boxShadow: '0 0 0 1px var(--accent-primary)' } : undefined}
     >
       <div className={styles.thumbnailWrapper}>
+        {onToggleSelect && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelect(image);
+            }}
+            aria-label={isSelected ? `Deseleccionar ${image.originalName}` : `Seleccionar ${image.originalName}`}
+            style={{
+              position: 'absolute',
+              top: 8,
+              left: 8,
+              zIndex: 3,
+              background: 'rgba(0, 0, 0, 0.6)',
+              border: 'none',
+              borderRadius: 4,
+              padding: 4,
+              cursor: 'pointer',
+              color: isSelected ? 'var(--accent-primary)' : 'rgba(255, 255, 255, 0.8)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+          </button>
+        )}
         <button
           type="button"
           onClick={handleCopyShortCode}

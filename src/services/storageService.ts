@@ -1,12 +1,13 @@
 import type { ClientConfig } from '../types/api';
 import type { UserSession, User } from '../types/auth';
-import type { ImageItem, TableItem, FolderItem } from '../types/media';
+import type { ImageItem, TableItem, FolderItem, PdfItem } from '../types/media';
 
 const STORAGE_KEYS = {
   CONFIG: 'dokploy_config',
   AUTH_SESSION: 'dokploy_auth_session',
   IMAGES: 'dokploy_images',
   TABLES: 'dokploy_tables',
+  PDFS: 'dokploy_pdfs',
   FOLDERS: 'dokploy_folders',
   ACTIVE_FOLDER: 'dokploy_active_folder',
   PROFILES: 'dokploy_created_profiles',
@@ -147,6 +148,39 @@ export const storageService = {
       t.id === idOrShortCode || t.shortCode === idOrShortCode ? { ...t, folderId } : t
     );
     this.saveTables(updated);
+  },
+
+  // PDFs
+  getPdfs(): PdfItem[] {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.PDFS);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  savePdfs(pdfs: PdfItem[]): void {
+    localStorage.setItem(STORAGE_KEYS.PDFS, JSON.stringify(pdfs));
+  },
+
+  addPdf(pdf: PdfItem): void {
+    const current = this.getPdfs();
+    const updated = [pdf, ...current.filter((p) => p.id !== pdf.id && p.shortCode !== pdf.shortCode)];
+    this.savePdfs(updated);
+  },
+
+  removePdf(idOrShortCode: string): void {
+    const current = this.getPdfs();
+    this.savePdfs(current.filter((p) => p.id !== idOrShortCode && p.shortCode !== idOrShortCode));
+  },
+
+  movePdfToFolder(idOrShortCode: string, folderId: string | null): void {
+    const current = this.getPdfs();
+    const updated = current.map((p) =>
+      p.id === idOrShortCode || p.shortCode === idOrShortCode ? { ...p, folderId } : p
+    );
+    this.savePdfs(updated);
   },
 
   // Folders

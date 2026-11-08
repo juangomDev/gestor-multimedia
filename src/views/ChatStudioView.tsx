@@ -8,9 +8,10 @@ import {
 import { ChatSourcesList } from '../components/chat/ChatSourcesList';
 import { ChatChartRenderer } from '../components/chat/ChatChartRenderer';
 import { PublicWidgetPreviewModal } from '../components/chat/PublicWidgetPreviewModal';
+import { PdfViewerModal } from '../components/pdfs/PdfViewerModal';
 import { Button } from '../components/common/Button';
 import { useToast } from '../context/useToast';
-import type { FolderItem, TableItem } from '../types/media';
+import type { FolderItem, TableItem, PdfItem } from '../types/media';
 import styles from './ChatStudioView.module.css';
 
 /**
@@ -42,23 +43,18 @@ export const ChatStudioView: React.FC<ChatStudioViewProps> = ({
   const [inputQuestion, setInputQuestion] = useState('');
   const [isAsking, setIsAsking] = useState(false);
   const [isWidgetModalOpen, setIsWidgetModalOpen] = useState(false);
+  const [viewerPdf, setViewerPdf] = useState<PdfItem | null>(null);
+  const [viewerPage, setViewerPage] = useState<number | undefined>(undefined);
 
   const tableFolders = folders.filter((f) => f.type === 'table');
 
   useEffect(() => {
     let isMounted = true;
     const folderFilter = scopeMode === 'folder' && selectedFolderId ? selectedFolderId : undefined;
-    chatService
-      .getPublicSuggestions(folderFilter)
-      .then((list) => {
-        if (isMounted) setSuggestions(list);
-      })
-      .catch(() => {
-        if (isMounted) setSuggestions([]);
-      });
-    return () => {
-      isMounted = false;
-    };
+    chatService.getPublicSuggestions(folderFilter)
+      .then((list) => { if (isMounted) setSuggestions(list); })
+      .catch(() => { if (isMounted) setSuggestions([]); });
+    return () => { isMounted = false; };
   }, [scopeMode, selectedFolderId]);
 
   /**
@@ -72,30 +68,25 @@ export const ChatStudioView: React.FC<ChatStudioViewProps> = ({
     const tableParam = scopeMode === 'table' && selectedShortCode ? selectedShortCode : undefined;
 
     const nextUserSeq = seqRef.current++;
-    const userMsg: ChatMessage = {
-      id: `usr-${nextUserSeq}`,
-      role: 'user',
-      content: trimmed,
-      timestamp: String(nextUserSeq),
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => [...prev, { id: `usr-${nextUserSeq}`, role: 'user', content: trimmed, timestamp: String(nextUserSeq) }]);
     setInputQuestion('');
     setIsAsking(true);
 
     try {
       const res = await chatService.askInternal(trimmed, folderParam, tableParam);
       const nextAstSeq = seqRef.current++;
-      const assistantMsg: ChatMessage = {
-        id: `ast-${nextAstSeq}`,
-        role: 'assistant',
-        content: res.answer,
-        timestamp: String(nextAstSeq),
-        foundInSystem: res.foundInSystem,
-        sources: res.sources,
-        chartData: res.chartData,
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `ast-${nextAstSeq}`,
+          role: 'assistant',
+          content: res.answer,
+          timestamp: String(nextAstSeq),
+          foundInSystem: res.foundInSystem,
+          sources: res.sources,
+          chartData: res.chartData,
+        },
+      ]);
     } catch (err: any) {
       showToast(err?.message || 'Error al procesar la consulta analítica', 'error');
     } finally {
@@ -108,17 +99,13 @@ export const ChatStudioView: React.FC<ChatStudioViewProps> = ({
    */
   const handleOpenSourceInStudio = (source: ChatSource) => {
     if (!onOpenTableInStudio) return;
-    const existing = tables.find(
-      (t) => t.shortCode.trim() === source.shortCode.trim() || t.id === source.tableId
-    );
-    if (existing) {
-      onOpenTableInStudio(existing);
-    } else {
-      onOpenTableInStudio({
-        id: source.tableId, shortCode: source.shortCode, tableName: source.tableName,
-        rowCount: 0, sizeBytes: 0, url: `/t/${source.shortCode}`, createdAt: '',
-      });
-    }
+    const existing = tables.find((t) => t.shortCode.trim() === source.shortCode.trim() || t.id === source.tableId);
+    onOpenTableInStudio(existing || { id: source.tableId || '', shortCode: source.shortCode, tableName: source.tableName || '', rowCount: 0, sizeBytes: 0, url: `/t/${source.shortCode}`, createdAt: '' });
+  };
+
+  const handleOpenPdfSource = (source: ChatSource, page?: number) => {
+    setViewerPage(page || 1);
+    setViewerPdf({ id: source.pdfId || source.shortCode, shortCode: source.shortCode, originalName: source.pdfName || source.title || `${source.shortCode}.pdf`, sizeBytes: 0, pageCount: source.pages?.length || 1, url: `/p/${source.shortCode}`, createdAt: '' });
   };
 
   return (
@@ -242,7 +229,11 @@ export const ChatStudioView: React.FC<ChatStudioViewProps> = ({
                 {msg.role === 'assistant' && msg.chartData && <ChatChartRenderer chartData={msg.chartData} />}
 
                 {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
-                  <ChatSourcesList sources={msg.sources} onOpenInStudio={handleOpenSourceInStudio} />
+                  <ChatSourcesList
+                    sources={msg.sources}
+                    onOpenInStudio={handleOpenSourceInStudio}
+                    onOpenPdf={handleOpenPdfSource}
+                  />
                 )}
               </div>
             </div>
@@ -284,6 +275,13 @@ export const ChatStudioView: React.FC<ChatStudioViewProps> = ({
         tables={tables}
         initialFolderId={scopeMode === 'folder' ? selectedFolderId : ''}
         initialShortCode={scopeMode === 'table' ? selectedShortCode : ''}
+      />
+
+      <PdfViewerModal
+        isOpen={Boolean(viewerPdf)}
+        pdf={viewerPdf}
+        initialPage={viewerPage}
+        onClose={() => setViewerPdf(null)}
       />
     </div>
   );

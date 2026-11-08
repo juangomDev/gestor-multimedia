@@ -10,6 +10,8 @@ import { LoginView } from './views/LoginView';
 import { UserProfilesView } from './views/UserProfilesView';
 import { SettingsView } from './views/SettingsView';
 import { ChatStudioView } from './views/ChatStudioView';
+import { AuditLogsView } from './views/AuditLogsView';
+import { PdfsCatalogView } from './views/PdfsCatalogView';
 import { DropzoneOverlay } from './components/upload/DropzoneOverlay';
 import { UploadModal } from './components/upload/UploadModal';
 import { CreateFolderModal } from './components/folders/CreateFolderModal';
@@ -19,6 +21,7 @@ import { MoveToFolderModal } from './components/folders/MoveToFolderModal';
 import { ChangePasswordModal } from './components/auth/ChangePasswordModal';
 import { StatusBar } from './components/layout/StatusBar';
 import { authService } from './services/authService';
+import { storageService } from './services/storageService';
 import { useMediaWorkspace } from './hooks/useMediaWorkspace';
 import type { ImageItem, TableItem, FolderItem } from './types/media';
 
@@ -31,9 +34,10 @@ const ENABLE_FOLDERS = true;
 const MainApp: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [activeView, setActiveView] = useState<
-    'images' | 'tables' | 'chat' | 'profiles' | 'login' | 'settings'
+    'images' | 'tables' | 'pdfs' | 'chat' | 'profiles' | 'login' | 'settings' | 'audit'
   >(() => (authService.getSession()?.token ? 'images' : 'login'));
   const [searchQuery, setSearchQuery] = useState('');
+  const [pdfsCount, setPdfsCount] = useState(() => storageService.getPdfs().length);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -92,6 +96,8 @@ const MainApp: React.FC = () => {
             setActiveFolderId(null);
           } else if (nextView === 'tables' && activeFolder && activeFolder.type !== 'table') {
             setActiveFolderId(null);
+          } else if (nextView === 'pdfs' && activeFolder && activeFolder.type !== 'pdf') {
+            setActiveFolderId(null);
           }
           setActiveView(nextView);
         }}
@@ -99,6 +105,7 @@ const MainApp: React.FC = () => {
         onSync={handleManualSync}
         imagesCount={images.length}
         tablesCount={tables.length}
+        pdfsCount={pdfsCount}
         totalBytes={totalBytes}
         activeFolderId={ENABLE_FOLDERS ? activeFolderId : null}
         onFolderChange={setActiveFolderId}
@@ -111,28 +118,8 @@ const MainApp: React.FC = () => {
         onOpenChangePassword={() => setIsChangePasswordOpen(true)}
       />
 
-      <main
-        style={{
-          flex: 1,
-          height: '100%',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-panel)',
-          background: 'var(--bg-panel)',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
-        <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
+      <main style={{ flex: 1, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-panel)', background: 'var(--bg-panel)', boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {activeView === 'images' && (
             <ImagesView
               images={images}
@@ -142,6 +129,8 @@ const MainApp: React.FC = () => {
               onOpenUpload={() => setIsUploadOpen(true)}
               onDeleteImage={handleDeleteImage}
               onImageUpdated={() => refreshItems()}
+              folders={folders}
+              onBulkActionFinished={() => refreshItems()}
               onMoveImageToFolder={
                 ENABLE_FOLDERS
                   ? (img) => setMovingTarget({ item: img, type: 'image' })
@@ -159,11 +148,23 @@ const MainApp: React.FC = () => {
               onOpenUpload={() => setIsUploadOpen(true)}
               onDeleteTable={handleDeleteTable}
               onTableUpdated={() => refreshItems()}
+              folders={folders}
+              onBulkActionFinished={() => refreshItems()}
               onMoveTableToFolder={
                 ENABLE_FOLDERS
                   ? (tbl) => setMovingTarget({ item: tbl, type: 'table' })
                   : undefined
               }
+            />
+          )}
+          {activeView === 'pdfs' && (
+            <PdfsCatalogView
+              activeFolder={ENABLE_FOLDERS && activeFolder?.type === 'pdf' ? activeFolder : null}
+              folders={folders}
+              onPdfsUpdated={() => {
+                setPdfsCount(storageService.getPdfs().length);
+                void syncRemote();
+              }}
             />
           )}
           {activeView === 'chat' && (
@@ -175,6 +176,9 @@ const MainApp: React.FC = () => {
           )}
           {activeView === 'profiles' && (
             <UserProfilesView onBackToGallery={() => setActiveView('images')} />
+          )}
+          {activeView === 'audit' && (
+            <AuditLogsView onBackToGallery={() => setActiveView('images')} />
           )}
           {activeView === 'settings' && (
             <SettingsView
@@ -214,7 +218,7 @@ const MainApp: React.FC = () => {
         <CreateFolderModal
           isOpen={isNewFolderOpen}
           onClose={() => setIsNewFolderOpen(false)}
-          type={activeView === 'images' ? 'image' : 'table'}
+          type={activeView === 'images' ? 'image' : activeView === 'tables' ? 'table' : 'pdf'}
           onFolderCreated={(created) => {
             setActiveFolderId(created.id);
             refreshItems();

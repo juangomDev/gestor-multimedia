@@ -1,9 +1,18 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Upload, Table2, Folder, Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Upload, Table2 } from 'lucide-react';
 import { TableCard } from '../components/tables/TableCard';
 import { TableMetadataEditorModal } from '../components/tables/TableMetadataEditorModal';
+import { RenameTableModal } from '../components/tables/RenameTableModal';
+import { HotSwapTableModal } from '../components/tables/HotSwapTableModal';
+import { TablesToolbar } from '../components/tables/TablesToolbar';
+import { BulkActionBar } from '../components/common/BulkActionBar';
+import { BulkDeleteModal } from '../components/common/BulkDeleteModal';
+import { BulkMoveModal } from '../components/common/BulkMoveModal';
 import { Button } from '../components/common/Button';
 import { tablesService } from '../services/tablesService';
+import { bulkService } from '../services/bulkService';
+import { useBulkSelection } from '../hooks/useBulkSelection';
+import { useToast } from '../context/useToast';
 import type { TableItem, FolderItem } from '../types/media';
 import type { MetadataCard } from '../types/api';
 import styles from './TablesCatalogView.module.css';
@@ -22,13 +31,15 @@ export interface TablesCatalogViewProps {
   onMoveTableToFolder?: (table: TableItem) => void;
   onTableUpdated?: (updated: TableItem) => void;
   pageLimit?: number;
+  folders?: FolderItem[];
+  onBulkActionFinished?: () => void;
 }
 
 const DEFAULT_PAGE_LIMIT = 24;
 
 /**
- * Orquestador del Catálogo de Datasets con soporte de edición e inspección de Ficha Técnica (`metadataCard`)
- * y paginación server-side (`GET /api/v1/tables?page=&limit=&folderId=`).
+ * Orquestador del Catálogo de Datasets con soporte de edición e inspección de Ficha Técnica,
+ * renombrado (`PATCH`), Hot-Swap (`PUT`), búsqueda unificada con debounce y operaciones en lote.
  */
 export const TablesCatalogView: React.FC<TablesCatalogViewProps> = ({
   tables,
@@ -41,9 +52,15 @@ export const TablesCatalogView: React.FC<TablesCatalogViewProps> = ({
   onMoveTableToFolder,
   onTableUpdated,
   pageLimit = DEFAULT_PAGE_LIMIT,
+  folders = [],
+  onBulkActionFinished,
 }) => {
+  const { showToast } = useToast();
   const [editingMetadataTable, setEditingMetadataTable] = useState<TableItem | null>(null);
+  const [renamingTable, setRenamingTable] = useState<TableItem | null>(null);
+  const [hotSwappingTable, setHotSwappingTable] = useState<TableItem | null>(null);
   const [localOverrides, setLocalOverrides] = useState<Record<string, TableItem>>({});
+
   const [trackedFolderId, setTrackedFolderId] = useState<string | null>(activeFolder?.id ?? null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [remoteTotal, setRemoteTotal] = useState<number | null>(null);
@@ -53,19 +70,26 @@ export const TablesCatalogView: React.FC<TablesCatalogViewProps> = ({
     setCurrentPage(1);
   }
 
+  // Consulta remota con soporte para paginación, carpeta activa y búsqueda server-side
   useEffect(() => {
     const folderIdParam = activeFolder?.id || null;
-    if (currentPage === 1 && !folderIdParam && pageLimit === DEFAULT_PAGE_LIMIT) {
+    const cleanSearch = searchQuery.trim();
+    if (currentPage === 1 && !folderIdParam && !cleanSearch && pageLimit === DEFAULT_PAGE_LIMIT) {
       return;
     }
 
     let isCancelled = false;
+    const fetchOptions: { page: number; limit: number; folderId: string | null; search?: string } = {
+      page: currentPage,
+      limit: pageLimit,
+      folderId: folderIdParam,
+    };
+    if (cleanSearch) {
+      fetchOptions.search = cleanSearch;
+    }
+
     tablesService
-      .fetchRemoteTables({
-        page: currentPage,
-        limit: pageLimit,
-        folderId: folderIdParam,
-      })
+      .fetchRemoteTables(fetchOptions)
       .then(() => {
         if (!isCancelled) {
           const meta = tablesService.getLastPaginationMeta();
@@ -81,16 +105,10 @@ export const TablesCatalogView: React.FC<TablesCatalogViewProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [currentPage, pageLimit, activeFolder?.id]);
+  }, [currentPage, pageLimit, activeFolder?.id, searchQuery]);
 
-  /**
-   * Actualiza localmente el dataset tras editar su Ficha Técnica y notifica al espacio de trabajo.
-   */
-  const handleMetadataSaved = (updated: TableItem) => {
-    setLocalOverrides((prev) => ({
-      ...prev,
-      [updated.id]: updated,
-    }));
+  const handleTableUpdate = (updated: TableItem) => {
+    setLocalOverrides((prev) => ({ ...prev, [updated.id]: updated }));
     onTableUpdated?.(updated);
   };
 
@@ -104,9 +122,7 @@ export const TablesCatalogView: React.FC<TablesCatalogViewProps> = ({
       if (activeFolder) {
         const isGeneral = activeFolder.name.trim().toLowerCase() === 'general';
         const matchesFolder = t.folderId === activeFolder.id || (isGeneral && !t.folderId);
-        if (!matchesFolder) {
-          return false;
-        }
+        if (!matchesFolder) return false;
       }
 
       if (searchQuery.trim()) {
@@ -131,97 +147,50 @@ export const TablesCatalogView: React.FC<TablesCatalogViewProps> = ({
   const showPagination = effectiveTotal > pageLimit;
 
   const visibleTables = useMemo(() => {
-    if (filteredTables.length <= pageLimit) {
-      return filteredTables;
-    }
+    if (filteredTables.length <= pageLimit) return filteredTables;
     const start = (currentPage - 1) * pageLimit;
     return filteredTables.slice(start, start + pageLimit);
   }, [filteredTables, currentPage, pageLimit]);
 
+  // Hook de selección múltiple para acciones en lote
+  const bulk = useBulkSelection(visibleTables);
+
+  const handleConfirmBulkDelete = async () => {
+    try {
+      const res = await bulkService.bulkDeleteTables(bulk.selectedIds);
+      showToast(`${res.successful.length} datasets eliminados en lote exitosamente`, 'success');
+      bulk.clearSelection();
+      onBulkActionFinished?.();
+    } catch (err: any) {
+      showToast(err?.detail || err?.message || 'Error en la eliminación en lote de tablas', 'error');
+    }
+  };
+
+  const handleConfirmBulkMove = async (targetFolderId: string) => {
+    try {
+      const res = await bulkService.bulkMoveTables(bulk.selectedIds, targetFolderId);
+      showToast(`${res.successful.length} datasets movidos exitosamente a la carpeta`, 'success');
+      bulk.clearSelection();
+      onBulkActionFinished?.();
+    } catch (err: any) {
+      showToast(err?.detail || err?.message || 'Error al mover tablas en lote', 'error');
+    }
+  };
+
   return (
     <div className={styles.container} data-testid="tables-catalog-view">
-      <div className={styles.headerRow}>
-        <div className={styles.titleArea}>
-          <h1 className={styles.title}>Catálogo de Datasets</h1>
-          {activeFolder ? (
-            <div className={styles.folderTag}>
-              <Folder size={12} />
-              <span>Carpeta: {activeFolder.name}</span>
-            </div>
-          ) : (
-            <span className={styles.subtitle}>
-              Hojas de cálculo CSV y Excel con visualizador interactivo ({filteredTables.length})
-            </span>
-          )}
-        </div>
-
-        <div className={styles.controlsRow}>
-          {onSearchChange && (
-            <div className={styles.searchBox}>
-              <Search size={14} className={styles.searchIcon} />
-              <input
-                type="text"
-                placeholder="Buscar dataset o código..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className={styles.searchInput}
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => onSearchChange('')}
-                  className={styles.clearSearchBtn}
-                  aria-label="Limpiar búsqueda"
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-          )}
-
-          {showPagination && (
-            <div
-              data-testid="tables-pagination"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                background: 'rgba(15, 23, 42, 0.45)',
-                border: '1px solid rgba(148, 163, 184, 0.15)',
-                borderRadius: 9999,
-                padding: '3px 8px',
-              }}
-            >
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={<ChevronLeft size={14} />}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage <= 1}
-                aria-label="Página anterior"
-              >
-                Anterior
-              </Button>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', padding: '0 4px' }}>
-                Página {currentPage} de {totalPages}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={<ChevronRight size={14} />}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages}
-                aria-label="Página siguiente"
-              >
-                Siguiente
-              </Button>
-            </div>
-          )}
-
-          <Button variant="primary" size="sm" icon={<Upload size={14} />} onClick={onOpenUpload}>
-            Subir Dataset
-          </Button>
-        </div>
-      </div>
+      <TablesToolbar
+        activeFolder={activeFolder}
+        totalTablesCount={filteredTables.length}
+        searchQuery={searchQuery}
+        onSearchChange={onSearchChange}
+        showPagination={showPagination}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+        onNextPage={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+        onOpenUpload={onOpenUpload}
+      />
 
       {visibleTables.length === 0 ? (
         <div className={styles.emptyState}>
@@ -246,20 +215,65 @@ export const TablesCatalogView: React.FC<TablesCatalogViewProps> = ({
             <TableCard
               key={table.id || table.shortCode}
               table={table}
+              isSelected={bulk.isSelected(table.id)}
+              onToggleSelect={() => bulk.toggleSelect(table.id)}
               onOpenStudio={onOpenStudio}
               onDelete={onDeleteTable}
               onMoveToFolder={onMoveTableToFolder}
               onEditMetadata={setEditingMetadataTable}
+              onRename={setRenamingTable}
+              onHotSwap={setHotSwappingTable}
             />
           ))}
         </div>
       )}
 
+      <BulkActionBar
+        selectedCount={bulk.selectedCount}
+        totalCount={visibleTables.length}
+        onClearSelection={bulk.clearSelection}
+        onSelectAll={bulk.selectAll}
+        onOpenBulkMove={bulk.openBulkMove}
+        onOpenBulkDelete={bulk.openBulkDelete}
+        itemLabel="datasets"
+      />
+
+      <BulkDeleteModal
+        isOpen={bulk.isBulkDeleteOpen}
+        onClose={bulk.closeBulkDelete}
+        selectedCount={bulk.selectedCount}
+        itemLabel="datasets"
+        onConfirm={handleConfirmBulkDelete}
+      />
+
+      <BulkMoveModal
+        isOpen={bulk.isBulkMoveOpen}
+        onClose={bulk.closeBulkMove}
+        selectedCount={bulk.selectedCount}
+        category="table"
+        folders={folders}
+        onConfirm={handleConfirmBulkMove}
+      />
+
       <TableMetadataEditorModal
         table={editingMetadataTable}
         isOpen={!!editingMetadataTable}
         onClose={() => setEditingMetadataTable(null)}
-        onMetadataSaved={handleMetadataSaved}
+        onMetadataSaved={handleTableUpdate}
+      />
+
+      <RenameTableModal
+        table={renamingTable}
+        isOpen={!!renamingTable}
+        onClose={() => setRenamingTable(null)}
+        onTableRenamed={handleTableUpdate}
+      />
+
+      <HotSwapTableModal
+        table={hotSwappingTable}
+        isOpen={!!hotSwappingTable}
+        onClose={() => setHotSwappingTable(null)}
+        onTableReplaced={handleTableUpdate}
       />
     </div>
   );

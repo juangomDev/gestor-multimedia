@@ -29,8 +29,9 @@ export function normalizeFolder(
   raw?: (Omit<Partial<ApiFolder>, 'type'> & { id?: string; name?: string; type?: string; isShared?: boolean }) | null
 ): FolderItem {
   const safe = raw || {};
+  const rawType = String(safe.type || 'IMAGE').toUpperCase();
   const normalizedType: MediaCategory =
-    String(safe.type || 'IMAGE').toUpperCase() === 'TABLE' ? 'table' : 'image';
+    rawType === 'TABLE' ? 'table' : rawType === 'PDF' ? 'pdf' : 'image';
 
   return {
     id: safe.id || `fld-${Date.now()}`,
@@ -62,7 +63,7 @@ export class FoldersService {
    * @returns Lista de carpetas normalizadas.
    */
   async fetchFolders(
-    type?: 'IMAGE' | 'TABLE' | MediaCategory,
+    type?: 'IMAGE' | 'TABLE' | 'PDF' | MediaCategory,
     search?: string,
     page?: number,
     limit?: number

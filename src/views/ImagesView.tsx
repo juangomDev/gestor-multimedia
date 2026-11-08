@@ -1,11 +1,18 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Upload, ImageIcon, Folder, Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ImageIcon, Upload } from 'lucide-react';
 import { ImageCard } from '../components/images/ImageCard';
 import { ImageInspector } from '../components/images/ImageInspector';
 import { RenameImageModal } from '../components/images/RenameImageModal';
 import { HotSwapImageModal } from '../components/images/HotSwapImageModal';
+import { ImagesToolbar, type FormatFilter } from '../components/images/ImagesToolbar';
+import { BulkActionBar } from '../components/common/BulkActionBar';
+import { BulkDeleteModal } from '../components/common/BulkDeleteModal';
+import { BulkMoveModal } from '../components/common/BulkMoveModal';
 import { Button } from '../components/common/Button';
 import { imagesService } from '../services/imagesService';
+import { bulkService } from '../services/bulkService';
+import { useBulkSelection } from '../hooks/useBulkSelection';
+import { useToast } from '../context/useToast';
 import type { ImageItem, FolderItem } from '../types/media';
 import styles from './ImagesView.module.css';
 
@@ -22,18 +29,15 @@ export interface ImagesViewProps {
   onMoveImageToFolder?: (image: ImageItem) => void;
   onImageUpdated?: (updated: ImageItem) => void;
   pageLimit?: number;
+  folders?: FolderItem[];
+  onBulkActionFinished?: () => void;
 }
-
-/**
- * Filtro de formato de archivo de imagen en la barra de herramientas.
- */
-export type FormatFilter = 'ALL' | 'PNG' | 'JPG' | 'WEBP' | 'SVG';
 
 const DEFAULT_PAGE_LIMIT = 24;
 
 /**
- * Orquestador de la Galería de Imágenes con soporte para miniaturas WebP,
- * renombrado en caliente (`PATCH`), reemplazo binario Hot-Swap (`PUT`) y paginación server-side.
+ * Orquestador de la Galería de Imágenes con soporte para búsqueda unificada con debounce,
+ * selección múltiple y operaciones en lote (`Bulk Actions`), miniaturas WebP y Hot-Swap.
  */
 export const ImagesView: React.FC<ImagesViewProps> = ({
   images,
@@ -45,7 +49,10 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
   onMoveImageToFolder,
   onImageUpdated,
   pageLimit = DEFAULT_PAGE_LIMIT,
+  folders = [],
+  onBulkActionFinished,
 }) => {
+  const { showToast } = useToast();
   const [selectedFormat, setSelectedFormat] = useState<FormatFilter>('ALL');
   const [inspectingImage, setInspectingImage] = useState<ImageItem | null>(null);
   const [renamingImage, setRenamingImage] = useState<ImageItem | null>(null);
@@ -61,19 +68,26 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
     setCurrentPage(1);
   }
 
+  // Consulta remota con soporte para paginación, carpeta activa y búsqueda server-side
   useEffect(() => {
     const folderIdParam = activeFolder?.id || null;
-    if (currentPage === 1 && !folderIdParam && pageLimit === DEFAULT_PAGE_LIMIT) {
+    const cleanSearch = searchQuery.trim();
+    if (currentPage === 1 && !folderIdParam && !cleanSearch && pageLimit === DEFAULT_PAGE_LIMIT) {
       return;
     }
 
     let isCancelled = false;
+    const fetchOptions: { page: number; limit: number; folderId: string | null; search?: string } = {
+      page: currentPage,
+      limit: pageLimit,
+      folderId: folderIdParam,
+    };
+    if (cleanSearch) {
+      fetchOptions.search = cleanSearch;
+    }
+
     imagesService
-      .fetchRemoteImages({
-        page: currentPage,
-        limit: pageLimit,
-        folderId: folderIdParam,
-      })
+      .fetchRemoteImages(fetchOptions)
       .then(() => {
         if (!isCancelled) {
           const meta = imagesService.getLastPaginationMeta();
@@ -89,16 +103,10 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [currentPage, pageLimit, activeFolder?.id]);
+  }, [currentPage, pageLimit, activeFolder?.id, searchQuery]);
 
-  /**
-   * Aplica actualizaciones en caliente (renombrado o Hot-Swap) sobre el estado local y el inspector.
-   */
   const handleLocalImageUpdate = (updated: ImageItem) => {
-    setLocalOverrides((prev) => ({
-      ...prev,
-      [updated.id]: updated,
-    }));
+    setLocalOverrides((prev) => ({ ...prev, [updated.id]: updated }));
     setInspectingImage((prev) => (prev && prev.id === updated.id ? updated : prev));
     onImageUpdated?.(updated);
   };
@@ -113,9 +121,7 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
       if (activeFolder) {
         const isGeneral = activeFolder.name.trim().toLowerCase() === 'general';
         const matchesFolder = img.folderId === activeFolder.id || (isGeneral && !img.folderId);
-        if (!matchesFolder) {
-          return false;
-        }
+        if (!matchesFolder) return false;
       }
 
       if (selectedFormat === 'PNG' && !img.mimeType.includes('png') && !/\.png$/i.test(img.originalName)) return false;
@@ -141,101 +147,47 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
     return filteredImages.slice(start, start + pageLimit);
   }, [filteredImages, currentPage, pageLimit]);
 
+  // Hook de selección múltiple para acciones en lote
+  const bulk = useBulkSelection(visibleImages);
+
+  const handleConfirmBulkDelete = async () => {
+    try {
+      const res = await bulkService.bulkDeleteImages(bulk.selectedIds);
+      showToast(`${res.successful.length} imágenes eliminadas en lote exitosamente`, 'success');
+      bulk.clearSelection();
+      onBulkActionFinished?.();
+    } catch (err: any) {
+      showToast(err?.detail || err?.message || 'Error en la eliminación en lote', 'error');
+    }
+  };
+
+  const handleConfirmBulkMove = async (targetFolderId: string) => {
+    try {
+      const res = await bulkService.bulkMoveImages(bulk.selectedIds, targetFolderId);
+      showToast(`${res.successful.length} imágenes movidas exitosamente a la carpeta`, 'success');
+      bulk.clearSelection();
+      onBulkActionFinished?.();
+    } catch (err: any) {
+      showToast(err?.detail || err?.message || 'Error al mover imágenes en lote', 'error');
+    }
+  };
+
   return (
     <div className={styles.container} data-testid="images-view">
-      <div className={styles.headerRow}>
-        <div className={styles.titleArea}>
-          <h1 className={styles.title}>Galería de Imágenes</h1>
-          {activeFolder ? (
-            <div className={styles.folderTag}>
-              <Folder size={12} />
-              <span>Carpeta: {activeFolder.name}</span>
-            </div>
-          ) : (
-            <span className={styles.subtitle}>
-              Todas las imágenes registradas en el backend ({filteredImages.length})
-            </span>
-          )}
-        </div>
-
-        <div className={styles.controlsRow}>
-          {onSearchChange && (
-            <div className={styles.searchBox}>
-              <Search size={14} className={styles.searchIcon} />
-              <input
-                type="text"
-                placeholder="Buscar imagen o código..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className={styles.searchInput}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => onSearchChange('')}
-                  className={styles.clearSearchBtn}
-                  aria-label="Limpiar búsqueda"
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-          )}
-
-          <div className={styles.filterTabs} role="tablist" aria-label="Filtro de formato">
-            {(['ALL', 'PNG', 'JPG', 'WEBP', 'SVG'] as const).map((fmt) => (
-              <button
-                key={fmt}
-                type="button"
-                role="tab"
-                aria-selected={selectedFormat === fmt}
-                className={`${styles.filterTab} ${selectedFormat === fmt ? styles.active : ''}`}
-                onClick={() => setSelectedFormat(fmt)}
-              >
-                {fmt === 'ALL' ? 'Todos' : fmt}
-              </button>
-            ))}
-          </div>
-
-          {showPagination && (
-            <div className={styles.paginationControls} data-testid="gallery-pagination">
-              <button
-                type="button"
-                className={styles.pageBtn}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage <= 1}
-                aria-label="Página anterior"
-              >
-                <ChevronLeft size={14} />
-                <span>Anterior</span>
-              </button>
-              <span className={styles.pageIndicator}>
-                Página {currentPage} de {totalPages}
-              </span>
-              <button
-                type="button"
-                className={styles.pageBtn}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages}
-                aria-label="Página siguiente"
-              >
-                <span>Siguiente</span>
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          )}
-
-          <button
-            type="button"
-            className={styles.uploadHeaderBtn}
-            onClick={onOpenUpload}
-            title="Subir imágenes"
-          >
-            <Upload size={14} />
-            <span>Subir</span>
-          </button>
-        </div>
-      </div>
+      <ImagesToolbar
+        activeFolder={activeFolder}
+        totalImagesCount={filteredImages.length}
+        searchQuery={searchQuery}
+        onSearchChange={onSearchChange}
+        selectedFormat={selectedFormat}
+        onSelectFormat={setSelectedFormat}
+        showPagination={showPagination}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+        onNextPage={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+        onOpenUpload={onOpenUpload}
+      />
 
       {visibleImages.length === 0 ? (
         <div className={styles.emptyState}>
@@ -260,6 +212,8 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
             <ImageCard
               key={image.id || image.shortCode}
               image={image}
+              isSelected={bulk.isSelected(image.id)}
+              onToggleSelect={() => bulk.toggleSelect(image.id)}
               onOpenInspector={setInspectingImage}
               onDelete={onDeleteImage}
               onMoveToFolder={onMoveImageToFolder}
@@ -269,6 +223,33 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
           ))}
         </div>
       )}
+
+      <BulkActionBar
+        selectedCount={bulk.selectedCount}
+        totalCount={visibleImages.length}
+        onClearSelection={bulk.clearSelection}
+        onSelectAll={bulk.selectAll}
+        onOpenBulkMove={bulk.openBulkMove}
+        onOpenBulkDelete={bulk.openBulkDelete}
+        itemLabel="imágenes"
+      />
+
+      <BulkDeleteModal
+        isOpen={bulk.isBulkDeleteOpen}
+        onClose={bulk.closeBulkDelete}
+        selectedCount={bulk.selectedCount}
+        itemLabel="imágenes"
+        onConfirm={handleConfirmBulkDelete}
+      />
+
+      <BulkMoveModal
+        isOpen={bulk.isBulkMoveOpen}
+        onClose={bulk.closeBulkMove}
+        selectedCount={bulk.selectedCount}
+        category="image"
+        folders={folders}
+        onConfirm={handleConfirmBulkMove}
+      />
 
       <ImageInspector
         image={inspectingImage}

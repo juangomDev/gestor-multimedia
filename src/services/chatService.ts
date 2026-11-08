@@ -6,9 +6,17 @@ import type {
 } from '../types/api';
 
 /**
- * Fuente documental citada por el motor RAG tabular en una respuesta analítica.
+ * Fuente documental citada por el motor RAG tabular o documental en una respuesta analítica.
  */
-export type ChatSource = NonNullable<ApiChatAnswer['sources']>[number];
+export interface ChatSource {
+  tableId?: string;
+  tableName?: string;
+  pdfId?: string;
+  pdfName?: string;
+  shortCode: string;
+  title?: string;
+  pages?: number[];
+}
 
 /**
  * Estructura de datos numéricos pre-calculados por el backend para visualización gráfica.

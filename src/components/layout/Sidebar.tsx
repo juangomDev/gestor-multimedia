@@ -9,6 +9,8 @@ import {
   Users,
   KeyRound,
   Sparkles,
+  ShieldCheck,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
 import { useToast } from '../../context/useToast';
@@ -20,12 +22,13 @@ import styles from './Sidebar.module.css';
  * Propiedades del componente de navegación lateral `Sidebar`.
  */
 export interface SidebarProps {
-  activeView: 'images' | 'tables' | 'chat' | 'profiles' | 'login' | 'settings';
-  onViewChange: (view: 'images' | 'tables' | 'chat' | 'profiles' | 'login' | 'settings') => void;
+  activeView: 'images' | 'tables' | 'pdfs' | 'chat' | 'profiles' | 'login' | 'settings' | 'audit';
+  onViewChange: (view: 'images' | 'tables' | 'pdfs' | 'chat' | 'profiles' | 'login' | 'settings' | 'audit') => void;
   onOpenUpload: () => void;
   onSync: () => void;
   imagesCount: number;
   tablesCount: number;
+  pdfsCount?: number;
   totalBytes?: number;
   folders?: FolderItem[];
   activeFolderId?: string | null;
@@ -49,6 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSync,
   imagesCount,
   tablesCount,
+  pdfsCount = 0,
   folders = [],
   activeFolderId = null,
   onFolderChange,
@@ -62,6 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { user, logout } = useAuth();
   const { showToast } = useToast();
   const canManageProfiles = user ? user.role === 'ADMIN' || user.role === 'MANAGER' : false;
+  const canViewAudit = user ? user.role === 'ADMIN' || user.role === 'MANAGER' : false;
 
   /**
    * Cierra la sesión activa en el servidor y redirige a la vista de login.
@@ -81,9 +86,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const roleName = user?.role || 'ADMIN';
   const initials = displayName.slice(0, 2).toUpperCase();
 
-  const currentMediaCategory = activeView === 'tables' ? 'table' : 'image';
+  const currentMediaCategory = activeView === 'tables' ? 'table' : activeView === 'pdfs' ? 'pdf' : 'image';
   const showFoldersSection =
-    foldersEnabled && (activeView === 'images' || activeView === 'tables');
+    foldersEnabled && (activeView === 'images' || activeView === 'tables' || activeView === 'pdfs');
 
   return (
     <aside className={styles.sidebar}>
@@ -121,6 +126,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span>Data Studio (Tablas)</span>
             </div>
             <span className={styles.badgeCount}>{tablesCount}</span>
+          </button>
+
+          <button
+            onClick={() => onViewChange('pdfs')}
+            className={`${styles.navItem} ${activeView === 'pdfs' ? styles.active : ''}`}
+          >
+            <div className={styles.itemLabel}>
+              <FileText size={17} />
+              <span>Documentos PDF</span>
+            </div>
+            <span className={styles.badgeCount}>{pdfsCount}</span>
           </button>
 
           <button
@@ -175,6 +191,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className={styles.itemLabel}>
                 <Users size={17} />
                 <span>Gestión de Perfiles</span>
+              </div>
+            </button>
+          )}
+
+          {canViewAudit && (
+            <button
+              onClick={() => onViewChange('audit')}
+              className={`${styles.navItem} ${activeView === 'audit' ? styles.active : ''}`}
+            >
+              <div className={styles.itemLabel}>
+                <ShieldCheck size={17} />
+                <span>Registro de Auditoría</span>
               </div>
             </button>
           )}

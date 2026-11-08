@@ -161,6 +161,8 @@ export interface paths {
                     limit?: number;
                     /** @description UUID de carpeta para filtrar */
                     folderId?: string;
+                    /** @description Buscar por nombre original o shortCode */
+                    search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -924,6 +926,301 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v1/images/bulk-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Eliminar múltiples imágenes en lote
+         * @description Elimina en lote hasta 50 imágenes física y lógicamente con sus miniaturas respetando permisos RBAC.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Lista de UUIDs de imágenes a eliminar (máx. 50) */
+                        ids: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Reporte de ejecución de eliminación en lote */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example 5 */
+                            totalRequested: number;
+                            successful: string[];
+                            failed: {
+                                id: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/images/bulk-move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mover múltiples imágenes a otra carpeta
+         * @description Mueve en lote hasta 50 imágenes hacia una carpeta de tipo IMAGE validando permisos de edición en origen y destino.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Lista de UUIDs de imágenes a mover (máx. 50) */
+                        ids: string[];
+                        /**
+                         * Format: uuid
+                         * @description UUID de la carpeta destino (debe ser de tipo IMAGE)
+                         */
+                        targetFolderId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Reporte de ejecución de movimiento en lote */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example 5 */
+                            totalRequested: number;
+                            successful: string[];
+                            failed: {
+                                id: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/t/{short_code}": {
         parameters: {
             query?: never;
@@ -1045,6 +1342,8 @@ export interface paths {
                     limit?: number;
                     /** @description Filtrar por carpeta contenedora */
                     folderId?: string;
+                    /** @description Buscar por nombre de tabla o shortCode */
+                    search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1487,7 +1786,233 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        /**
+         * Reemplazar en caliente dataset tabular (Hot-Swap)
+         * @description Sustituye físicamente el archivo .csv o .xlsx conservando intactos su id, shortCode, folderId y URL pública (/t/:short_code). Regenera el artefacto .data.json.gz y actualiza metadataCard e invalida la caché del Chat.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description UUID de la tabla a reemplazar */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Archivo de tabla reemplazado exitosamente en caliente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @example tab1234567 */
+                            shortCode: string;
+                            /** @example ventas_2026.csv */
+                            tableName: string;
+                            /** @example 1500 */
+                            rowCount: number;
+                            /**
+                             * @example [
+                             *       "id",
+                             *       "producto",
+                             *       "precio",
+                             *       "fecha"
+                             *     ]
+                             */
+                            columns?: string[];
+                            columnsSchema?: string[];
+                            /** @example 51200 */
+                            sizeBytes: number;
+                            /** Format: uuid */
+                            folderId?: string | null;
+                            /**
+                             * Format: uri
+                             * @example http://localhost:3000/t/tab1234567
+                             */
+                            url?: string;
+                            /**
+                             * Format: uri
+                             * @example http://localhost:3000/t/tab1234567?v=1740000000000
+                             */
+                            urlWithVersion?: string;
+                            /**
+                             * Format: uri
+                             * @example http://localhost:3000/t/tab1234567?download=true
+                             */
+                            downloadUrl?: string;
+                            /** Format: date-time */
+                            createdAt?: string;
+                            /** Format: date-time */
+                            updatedAt?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Carga útil excede el tamaño límite permitido (50MB) */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/413 */
+                            type: string;
+                            /** @example Carga útil excede el tamaño límite permitido (50MB) */
+                            title: string;
+                            /** @example 413 */
+                            status: number;
+                            /** @example Carga útil excede el tamaño límite permitido (50MB) */
+                            detail: string;
+                            /** @example PAYLOAD_TOO_LARGE */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Tipo de medio no soportado o magic bytes falsificados */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/415 */
+                            type: string;
+                            /** @example Tipo de medio no soportado o magic bytes falsificados */
+                            title: string;
+                            /** @example 415 */
+                            status: number;
+                            /** @example Tipo de medio no soportado o magic bytes falsificados */
+                            detail: string;
+                            /** @example UNSUPPORTED_MEDIA_TYPE */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
         post?: never;
         /**
          * Eliminar dataset física y lógicamente
@@ -1592,6 +2117,482 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        /**
+         * Renombrar dataset tabular
+         * @description Permite modificar tableName sin alterar el almacenamiento físico ni cambiar el shortCode.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description UUID de la tabla a renombrar */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Nuevo nombre para el archivo de tabla */
+                        tableName: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Tabla renombrada exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @example tab1234567 */
+                            shortCode: string;
+                            /** @example ventas_2026.csv */
+                            tableName: string;
+                            /** @example 1500 */
+                            rowCount: number;
+                            /**
+                             * @example [
+                             *       "id",
+                             *       "producto",
+                             *       "precio",
+                             *       "fecha"
+                             *     ]
+                             */
+                            columns?: string[];
+                            columnsSchema?: string[];
+                            /** @example 51200 */
+                            sizeBytes: number;
+                            /** Format: uuid */
+                            folderId?: string | null;
+                            /**
+                             * Format: uri
+                             * @example http://localhost:3000/t/tab1234567
+                             */
+                            url?: string;
+                            /**
+                             * Format: uri
+                             * @example http://localhost:3000/t/tab1234567?v=1740000000000
+                             */
+                            urlWithVersion?: string;
+                            /**
+                             * Format: uri
+                             * @example http://localhost:3000/t/tab1234567?download=true
+                             */
+                            downloadUrl?: string;
+                            /** Format: date-time */
+                            createdAt?: string;
+                            /** Format: date-time */
+                            updatedAt?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/tables/bulk-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Eliminar múltiples datasets tabulares en lote
+         * @description Elimina en lote hasta 50 tablas física y lógicamente respetando permisos RBAC de cada recurso.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Lista de UUIDs de tablas a eliminar (máx. 50) */
+                        ids: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Reporte de ejecución de eliminación en lote */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example 5 */
+                            totalRequested: number;
+                            successful: string[];
+                            failed: {
+                                id: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tables/bulk-move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mover múltiples datasets tabulares a otra carpeta
+         * @description Mueve en lote hasta 50 tablas hacia una carpeta de tipo TABLE validando permisos de edición en origen y destino.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Lista de UUIDs de tablas a mover (máx. 50) */
+                        ids: string[];
+                        /**
+                         * Format: uuid
+                         * @description UUID de la carpeta destino (debe ser de tipo TABLE)
+                         */
+                        targetFolderId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Reporte de ejecución de movimiento en lote */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example 5 */
+                            totalRequested: number;
+                            successful: string[];
+                            failed: {
+                                id: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4688,6 +5689,3032 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consultar historial y trazabilidad de auditoría
+         * @description Retorna registros de auditoría filtrados y paginados. ADMIN ve todo; MANAGER ve eventos sobre sus carpetas o colaboradores.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Número de página */
+                    page?: number;
+                    /** @description Registros por página (máx. 100) */
+                    limit?: number;
+                    /** @description Filtrar por acción específica (ej. USER_CREATE, TABLE_UPLOAD) */
+                    action?: string;
+                    /** @description Filtrar por tipo de recurso (USER, FOLDER, IMAGE, TABLE) */
+                    resourceType?: string;
+                    /** @description Filtrar por carpeta específica */
+                    folderId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listado de eventos de auditoría obtenido exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            logs: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                actorId?: string | null;
+                                actorUsername: string;
+                                action: string;
+                                resourceType: string;
+                                resourceId?: string | null;
+                                /** Format: uuid */
+                                folderId?: string | null;
+                                metadata?: {
+                                    [key: string]: unknown;
+                                } | null;
+                                ipAddress?: string | null;
+                                /** Format: date-time */
+                                createdAt: string;
+                            }[];
+                            /** @example 10 */
+                            total: number;
+                            /** @example 1 */
+                            page: number;
+                            /** @example 50 */
+                            limit: number;
+                            /** @example 1 */
+                            totalPages: number;
+                            meta?: {
+                                page?: number;
+                                limit?: number;
+                                total?: number;
+                                totalPages?: number;
+                                hasNext?: boolean;
+                            };
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar todas las API Keys registradas (Exclusivo ADMIN)
+         * @description Retorna el catálogo de llaves autorizadas ocultando el secreto criptográfico.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Catálogo de API Keys obtenido exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            keys: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @example Integración Webhook */
+                                name: string;
+                                description?: string | null;
+                                /** @example mk_live_abc12345 */
+                                keyPrefix: string;
+                                /** @example 100 */
+                                rateLimit: number;
+                                /** @example true */
+                                isActive: boolean;
+                                /** Format: date-time */
+                                lastUsedAt?: string | null;
+                                /** Format: date-time */
+                                createdAt: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Crear una nueva API Key (Exclusivo ADMIN)
+         * @description Genera una llave criptográfica con prefijo mk_live_. Retorna el secreto en texto plano por única vez.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Nombre identificativo del cliente */
+                        name: string;
+                        /** @description Propósito o descripción del cliente */
+                        description?: string;
+                        /**
+                         * @description Peticiones permitidas por minuto
+                         * @default 100
+                         */
+                        rateLimit?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description API Key creada exitosamente con su secreto en texto plano */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @example Integración Webhook */
+                            name: string;
+                            description?: string | null;
+                            /** @example mk_live_abc12345 */
+                            keyPrefix: string;
+                            /** @example 100 */
+                            rateLimit: number;
+                            /** @example true */
+                            isActive?: boolean;
+                            /** Format: date-time */
+                            lastUsedAt?: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @example mk_live_xYz1234567890abcdef... */
+                            key: string;
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-keys/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revocar / eliminar una API Key (Exclusivo ADMIN)
+         * @description Invalida y destruye inmediatamente la API Key especificada.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description UUID de la API Key a revocar */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description API Key revocada exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            revoked: boolean;
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stats/storage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Monitoreo de cuotas, peso y salud del almacenamiento
+         * @description Expone estadísticas de imágenes y tablas en PostgreSQL y disco físico. ADMIN ve métricas globales y salud de disco; MANAGER ve sus carpetas.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Estadísticas de almacenamiento obtenidas exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            isAdmin: boolean;
+                            database: {
+                                images?: {
+                                    count?: number;
+                                    sizeBytes?: number;
+                                };
+                                tables?: {
+                                    count?: number;
+                                    sizeBytes?: number;
+                                };
+                                totalCount?: number;
+                                totalSizeBytes?: number;
+                            };
+                            disk?: {
+                                imagesBytes?: number;
+                                imagesFilesCount?: number;
+                                tablesBytes?: number;
+                                tablesFilesCount?: number;
+                                totalBytes?: number;
+                                totalFilesCount?: number;
+                            } | null;
+                            topFolders: {
+                                /** Format: uuid */
+                                id?: string;
+                                name?: string;
+                                type?: string;
+                                totalBytes?: number;
+                                itemsCount?: number;
+                            }[];
+                            warning: boolean;
+                            warningMessage?: string | null;
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/forms/{slug}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Endpoint 1: Envío público de datos para un formulario
+         * @description Ruta pública rate-limited. Guarda entryPayload en status NEW y sincroniza la tabla abierta en tiempo real.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @example NEW */
+                            status: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Demasiadas solicitudes (Rate Limit o protección anti-fuerza bruta) */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/429 */
+                            type: string;
+                            /** @example Demasiadas solicitudes (Rate Limit o protección anti-fuerza bruta) */
+                            title: string;
+                            /** @example 429 */
+                            status: number;
+                            /** @example Demasiadas solicitudes (Rate Limit o protección anti-fuerza bruta) */
+                            detail: string;
+                            /** @example RATE_LIMIT_EXCEEDED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista los formularios accesibles */
+        get: {
+            parameters: {
+                query?: {
+                    folderId?: string;
+                    search?: string;
+                    page?: number;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            forms?: {
+                                /** Format: uuid */
+                                id?: string;
+                                slug?: string;
+                                title?: string;
+                                /** Format: uuid */
+                                folderId?: string;
+                                linkedTable?: null | {
+                                    [key: string]: unknown;
+                                };
+                                _count?: {
+                                    entries?: number;
+                                };
+                                /** Format: date-time */
+                                createdAt?: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Crea un nuevo formulario customizable y genera su tabla abierta vinculada
+         * @description Esquema dual: campos de entrada y campos de respuesta exclusiva. Genera TableRegistry con .data.json.gz sincronizado.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        slug: string;
+                        title: string;
+                        /** Format: uuid */
+                        folderId: string;
+                        entryFieldsSchema: {
+                            name: string;
+                            type?: string;
+                            required?: boolean;
+                            label?: string;
+                        }[] | {
+                            [key: string]: unknown;
+                        };
+                        resolutionFieldsSchema?: {
+                            name: string;
+                            type?: string;
+                            required?: boolean;
+                            label?: string;
+                        }[] | {
+                            [key: string]: unknown;
+                        };
+                        /**
+                         * @default [
+                         *       "VALID",
+                         *       "INVALID"
+                         *     ]
+                         */
+                        allowedResolutionStates?: string[];
+                        /** @default false */
+                        autoResolveWithAi?: boolean;
+                        /** Format: uri */
+                        externalTargetUrl?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Formulario creado */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id?: string;
+                            slug?: string;
+                            title?: string;
+                            /** Format: uuid */
+                            folderId?: string;
+                            entryFieldsSchema?: unknown[] | Record<string, never>;
+                            resolutionFieldsSchema?: unknown[] | Record<string, never>;
+                            allowedResolutionStates?: string[];
+                            autoResolveWithAi?: boolean;
+                            externalTargetUrl?: null | string;
+                            /** Format: uuid */
+                            linkedTableId?: null | string;
+                            linkedTable?: null | {
+                                [key: string]: unknown;
+                            };
+                            /** Format: date-time */
+                            createdAt?: string;
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Conflicto de estado o recurso ya resuelto */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/409 */
+                            type: string;
+                            /** @example Conflicto de estado o recurso ya resuelto */
+                            title: string;
+                            /** @example 409 */
+                            status: number;
+                            /** @example Conflicto de estado o recurso ya resuelto */
+                            detail: string;
+                            /** @example CONFLICT */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/forms/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obtiene el detalle de un formulario por ID o slug */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id?: string;
+                            slug?: string;
+                            title?: string;
+                            /** Format: uuid */
+                            folderId?: string;
+                            entryFieldsSchema?: unknown[] | Record<string, never>;
+                            resolutionFieldsSchema?: unknown[] | Record<string, never>;
+                            allowedResolutionStates?: string[];
+                            autoResolveWithAi?: boolean;
+                            externalTargetUrl?: null | string;
+                            /** Format: uuid */
+                            linkedTableId?: null | string;
+                            linkedTable?: null | {
+                                [key: string]: unknown;
+                            };
+                            /** Format: date-time */
+                            createdAt?: string;
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/forms/entries/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Endpoint 2: Completar respuesta única inmutable (Write-Once)
+         * @description Completa la respuesta y sella status a VALID/INVALID una sola vez. Reintentos retornan 409 CONFLICT.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @example VALID */
+                        status: string;
+                        resolutionPayload: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id?: string;
+                            status?: string;
+                            entryPayload?: Record<string, never>;
+                            resolutionPayload?: Record<string, never>;
+                            /** Format: uuid */
+                            resolvedById?: null | string;
+                            /** Format: date-time */
+                            resolvedAt?: null | string;
+                            /** Format: date-time */
+                            createdAt?: string;
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Conflicto de estado o recurso ya resuelto */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/409 */
+                            type: string;
+                            /** @example Conflicto de estado o recurso ya resuelto */
+                            title: string;
+                            /** @example 409 */
+                            status: number;
+                            /** @example Conflicto de estado o recurso ya resuelto */
+                            detail: string;
+                            /** @example CONFLICT */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/forms/entries/{id}/dispatch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reenvío bajo demanda hacia el sistema externo de PDFs
+         * @description Reenvía el JSON sellado a externalTargetUrl tantas veces como se requiera sin crear PDFs en disco.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            dispatched?: boolean;
+                            targetUrl?: string;
+                            /** Format: uuid */
+                            entryId?: string;
+                            /** Format: date-time */
+                            dispatchedAt?: string;
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/forms/{id}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista las entradas de un formulario */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filtro por mes YYYY-MM */
+                    month?: string;
+                    status?: string;
+                    page?: number;
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            total?: number;
+                            entries?: {
+                                /** Format: uuid */
+                                id?: string;
+                                status?: string;
+                                entryPayload?: Record<string, never>;
+                                resolutionPayload?: null | Record<string, never>;
+                                /** Format: date-time */
+                                resolvedAt?: null | string;
+                                /** Format: date-time */
+                                createdAt?: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/forms/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Exporta las entradas a Excel (.xlsx) o CSV (.csv) */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filtro por mes YYYY-MM */
+                    month?: string;
+                    status?: string;
+                    format?: "xlsx" | "csv";
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Archivo binario exportado (.xlsx o .csv) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/p/{short_code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Visualización inline, descarga directa o lectura de texto de PDF por shortCode
+         * @description Sin parámetros sirve application/pdf inline. Con ?download=true fuerza descarga attachment. Con ?format=text sirve el artefacto de texto extraído (.text.json.gz) en ~2 ms.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    download?: "true" | "false";
+                    format?: "text" | "raw";
+                    page?: number;
+                    v?: string;
+                };
+                header?: never;
+                path: {
+                    short_code: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pdfs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista documentos PDF registrados */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                    folderId?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            pdfs?: {
+                                /** Format: uuid */
+                                id?: string;
+                                /** @example pdf1234567 */
+                                shortCode?: string;
+                                /** @example manual_operaciones.pdf */
+                                originalName?: string;
+                                /** @example 1048576 */
+                                sizeBytes?: number;
+                                /** @example 12 */
+                                pageCount?: number;
+                                /** @example false */
+                                isScanned?: boolean;
+                                metadataCard?: null | {
+                                    [key: string]: unknown;
+                                };
+                                /** Format: uuid */
+                                folderId?: null | string;
+                                /**
+                                 * Format: uri
+                                 * @example /p/pdf1234567
+                                 */
+                                url?: string;
+                                /**
+                                 * Format: uri
+                                 * @example /p/pdf1234567?v=1740000000000
+                                 */
+                                urlWithVersion?: string;
+                                /**
+                                 * Format: uri
+                                 * @example /p/pdf1234567?download=true
+                                 */
+                                downloadUrl?: string;
+                                /**
+                                 * Format: uri
+                                 * @example /p/pdf1234567?format=text
+                                 */
+                                textUrl?: string;
+                                /** Format: date-time */
+                                createdAt?: string;
+                                /** Format: date-time */
+                                updatedAt?: string;
+                            }[];
+                            total?: number;
+                            page?: number;
+                            limit?: number;
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Carga multipart de documento PDF (máx. 50MB)
+         * @description Valida magic bytes %PDF-, analiza contra scripts maliciosos (/JavaScript) y genera el doble artefacto .text.json.gz con Ficha Técnica automática.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description PDF cargado y procesado exitosamente */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id?: string;
+                            /** @example pdf1234567 */
+                            shortCode?: string;
+                            /** @example manual_operaciones.pdf */
+                            originalName?: string;
+                            /** @example 1048576 */
+                            sizeBytes?: number;
+                            /** @example 12 */
+                            pageCount?: number;
+                            /** @example false */
+                            isScanned?: boolean;
+                            metadataCard?: null | {
+                                [key: string]: unknown;
+                            };
+                            /** Format: uuid */
+                            folderId?: null | string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567
+                             */
+                            url?: string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567?v=1740000000000
+                             */
+                            urlWithVersion?: string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567?download=true
+                             */
+                            downloadUrl?: string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567?format=text
+                             */
+                            textUrl?: string;
+                            /** Format: date-time */
+                            createdAt?: string;
+                            /** Format: date-time */
+                            updatedAt?: string;
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Carga útil excede el tamaño límite permitido (50MB) */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/413 */
+                            type: string;
+                            /** @example Carga útil excede el tamaño límite permitido (50MB) */
+                            title: string;
+                            /** @example 413 */
+                            status: number;
+                            /** @example Carga útil excede el tamaño límite permitido (50MB) */
+                            detail: string;
+                            /** @example PAYLOAD_TOO_LARGE */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Tipo de medio no soportado o magic bytes falsificados */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/415 */
+                            type: string;
+                            /** @example Tipo de medio no soportado o magic bytes falsificados */
+                            title: string;
+                            /** @example 415 */
+                            status: number;
+                            /** @example Tipo de medio no soportado o magic bytes falsificados */
+                            detail: string;
+                            /** @example UNSUPPORTED_MEDIA_TYPE */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pdfs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reemplazo en caliente (Hot-Swap) de PDF
+         * @description Reemplaza el archivo binario y regenera el artefacto .text.json.gz preservando el id, shortCode y URL corta.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id?: string;
+                            /** @example pdf1234567 */
+                            shortCode?: string;
+                            /** @example manual_operaciones.pdf */
+                            originalName?: string;
+                            /** @example 1048576 */
+                            sizeBytes?: number;
+                            /** @example 12 */
+                            pageCount?: number;
+                            /** @example false */
+                            isScanned?: boolean;
+                            metadataCard?: null | {
+                                [key: string]: unknown;
+                            };
+                            /** Format: uuid */
+                            folderId?: null | string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567
+                             */
+                            url?: string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567?v=1740000000000
+                             */
+                            urlWithVersion?: string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567?download=true
+                             */
+                            downloadUrl?: string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567?format=text
+                             */
+                            textUrl?: string;
+                            /** Format: date-time */
+                            createdAt?: string;
+                            /** Format: date-time */
+                            updatedAt?: string;
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Carga útil excede el tamaño límite permitido (50MB) */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/413 */
+                            type: string;
+                            /** @example Carga útil excede el tamaño límite permitido (50MB) */
+                            title: string;
+                            /** @example 413 */
+                            status: number;
+                            /** @example Carga útil excede el tamaño límite permitido (50MB) */
+                            detail: string;
+                            /** @example PAYLOAD_TOO_LARGE */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Tipo de medio no soportado o magic bytes falsificados */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/415 */
+                            type: string;
+                            /** @example Tipo de medio no soportado o magic bytes falsificados */
+                            title: string;
+                            /** @example 415 */
+                            status: number;
+                            /** @example Tipo de medio no soportado o magic bytes falsificados */
+                            detail: string;
+                            /** @example UNSUPPORTED_MEDIA_TYPE */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Elimina un documento PDF y destruye sus archivos en disco */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            deleted?: boolean;
+                            /** Format: uuid */
+                            id?: string;
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Renombra un documento PDF */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        originalName: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id?: string;
+                            /** @example pdf1234567 */
+                            shortCode?: string;
+                            /** @example manual_operaciones.pdf */
+                            originalName?: string;
+                            /** @example 1048576 */
+                            sizeBytes?: number;
+                            /** @example 12 */
+                            pageCount?: number;
+                            /** @example false */
+                            isScanned?: boolean;
+                            metadataCard?: null | {
+                                [key: string]: unknown;
+                            };
+                            /** Format: uuid */
+                            folderId?: null | string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567
+                             */
+                            url?: string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567?v=1740000000000
+                             */
+                            urlWithVersion?: string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567?download=true
+                             */
+                            downloadUrl?: string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567?format=text
+                             */
+                            textUrl?: string;
+                            /** Format: date-time */
+                            createdAt?: string;
+                            /** Format: date-time */
+                            updatedAt?: string;
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/pdfs/{id}/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Actualiza la Ficha Técnica (metadataCard) del PDF */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        title?: string;
+                        description?: string;
+                        tags?: string[];
+                        keywords?: string[];
+                        summary?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id?: string;
+                            /** @example pdf1234567 */
+                            shortCode?: string;
+                            /** @example manual_operaciones.pdf */
+                            originalName?: string;
+                            /** @example 1048576 */
+                            sizeBytes?: number;
+                            /** @example 12 */
+                            pageCount?: number;
+                            /** @example false */
+                            isScanned?: boolean;
+                            metadataCard?: null | {
+                                [key: string]: unknown;
+                            };
+                            /** Format: uuid */
+                            folderId?: null | string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567
+                             */
+                            url?: string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567?v=1740000000000
+                             */
+                            urlWithVersion?: string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567?download=true
+                             */
+                            downloadUrl?: string;
+                            /**
+                             * Format: uri
+                             * @example /p/pdf1234567?format=text
+                             */
+                            textUrl?: string;
+                            /** Format: date-time */
+                            createdAt?: string;
+                            /** Format: date-time */
+                            updatedAt?: string;
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/pdfs/{id}/folder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Mueve un PDF a otra carpeta de tipo PDF */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        folderId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id?: string;
+                            shortCode?: string;
+                            /** Format: uuid */
+                            folderId?: string;
+                            originalName?: string;
+                            pageCount?: number;
+                            sizeBytes?: number;
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
 }

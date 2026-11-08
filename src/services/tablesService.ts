@@ -3,6 +3,12 @@ import { storageService } from './storageService';
 import { buildPublicAssetUrl } from '../utils/formatters';
 import type { TableItem } from '../types/media';
 import type { PaginatedTableResponse, MetadataCard, TableCellStyle } from '../types/api';
+import {
+  type RawApiTable,
+  normalizeTableColumns,
+  executeTableRename,
+  executeTableHotSwap,
+} from './tables/tablesMutation';
 
 /**
  * Opciones de paginación y filtrado server-side para listar datasets tabulares.
@@ -11,6 +17,7 @@ export interface FetchTablesOptions {
   page?: number;
   limit?: number;
   folderId?: string | null;
+  search?: string;
 }
 
 /**
@@ -24,27 +31,8 @@ export interface TablesPaginationMeta {
 }
 
 /**
- * Representación cruda de un registro de tabla en `monolith-backend`.
- */
-interface RawApiTable {
-  id: string;
-  shortCode: string;
-  url?: string;
-  urlWithVersion?: string;
-  tableName: string;
-  rowCount?: number;
-  columns?: Array<string | { name: string }>;
-  columnsSchema?: Array<string | { name: string }>;
-  metadataCard?: MetadataCard | Record<string, unknown> | null;
-  sizeBytes: number;
-  createdAt?: string;
-  updatedAt?: string;
-  folderId?: string | null;
-}
-
-/**
  * Servicio de gestión de datasets tabulares conectado a `monolith-backend`
- * (ingesta CSV/XLSX, formato rico `headers`/`merges`/`cellStyles`, Ficha Técnica `metadataCard` y paginación).
+ * (ingesta CSV/XLSX, formato rico `headers`/`merges`/`cellStyles`, Ficha Técnica, mutaciones y paginación).
  */
 export class TablesService {
   private lastPaginationMeta: TablesPaginationMeta | null = null;
@@ -70,10 +58,8 @@ export class TablesService {
     formData.append('file', file);
 
     const res = await apiClient.post<RawApiTable>('/api/v1/tables', formData);
-
     const base = storageService.getConfig().baseUrl;
-    const rawCols = res.columns || res.columnsSchema || [];
-    const normalizedCols = rawCols.map((c) => (typeof c === 'string' ? c : c.name || String(c)));
+    const normalizedCols = normalizeTableColumns(res.columns || res.columnsSchema);
 
     const item: TableItem = {
       id: res.id,
@@ -92,6 +78,20 @@ export class TablesService {
 
     storageService.addTable(item);
     return item;
+  }
+
+  /**
+   * Renombra un dataset tabular (`PATCH /api/v1/tables/:id`) y actualiza el almacenamiento local.
+   */
+  async renameTable(id: string, tableName: string): Promise<TableItem> {
+    return executeTableRename(id, tableName);
+  }
+
+  /**
+   * Sustituye en caliente el binario de una tabla (`PUT /api/v1/tables/:id`) conservando su id, shortCode y URL pública.
+   */
+  async replaceTable(id: string, file: File): Promise<TableItem> {
+    return executeTableHotSwap(id, file);
   }
 
   /**
@@ -240,7 +240,7 @@ export class TablesService {
 
   /**
    * Sincroniza la lista de tablas desde el backend (`GET /api/v1/tables`),
-   * soportando paginación server-side (`page`, `limit`) y filtro por `folderId`.
+   * soportando paginación server-side (`page`, `limit`), búsqueda (`search`) y filtro por `folderId`.
    */
   async fetchRemoteTables(options?: FetchTablesOptions): Promise<TableItem[]> {
     try {
@@ -248,6 +248,7 @@ export class TablesService {
       if (options?.page !== undefined) params.set('page', String(options.page));
       if (options?.limit !== undefined) params.set('limit', String(options.limit));
       if (options?.folderId) params.set('folderId', options.folderId);
+      if (options?.search) params.set('search', options.search.trim());
 
       const qs = params.toString();
       const res = await apiClient.get<{
@@ -255,23 +256,20 @@ export class TablesService {
       }>(qs ? `/api/v1/tables?${qs}` : '/api/v1/tables');
 
       const base = storageService.getConfig().baseUrl;
-      const items: TableItem[] = (res.tables || []).map((t) => {
-        const rawCols = t.columns || t.columnsSchema || [];
-        return {
-          id: t.id,
-          shortCode: t.shortCode,
-          tableName: t.tableName,
-          rowCount: t.rowCount ?? 0,
-          columns: rawCols.map((c) => (typeof c === 'string' ? c : c.name || String(c))),
-          sizeBytes: t.sizeBytes,
-          url: buildPublicAssetUrl(base, 't', t.shortCode),
-          urlWithVersion: t.urlWithVersion,
-          metadataCard: t.metadataCard ?? null,
-          createdAt: t.createdAt || new Date().toISOString(),
-          updatedAt: t.updatedAt,
-          folderId: t.folderId || null,
-        };
-      });
+      const items: TableItem[] = (res.tables || []).map((t) => ({
+        id: t.id,
+        shortCode: t.shortCode,
+        tableName: t.tableName,
+        rowCount: t.rowCount ?? 0,
+        columns: normalizeTableColumns(t.columns || t.columnsSchema),
+        sizeBytes: t.sizeBytes,
+        url: buildPublicAssetUrl(base, 't', t.shortCode),
+        urlWithVersion: t.urlWithVersion,
+        metadataCard: t.metadataCard ?? null,
+        createdAt: t.createdAt || new Date().toISOString(),
+        updatedAt: t.updatedAt,
+        folderId: t.folderId || null,
+      }));
 
       const total = res.total ?? items.length;
       const page = res.page ?? options?.page ?? 1;
@@ -279,7 +277,7 @@ export class TablesService {
       const totalPages = res.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, limit)));
       this.lastPaginationMeta = { total, page, limit, totalPages };
 
-      if (options?.folderId || (options?.page && options.page > 1)) {
+      if (options?.folderId || (options?.page && options.page > 1) || options?.search) {
         const fetchedIds = new Set(items.map((t) => t.id));
         const others = storageService.getTables().filter((t) => !fetchedIds.has(t.id));
         storageService.saveTables([...items, ...others]);

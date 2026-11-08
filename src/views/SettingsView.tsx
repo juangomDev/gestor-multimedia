@@ -6,6 +6,9 @@ import { ShortCodeImportCard } from '../components/settings/ShortCodeImportCard'
 import { ProfileSecurityCard } from '../components/settings/ProfileSecurityCard';
 import { HealthDiagnosticsCard } from '../components/settings/HealthDiagnosticsCard';
 import { ApiDocsCard } from '../components/settings/ApiDocsCard';
+import { ApiKeysManagerCard } from '../components/settings/ApiKeysManagerCard';
+import { StorageMonitorCard } from '../components/settings/StorageMonitorCard';
+import { useAuth } from '../context/useAuth';
 import styles from './SettingsView.module.css';
 
 /**
@@ -32,6 +35,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [initialConfig] = useState(() => storageService.getConfig());
   const [baseUrl, setBaseUrl] = useState(() => initialConfig.baseUrl);
   const [apiKey, setApiKey] = useState(() => initialConfig.apiKey);
+  const { user } = useAuth();
+  const isAdmin = user ? user.role === 'ADMIN' : true;
+  const canViewStorage = user ? user.role === 'ADMIN' || user.role === 'MANAGER' : true;
 
   return (
     <div className={styles.container}>
@@ -78,6 +84,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <ProfileSecurityCard onOpenChangePassword={onOpenChangePassword} />
 
         <HealthDiagnosticsCard />
+
+        {canViewStorage && <StorageMonitorCard />}
+
+        {isAdmin && <ApiKeysManagerCard />}
 
         <ApiDocsCard />
       </div>

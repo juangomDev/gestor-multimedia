@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table2, Download, Trash2, ArrowUpRight, FolderInput, FileText } from 'lucide-react';
+import { Table2, Download, Trash2, ArrowUpRight, FolderInput, FileText, Pencil, RefreshCw, CheckSquare, Square } from 'lucide-react';
 import { formatBytes, formatDate } from '../../utils/formatters';
 import { tablesService } from '../../services/tablesService';
 import { Button } from '../common/Button';
@@ -16,6 +16,10 @@ export interface TableCardProps {
   onDelete: (table: TableItem) => void;
   onMoveToFolder?: (table: TableItem) => void;
   onEditMetadata?: (table: TableItem) => void;
+  onRename?: (table: TableItem) => void;
+  onHotSwap?: (table: TableItem) => void;
+  isSelected?: boolean;
+  onToggleSelect?: (table: TableItem) => void;
 }
 
 /**
@@ -46,6 +50,10 @@ export const TableCard: React.FC<TableCardProps> = ({
   onDelete,
   onMoveToFolder,
   onEditMetadata,
+  onRename,
+  onHotSwap,
+  isSelected = false,
+  onToggleSelect,
 }) => {
   const downloadUrl = tablesService.getDownloadUrl(table.shortCode);
   const meta = (table.metadataCard as MetadataCard | null | undefined) || null;
@@ -79,8 +87,30 @@ export const TableCard: React.FC<TableCardProps> = ({
       className={styles.card}
       onClick={() => onOpenStudio(table)}
       data-testid={`table-card-${table.shortCode}`}
+      style={isSelected ? { borderColor: 'var(--accent-primary)', boxShadow: '0 0 0 1px var(--accent-primary)' } : undefined}
     >
       <div className={styles.header}>
+        {onToggleSelect && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelect(table);
+            }}
+            aria-label={isSelected ? `Deseleccionar ${table.tableName}` : `Seleccionar ${table.tableName}`}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              color: isSelected ? 'var(--accent-primary)' : 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+          </button>
+        )}
         <div className={styles.iconWrapper}>
           <Table2 size={22} />
         </div>
@@ -163,6 +193,32 @@ export const TableCard: React.FC<TableCardProps> = ({
         </Button>
 
         <div style={{ display: 'flex', gap: 6 }}>
+          {onRename && (
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Pencil size={14} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRename(table);
+              }}
+              title="Renombrar tabla"
+              aria-label="Renombrar"
+            />
+          )}
+          {onHotSwap && (
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<RefreshCw size={14} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onHotSwap(table);
+              }}
+              title="Reemplazar archivo en caliente (Hot-Swap)"
+              aria-label="Reemplazar en caliente"
+            />
+          )}
           {onEditMetadata && (
             <Button
               variant="ghost"

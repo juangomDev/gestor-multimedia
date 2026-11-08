@@ -402,3 +402,102 @@
   - [x] `18.2.1` Ejecución de `npm run test` verificando que el 100% de los tests (actuales y nuevos) pasen con 0 fallos.
   - [x] `18.2.2` Ejecución de `npm run lint` (`oxlint`) garantizando 0 advertencias y 0 errores.
   - [x] `18.2.3` Ejecución de `npm run build` (`tsc -b && vite build`) certificando compilación estricta TypeScript y bundle listo para producción.
+
+---
+
+## 🚀 FASES DE EXPANSIÓN (NUEVAS FUNCIONALIDADES MONOLITH-BACKEND)
+
+> **Sincronización con monolith-backend:** Cobertura de las Fases 15, 16, 17 y 18 del backend (Paridad de Tablas, Operaciones Masivas, Búsqueda Server-Side, Auditoría, API Keys, Almacenamiento, Catálogo de PDFs y Formularios con Resolución Write-Once).
+
+---
+
+## 📦 Módulo 19: Paridad de Tablas, Búsqueda Unificada & Operaciones en Lote (`Bulk Actions`)
+
+> **Rutas Backend:** `PATCH /api/v1/tables/:id`, `PUT /api/v1/tables/:id`, `GET /api/v1/images?search=`, `GET /api/v1/tables?search=`, `POST /api/v1/images/bulk-delete`, `POST /api/v1/images/bulk-move`, `POST /api/v1/tables/bulk-delete`, `POST /api/v1/tables/bulk-move`.
+
+- [x] **19.1 Mutación y Paridad en Datasets Tabulares**
+  - [x] `19.1.1` Implementar `renameTable(id, tableName)` en `tablesService.ts` consumiendo `PATCH /api/v1/tables/:id`.
+  - [x] `19.1.2` Implementar `replaceTable(id, file)` en `tablesService.ts` enviando `multipart/form-data` a `PUT /api/v1/tables/:id` (Hot-Swap atómico conservando shortCode y URL pública).
+  - [x] `19.1.3` Crear componentes modales: `RenameTableModal.tsx` y `HotSwapTableModal.tsx` con comparativa visual antes/después y validación de extensiones `.xlsx` / `.csv`.
+
+- [x] **19.2 Búsqueda Global Server-Side con Debounce (`?search=`)**
+  - [x] `19.2.1` Integrar soporte de `search` en `imagesService.fetchRemoteImages({ search })` (`GET /api/v1/images?search=`).
+  - [x] `19.2.2` Integrar soporte de `search` en `tablesService.fetchRemoteTables({ search })` (`GET /api/v1/tables?search=`).
+  - [x] `19.2.3` Conectar barras de búsqueda en `ImagesView.tsx` y `TablesCatalogView.tsx` con debounce para filtrar en vivo contra PostgreSQL.
+
+- [x] **19.3 Operaciones Masivas en Lote (`Bulk Actions`)**
+  - [x] `19.3.1` Implementar métodos en servicios: `bulkDeleteImages(ids)`, `bulkMoveImages(ids, folderId)`, `bulkDeleteTables(ids)`, `bulkMoveTables(ids, folderId)` consumiendo endpoints `/bulk-delete` y `/bulk-move`.
+  - [x] `19.3.2` Selección múltiple de elementos en cuadrícula y catálogo (checkbox interactivo por tarjeta y barra flotante contextual "X seleccionados").
+  - [x] `19.3.3` Modal de confirmación para borrado masivo (`BulkDeleteModal.tsx`) y modal para reasignación masiva de carpeta (`BulkMoveModal.tsx`).
+
+---
+
+## 🛡️ Módulo 20: Trazabilidad (Audit Logs), Gestión de API Keys & Monitor de Almacenamiento
+
+> **Rutas Backend:** `GET /api/v1/audit-logs`, `POST /api/v1/api-keys`, `GET /api/v1/api-keys`, `DELETE /api/v1/api-keys/:id`, `GET /api/v1/stats/storage`.
+
+- [x] **20.1 Historial de Auditoría Inmutable (`AuditLog`)**
+  - [x] `20.1.1` Crear `auditService.ts` consumiendo `GET /api/v1/audit-logs` con soporte para `page`, `limit`, `action`, `resourceType` y `folderId`.
+  - [x] `20.1.2` Crear vista `AuditLogsView.tsx` accesible en el Sidebar para roles `ADMIN` y `MANAGER`.
+  - [x] `20.1.3` Filtros por acción (`USER_CREATE`, `IMAGE_UPLOAD`, `TABLE_DELETE`, `FOLDER_SHARE`, etc.), actor e IP, con tabla paginada y modal de detalles del payload (`metadata`).
+
+- [x] **20.2 Gestión Dinámica de API Keys de Integración (`ApiClient`)**
+  - [x] `20.2.1` Crear `apiKeysService.ts` consumiendo `POST /api/v1/api-keys`, `GET /api/v1/api-keys` y `DELETE /api/v1/api-keys/:id`.
+  - [x] `20.2.2` Subcomponente `ApiKeysManagerCard.tsx` en `SettingsView.tsx` (exclusivo `ADMIN`): tabla con nombre, prefijo `mk_live_...`, último uso y estado activo.
+  - [x] `20.2.3` Modal de creación con revelación de secreto en texto plano por única vez, botón de copiado rápido y advertencia criptográfica.
+
+- [x] **20.3 Monitor de Cuotas y Salud de Almacenamiento**
+  - [x] `20.3.1` Implementar `getStorageStats()` consumiendo `GET /api/v1/stats/storage`.
+  - [x] `20.3.2` Subcomponente `StorageMonitorCard.tsx` en `SettingsView.tsx`: barras de distribución de espacio físico (Imágenes vs Tablas vs PDFs), conteo global de archivos y desglose por carpetas.
+
+---
+
+## 📑 Módulo 21: Módulo de Documentos PDF (Doble Artefacto, Visor, Link Corto & RAG Documental)
+
+> **Rutas Backend:** `GET /p/:short_code`, `GET /api/v1/pdfs`, `POST /api/v1/pdfs`, `PATCH /api/v1/pdfs/:id`, `PUT /api/v1/pdfs/:id`, `PATCH /api/v1/pdfs/:id/metadata`, `DELETE /api/v1/pdfs/:id`, `PATCH /api/v1/pdfs/:id/folder`.
+
+- [x] **21.1 Tipos y Servicio de Documentos PDF (`pdfsService.ts`)**
+  - [x] `21.1.1` Definir contratos en `src/types/media.ts` (`PdfItem`, `PdfRegistry`) y ampliar enum/tipo de carpeta a `'IMAGE' | 'TABLE' | 'PDF'` (`'pdf'`).
+  - [x] `21.1.2` Implementar `pdfsService.ts` cubriendo listado paginado, subida multipart, renombrado, Hot-Swap, actualización de `metadataCard`, borrado y movimiento de carpeta.
+
+- [x] **21.2 Catálogo y Visor de PDFs en el Frontend**
+  - [x] `21.2.1` Crear vista `PdfsCatalogView.tsx` y registrar la pestaña "Documentos PDF" en el `Sidebar.tsx`.
+  - [x] `21.2.2` Componentes de tarjeta `PdfCard.tsx` (con badges de `pageCount`, estado `isScanned`, peso y enlace corto `/p/:short_code`).
+  - [x] `21.2.3` Visor de documentos `PdfViewerModal.tsx`: previsualizador embebido de PDF con pestaña para consultar el texto estructurado extraído (`/p/:short_code?format=text`).
+  - [x] `21.2.4` Modales de gestión: `UploadPdfModal.tsx`, `RenamePdfModal.tsx`, `HotSwapPdfModal.tsx` y editor de ficha técnica `PdfMetadataEditorModal.tsx`.
+
+- [x] **21.3 Sinergia con Chat RAG Documental + Tabular**
+  - [x] `21.3.1` Actualizar `ChatStudioView.tsx` y `ChatSourcesList.tsx` para admitir citas mixtas (tablas y documentos PDF).
+  - [x] `21.3.2` Representación de páginas citadas (`pages: [1, 3]`) con botón directo para abrir el PDF en el visor en la página exacta referenciada.
+
+---
+
+## 📋 Módulo 22: Formularios Customizables, Tablas Abiertas & Resolución Única (Write-Once)
+
+> **Rutas Backend:** `POST /api/v1/forms`, `GET /api/v1/forms`, `GET /api/v1/forms/:id`, `GET /api/v1/forms/:id/entries`, `PATCH /api/v1/forms/entries/:id/resolve`, `POST /api/v1/forms/entries/:id/dispatch`, `GET /api/v1/forms/:id/export`, `POST /api/v1/public/forms/:slug/entries`.
+
+- [ ] **22.1 Servicio de Formularios y Bandeja de Entradas (`formsService.ts`)**
+  - [ ] `22.1.1` Definir contratos en `src/types/forms.ts` (`FormDefinition`, `FormEntry`, `FormSchemaField`).
+  - [ ] `22.1.2` Implementar `formsService.ts`: creación de formulario, listado, obtención de entradas mensuales, resolución inmutable, reenvío y exportación.
+
+- [ ] **22.2 Vista de Estudio de Formularios (`FormsStudioView.tsx`)**
+  - [ ] `22.2.1` Crear vista `FormsStudioView.tsx` accesible desde el `Sidebar.tsx` con catálogo de formularios activos y conteo de respuestas.
+  - [ ] `22.2.2` Constructor de formularios (`CreateFormModal.tsx`): definición dinámica de campos de entrada (`entryFieldsSchema`) y campos exclusivos de respuesta (`resolutionFieldsSchema`) vinculados a una carpeta.
+
+- [ ] **22.3 Bandeja de Entradas y Resolución Inmutable Write-Once**
+  - [ ] `22.3.1` Visor de entradas con filtro mensual (`?month=YYYY-MM`) y badges de estado (`NEW`, `VALID`, `INVALID`).
+  - [ ] `22.3.2` Modal de Resolución (`ResolveEntryModal.tsx`): formulario para completar campos de respuesta y sellar inmutablemente el registro a `VALID` o `INVALID`.
+  - [ ] `22.3.3` Botón de despacho bajo demanda (`POST /api/v1/forms/entries/:id/dispatch`) para retransmitir datos sellados a servicios externos y exportador a `.xlsx` / `.csv`.
+
+---
+
+## 🧪 Módulo 23: Calidad Integral, Testing Automatizado E2E & Certificación de Build
+
+- [ ] **23.1 Cobertura Exhaustiva de Nuevos Módulos**
+  - [ ] `23.1.1` Tests unitarios de servicios: `tablesService.mutation.test.ts`, `bulkService.test.ts`, `auditService.test.ts`, `apiKeysService.test.ts`, `pdfsService.test.ts` y `formsService.test.ts`.
+  - [ ] `23.1.2` Tests de componentes y vistas: `PdfsCatalogView.test.tsx`, `AuditLogsView.test.tsx`, `FormsStudioView.test.tsx` y `BulkActions.test.tsx`.
+- [ ] **23.2 Verificación de Calidad y Cero Regresiones**
+  - [ ] `23.2.1` Ejecución de `npm run test` verificando que el 100% de los tests (actuales y nuevos) pasen con 0 fallos.
+  - [ ] `23.2.2` Ejecución de `npm run lint` (`oxlint`) garantizando 0 advertencias y 0 errores.
+  - [ ] `23.2.3` Ejecución de `npm run build` (`tsc -b && vite build`) certificando compilación estricta TypeScript y bundle listo para producción (todos los archivos < 300 líneas).
+

@@ -3,7 +3,7 @@ import type { ApiImage, ApiTable, ApiFolder, MetadataCard } from './api';
 /**
  * Categoría de activo multimedia gestionado en la plataforma.
  */
-export type MediaCategory = 'image' | 'table';
+export type MediaCategory = 'image' | 'table' | 'pdf';
 
 /**
  * Representación de una imagen en el catálogo frontend, extendiendo el contrato OpenAPI (`ApiImage`).
@@ -69,3 +69,53 @@ export interface FolderItem extends Partial<Omit<ApiFolder, 'id' | 'name' | 'typ
   isShared?: boolean;
   createdAt: string;
 }
+
+/**
+ * Reporte de ejecución devuelto por operaciones masivas en lote (`/bulk-delete` y `/bulk-move`).
+ */
+export interface BulkActionReport {
+  /** Cantidad total de identificadores solicitados en la operación. */
+  totalRequested: number;
+  /** Identificadores de activos procesados exitosamente. */
+  successful: string[];
+  /** Detalles de fallos individuales con el motivo del rechazo. */
+  failed: Array<{
+    id: string;
+    reason: string;
+  }>;
+}
+
+/**
+ * Ficha técnica enriquecida para documentos PDF.
+ */
+export interface PdfMetadataCard {
+  category?: string;
+  summary?: string;
+  keywords?: string[];
+  custom?: Record<string, unknown>;
+}
+
+/**
+ * Representación de un documento PDF en el catálogo frontend.
+ */
+export interface PdfItem {
+  id: string;
+  shortCode: string;
+  originalName: string;
+  sizeBytes: number;
+  pageCount: number;
+  isScanned?: boolean;
+  folderId?: string | null;
+  userId?: string | null;
+  metadataCard?: PdfMetadataCard | null;
+  createdAt: string;
+  updatedAt?: string;
+  url: string;
+  urlWithVersion?: string;
+}
+
+/**
+ * Alias de compatibilidad canónico para registros de PDF.
+ */
+export type PdfRegistry = PdfItem;
+
