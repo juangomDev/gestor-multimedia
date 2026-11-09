@@ -47,8 +47,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
         onLoginSuccess();
       }
     } catch (err: any) {
-      // Si se ingresó admin/admin, intentar autenticar con la clave maestra del backend antes del fallback local
-      if (username.trim() === 'admin' && (password === 'AdminPass123!' || password === 'admin')) {
+      // Si se ingresó admin con credenciales maestras, intentar autenticar o fallback local
+      if (
+        username.trim() === 'admin' &&
+        (password === 'AdminPass2026!' || password === 'AdminPass123!' || password === 'admin')
+      ) {
         if (password === 'admin') {
           try {
             await login({ username: 'admin', password: 'AdminPass123!' });

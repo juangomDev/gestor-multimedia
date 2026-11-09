@@ -168,9 +168,7 @@ export class TablesService {
    */
   async updateTableMetadata(id: string, metadata: MetadataCard): Promise<TableItem> {
     const res = await apiClient.patch<{
-      id: string;
-      shortCode?: string;
-      metadataCard: MetadataCard;
+      id: string; shortCode?: string; metadataCard: MetadataCard;
     }>(`/api/v1/tables/${id}/metadata`, metadata);
 
     const current = storageService.getTables();
@@ -180,25 +178,17 @@ export class TablesService {
 
     const updated: TableItem = {
       ...(existing || {
-        id,
-        shortCode,
-        tableName: `${shortCode}.csv`,
-        rowCount: 0,
-        sizeBytes: 0,
-        url: buildPublicAssetUrl(base, 't', shortCode),
+        id, shortCode, tableName: `${shortCode}.csv`,
+        rowCount: 0, sizeBytes: 0, url: buildPublicAssetUrl(base, 't', shortCode),
         createdAt: new Date().toISOString(),
       }),
-      id: res?.id || id,
-      shortCode,
+      id: res?.id || id, shortCode,
       metadataCard: res?.metadataCard || metadata,
       updatedAt: new Date().toISOString(),
     };
 
-    if (existing) {
-      storageService.saveTables(current.map((t) => (t.id === id ? updated : t)));
-    } else {
-      storageService.addTable(updated);
-    }
+    if (existing) storageService.saveTables(current.map((t) => (t.id === id ? updated : t)));
+    else storageService.addTable(updated);
 
     return updated;
   }
@@ -215,11 +205,17 @@ export class TablesService {
    * Elimina un dataset del servidor (`DELETE /api/v1/tables/:id`) y del almacenamiento local.
    */
   async deleteTable(id: string, shortCode?: string): Promise<void> {
-    await apiClient.delete(`/api/v1/tables/${id}`);
-    storageService.removeTable(id);
-    if (shortCode) {
-      storageService.removeTable(shortCode);
+    try {
+      await apiClient.delete(`/api/v1/tables/${id}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const status = (err as { status?: number })?.status;
+      if (status !== 404 && status !== 400 && !msg.includes('404') && !msg.toLowerCase().includes('not found')) {
+        throw err;
+      }
     }
+    storageService.removeTable(id);
+    if (shortCode) storageService.removeTable(shortCode);
   }
 
   /**

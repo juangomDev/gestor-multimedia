@@ -15,4 +15,5 @@ export { auditService, AuditService } from './auditService';
 export { apiKeysService, ApiKeysService } from './apiKeysService';
 export { storageStatsService, StorageStatsService } from './storageStatsService';
 export { pdfsService, PdfsService } from './pdfsService';
+export { formsService, FormsService } from './formsService';
 export { storageService, DEFAULT_CONFIG } from './storageService';

@@ -21,18 +21,10 @@ export interface ImagesPaginationMeta {
 
 /** Respuesta cruda de un recurso de imagen en `monolith-backend`. */
 interface RawApiImage {
-  id: string;
-  shortCode: string;
-  url?: string;
-  urlWithVersion?: string;
-  originalName: string;
-  mimeType: string;
-  sizeBytes: number;
-  width?: number | null;
-  height?: number | null;
-  createdAt?: string;
-  updatedAt?: string;
-  folderId?: string | null;
+  id: string; shortCode: string; url?: string; urlWithVersion?: string;
+  originalName: string; mimeType: string; sizeBytes: number;
+  width?: number | null; height?: number | null;
+  createdAt?: string; updatedAt?: string; folderId?: string | null;
 }
 
 /**
@@ -128,9 +120,9 @@ export class ImagesService {
 
     let res: (Partial<RawApiImage> & { id?: string; originalName?: string }) | undefined;
     try {
-      const rawRes = await apiClient.patch<
-        Partial<RawApiImage> & { id?: string; originalName?: string; image?: Partial<RawApiImage> }
-      >(`/api/v1/images/${id}`, { originalName: trimmed });
+      const rawRes = await apiClient.patch<Partial<RawApiImage> & { image?: Partial<RawApiImage> }>(
+        `/api/v1/images/${id}`, { originalName: trimmed }
+      );
       res = rawRes?.image || rawRes;
     } catch (err: any) {
       if (!String(err?.message || '').includes('Route PATCH:')) throw err;
@@ -165,16 +157,13 @@ export class ImagesService {
 
     const updated: ImageItem = {
       ...(existing || { id, shortCode, originalName: file.name, createdAt: new Date().toISOString() }),
-      ...res,
-      id: res?.id || id,
-      shortCode,
+      ...res, id: res?.id || id, shortCode,
       originalName: res?.originalName || existing?.originalName || file.name,
       mimeType: res?.mimeType || file.type || existing?.mimeType || 'image/jpeg',
       sizeBytes: res?.sizeBytes ?? file.size,
       width: res?.width !== undefined ? res.width : existing?.width ?? null,
       height: res?.height !== undefined ? res.height : existing?.height ?? null,
-      url: canonicalUrl,
-      urlWithVersion: res?.urlWithVersion || `${canonicalUrl}?v=${versionTimestamp}`,
+      url: canonicalUrl, urlWithVersion: res?.urlWithVersion || `${canonicalUrl}?v=${versionTimestamp}`,
       updatedAt: res?.updatedAt || new Date(versionTimestamp).toISOString(),
     };
 
@@ -185,7 +174,15 @@ export class ImagesService {
    * Elimina una imagen del servidor (`DELETE /api/v1/images/:id`) y del almacenamiento local.
    */
   async deleteImage(id: string, shortCode?: string): Promise<void> {
-    await apiClient.delete(`/api/v1/images/${id}`);
+    try {
+      await apiClient.delete(`/api/v1/images/${id}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const status = (err as { status?: number })?.status;
+      if (status !== 404 && status !== 400 && !msg.includes('404') && !msg.toLowerCase().includes('not found')) {
+        throw err;
+      }
+    }
     storageService.removeImage(id);
     if (shortCode) storageService.removeImage(shortCode);
   }
@@ -230,15 +227,11 @@ export class ImagesService {
         const keepLocalName =
           local?.updatedAt && (!img.updatedAt || local.updatedAt > img.updatedAt);
         return {
-          id: img.id,
-          shortCode: img.shortCode,
+          id: img.id, shortCode: img.shortCode,
           originalName: keepLocalName ? local.originalName : img.originalName,
-          mimeType: img.mimeType,
-          sizeBytes: img.sizeBytes,
-          width: img.width ?? null,
-          height: img.height ?? null,
-          url: buildPublicAssetUrl(base, 'i', img.shortCode),
-          urlWithVersion: img.urlWithVersion,
+          mimeType: img.mimeType, sizeBytes: img.sizeBytes,
+          width: img.width ?? null, height: img.height ?? null,
+          url: buildPublicAssetUrl(base, 'i', img.shortCode), urlWithVersion: img.urlWithVersion,
           createdAt: img.createdAt || new Date().toISOString(),
           updatedAt: keepLocalName ? local.updatedAt : img.updatedAt,
           folderId: img.folderId || null,

@@ -11,6 +11,7 @@ import {
   Sparkles,
   ShieldCheck,
   FileText,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
 import { useToast } from '../../context/useToast';
@@ -22,13 +23,14 @@ import styles from './Sidebar.module.css';
  * Propiedades del componente de navegación lateral `Sidebar`.
  */
 export interface SidebarProps {
-  activeView: 'images' | 'tables' | 'pdfs' | 'chat' | 'profiles' | 'login' | 'settings' | 'audit';
-  onViewChange: (view: 'images' | 'tables' | 'pdfs' | 'chat' | 'profiles' | 'login' | 'settings' | 'audit') => void;
+  activeView: 'images' | 'tables' | 'pdfs' | 'forms' | 'chat' | 'profiles' | 'login' | 'settings' | 'audit';
+  onViewChange: (view: 'images' | 'tables' | 'pdfs' | 'forms' | 'chat' | 'profiles' | 'login' | 'settings' | 'audit') => void;
   onOpenUpload: () => void;
   onSync: () => void;
   imagesCount: number;
   tablesCount: number;
   pdfsCount?: number;
+  formsCount?: number;
   totalBytes?: number;
   folders?: FolderItem[];
   activeFolderId?: string | null;
@@ -53,6 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   imagesCount,
   tablesCount,
   pdfsCount = 0,
+  formsCount = 0,
   folders = [],
   activeFolderId = null,
   onFolderChange,
@@ -137,6 +140,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span>Documentos PDF</span>
             </div>
             <span className={styles.badgeCount}>{pdfsCount}</span>
+          </button>
+
+          <button
+            onClick={() => onViewChange('forms')}
+            className={`${styles.navItem} ${activeView === 'forms' ? styles.active : ''}`}
+          >
+            <div className={styles.itemLabel}>
+              <FileSpreadsheet size={17} />
+              <span>Formularios</span>
+            </div>
+            {formsCount > 0 && <span className={styles.badgeCount}>{formsCount}</span>}
           </button>
 
           <button

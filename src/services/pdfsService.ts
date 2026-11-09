@@ -96,30 +96,38 @@ export class PdfsService {
     const qs = params.toString();
     const endpoint = qs ? `/api/v1/pdfs?${qs}` : '/api/v1/pdfs';
 
-    const res = await apiClient.get<{
-      data?: RawApiPdf[];
-      pdfs?: RawApiPdf[];
-      meta?: PdfsPaginationMeta;
-      total?: number;
-      page?: number;
-      limit?: number;
-      totalPages?: number;
-    }>(endpoint);
+    try {
+      const res = await apiClient.get<{
+        data?: RawApiPdf[];
+        pdfs?: RawApiPdf[];
+        meta?: PdfsPaginationMeta;
+        total?: number;
+        page?: number;
+        limit?: number;
+        totalPages?: number;
+      }>(endpoint);
 
-    const rawList = res.data || res.pdfs || [];
-    const base = storageService.getConfig().baseUrl;
-    const items = rawList.map((p) => normalizePdf(p, base));
+      const rawList = res.data || res.pdfs || [];
+      const base = storageService.getConfig().baseUrl;
+      const items = rawList.map((p) => normalizePdf(p, base));
 
-    const total = res.meta?.total ?? res.total ?? items.length;
-    const page = res.meta?.page ?? res.page ?? options?.page ?? 1;
-    const limit = res.meta?.limit ?? res.limit ?? options?.limit ?? 50;
-    const totalPages = res.meta?.totalPages ?? res.totalPages ?? Math.max(1, Math.ceil(total / limit));
+      const total = res.meta?.total ?? res.total ?? items.length;
+      const page = res.meta?.page ?? res.page ?? options?.page ?? 1;
+      const limit = res.meta?.limit ?? res.limit ?? options?.limit ?? 50;
+      const totalPages = res.meta?.totalPages ?? res.totalPages ?? Math.max(1, Math.ceil(total / limit));
 
-    this.lastPaginationMeta = { total, page, limit, totalPages };
-    if (!options?.search && !options?.folderId) {
-      storageService.savePdfs(items);
+      this.lastPaginationMeta = { total, page, limit, totalPages };
+      if (!options?.search && !options?.folderId) {
+        storageService.savePdfs(items);
+      }
+      return items;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('404') || msg.toLowerCase().includes('not found')) {
+        return this.getPdfs(options?.folderId);
+      }
+      throw err;
     }
-    return items;
   }
 
   /**
@@ -197,7 +205,15 @@ export class PdfsService {
    * Destruye lógica y físicamente el documento PDF y su texto comprimido (`DELETE /api/v1/pdfs/:id`).
    */
   async deletePdf(id: string): Promise<void> {
-    await apiClient.delete(`/api/v1/pdfs/${id}`);
+    try {
+      await apiClient.delete(`/api/v1/pdfs/${id}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const status = (err as { status?: number })?.status;
+      if (status !== 404 && status !== 400 && !msg.includes('404') && !msg.toLowerCase().includes('not found')) {
+        throw err;
+      }
+    }
     storageService.removePdf(id);
   }
 

@@ -161,9 +161,10 @@ export function useMediaWorkspace() {
       try {
         await imagesService.deleteImage(image.id, image.shortCode);
         showToast(`Imagen '${image.originalName}' eliminada`, 'info');
+        setImages((prev) => prev.filter((i) => i.id !== image.id && i.shortCode !== image.shortCode));
         refreshItems();
       } catch (err: any) {
-        showToast(`Error al eliminar imagen en el servidor: ${err.message}`, 'error');
+        showToast(`Error al eliminar imagen: ${err.message}`, 'error');
       }
     },
     [refreshItems, showToast]
@@ -180,9 +181,10 @@ export function useMediaWorkspace() {
         setSelectedTableForStudio((prev) =>
           prev?.shortCode === table.shortCode ? null : prev
         );
+        setTables((prev) => prev.filter((t) => t.id !== table.id && t.shortCode !== table.shortCode));
         refreshItems();
       } catch (err: any) {
-        showToast(`Error al eliminar tabla en el servidor: ${err.message}`, 'error');
+        showToast(`Error al eliminar tabla: ${err.message}`, 'error');
       }
     },
     [refreshItems, showToast]

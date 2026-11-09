@@ -54,7 +54,10 @@ export class ApiClient {
       }
     }
 
-    if (isFormData) {
+    const isDeleteWithoutBody =
+      options?.method?.toUpperCase() === 'DELETE' && options?.body === undefined;
+
+    if (isFormData || isDeleteWithoutBody) {
       headers.delete('Content-Type');
     } else if (!headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json');

@@ -12,6 +12,7 @@ import { SettingsView } from './views/SettingsView';
 import { ChatStudioView } from './views/ChatStudioView';
 import { AuditLogsView } from './views/AuditLogsView';
 import { PdfsCatalogView } from './views/PdfsCatalogView';
+import { FormsStudioView } from './views/FormsStudioView';
 import { DropzoneOverlay } from './components/upload/DropzoneOverlay';
 import { UploadModal } from './components/upload/UploadModal';
 import { CreateFolderModal } from './components/folders/CreateFolderModal';
@@ -34,7 +35,7 @@ const ENABLE_FOLDERS = true;
 const MainApp: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [activeView, setActiveView] = useState<
-    'images' | 'tables' | 'pdfs' | 'chat' | 'profiles' | 'login' | 'settings' | 'audit'
+    'images' | 'tables' | 'pdfs' | 'forms' | 'chat' | 'profiles' | 'login' | 'settings' | 'audit'
   >(() => (authService.getSession()?.token ? 'images' : 'login'));
   const [searchQuery, setSearchQuery] = useState('');
   const [pdfsCount, setPdfsCount] = useState(() => storageService.getPdfs().length);
@@ -166,6 +167,9 @@ const MainApp: React.FC = () => {
                 void syncRemote();
               }}
             />
+          )}
+          {activeView === 'forms' && (
+            <FormsStudioView />
           )}
           {activeView === 'chat' && (
             <ChatStudioView

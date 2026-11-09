@@ -102,9 +102,6 @@ export const PdfsCatalogView: React.FC<PdfsCatalogViewProps> = ({
   }, [page, activeFolder, search, showToast]);
 
   const handleDelete = async (pdf: PdfItem) => {
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el documento "${pdf.originalName}"?`)) {
-      return;
-    }
     try {
       await pdfsService.deletePdf(pdf.id);
       showToast(`Documento "${pdf.originalName}" eliminado`, 'success');

@@ -180,7 +180,10 @@ export const PdfCard: React.FC<PdfCardProps> = ({
             <button
               type="button"
               className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-              onClick={() => onDelete(pdf)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(pdf);
+              }}
               title="Eliminar permanentemente"
               aria-label="Eliminar PDF"
             >
