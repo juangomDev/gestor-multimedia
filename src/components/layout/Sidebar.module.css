@@ -1,12 +1,12 @@
 .sidebar {
-  width: 260px;
+  width: 210px;
   background: var(--bg-panel);
   border: 1px solid var(--border-panel);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 16px 14px;
+  padding: 12px 10px;
   flex-shrink: 0;
   height: 100%;
   box-shadow: var(--shadow-sm);
@@ -16,7 +16,7 @@
 .topSection {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 /* Minimal Header: "Multimedia" */

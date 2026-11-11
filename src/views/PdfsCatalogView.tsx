@@ -20,6 +20,7 @@ export interface PdfsCatalogViewProps {
   folders?: FolderItem[];
   onMovePdfToFolder?: (pdf: PdfItem) => void;
   onPdfsUpdated?: () => void;
+  leadingGridItems?: React.ReactNode;
 }
 
 /**
@@ -30,6 +31,7 @@ export const PdfsCatalogView: React.FC<PdfsCatalogViewProps> = ({
   activeFolder,
   onMovePdfToFolder,
   onPdfsUpdated,
+  leadingGridItems,
 }) => {
   const { showToast } = useToast();
   const [pdfs, setPdfs] = useState<PdfItem[]>([]);
@@ -170,11 +172,11 @@ export const PdfsCatalogView: React.FC<PdfsCatalogViewProps> = ({
         </div>
       </div>
 
-      {isLoading && pdfs.length === 0 ? (
+      {isLoading && pdfs.length === 0 && !leadingGridItems ? (
         <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>
           Cargando catálogo de documentos PDF...
         </div>
-      ) : pdfs.length === 0 ? (
+      ) : !leadingGridItems && pdfs.length === 0 ? (
         <div className={styles.emptyState}>
           <FileText size={40} style={{ color: 'var(--text-muted)' }} />
           <strong>No hay documentos PDF registrados</strong>
@@ -185,6 +187,7 @@ export const PdfsCatalogView: React.FC<PdfsCatalogViewProps> = ({
         </div>
       ) : (
         <div className={styles.grid}>
+          {leadingGridItems}
           {pdfs.map((pdf) => (
             <PdfCard
               key={pdf.id}

@@ -6,6 +6,11 @@ import type { ApiImage, ApiTable, ApiFolder, MetadataCard } from './api';
 export type MediaCategory = 'image' | 'table' | 'pdf';
 
 /**
+ * Tipo de carpeta soportado en la jerarquía de 3 niveles (`CONTAINER` en Nivel 1, o especializada en Niveles 2 y 3).
+ */
+export type FolderCategory = MediaCategory | 'container';
+
+/**
  * Representación de una imagen en el catálogo frontend, extendiendo el contrato OpenAPI (`ApiImage`).
  */
 export interface ImageItem extends Partial<Omit<ApiImage, 'id' | 'shortCode' | 'originalName' | 'mimeType' | 'sizeBytes' | 'url' | 'createdAt'>> {
@@ -56,7 +61,9 @@ export interface TableItem extends Partial<Omit<ApiTable, 'id' | 'shortCode' | '
 export interface FolderItem extends Partial<Omit<ApiFolder, 'id' | 'name' | 'type' | 'createdAt' | 'myPermission'>> {
   id: string;
   name: string;
-  type: MediaCategory;
+  type: FolderCategory;
+  parentId?: string | null;
+  isSystem?: boolean;
   color?: string | null;
   isPrivate?: boolean;
   itemCount?: number;

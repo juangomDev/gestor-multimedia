@@ -33,6 +33,7 @@ export interface TablesCatalogViewProps {
   pageLimit?: number;
   folders?: FolderItem[];
   onBulkActionFinished?: () => void;
+  leadingGridItems?: React.ReactNode;
 }
 
 const DEFAULT_PAGE_LIMIT = 24;
@@ -54,6 +55,7 @@ export const TablesCatalogView: React.FC<TablesCatalogViewProps> = ({
   pageLimit = DEFAULT_PAGE_LIMIT,
   folders = [],
   onBulkActionFinished,
+  leadingGridItems,
 }) => {
   const { showToast } = useToast();
   const [editingMetadataTable, setEditingMetadataTable] = useState<TableItem | null>(null);
@@ -192,7 +194,7 @@ export const TablesCatalogView: React.FC<TablesCatalogViewProps> = ({
         onOpenUpload={onOpenUpload}
       />
 
-      {visibleTables.length === 0 ? (
+      {!leadingGridItems && visibleTables.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>
             <Table2 size={28} />
@@ -211,6 +213,7 @@ export const TablesCatalogView: React.FC<TablesCatalogViewProps> = ({
         </div>
       ) : (
         <div className={styles.grid}>
+          {leadingGridItems}
           {visibleTables.map((table) => (
             <TableCard
               key={table.id || table.shortCode}

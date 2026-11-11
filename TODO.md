@@ -1,36 +1,36 @@
 # 📋 Plan Maestro de Tareas (TODO) — Gestor Multimedia Frontend
 
-> **Objetivo:** Cobertura total y explotación máxima del backend (`monolith-backend`).  
-> **Estado:** 38 de 38 rutas analizadas e integradas en fases atómicas de desarrollo frontend.  
-> **Regla de Oro:** Consumo estricto de endpoints de `monolith-backend` sin modificar el backend. Cada acción del usuario aprovecha al 100% las capacidades nativas del servidor (RBAC, streaming de alta velocidad, pre-cálculos, RAG tabular y capacidades multimedia).
+> **Objetivo:** Cobertura total y explotación máxima del backend (`monolith-backend` — Fases 0 a 20).  
+> **Estado:** 75 endpoints del catálogo `RUTAS.md` analizados e integrados en fases atómicas de desarrollo frontend.  
+> **Regla de Oro:** Consumo estricto de endpoints de `monolith-backend` sin modificar el backend. Cada acción del usuario aprovecha al 100% las capacidades nativas del servidor (RBAC jerárquico, subcarpetas en 3 niveles, streaming SSE en vivo, pre-cálculos, RAG tabular/documental y formularios Write-Once).
 
 ---
 
-## 📊 Estado Actual del Proyecto (Snapshot al 03/11/2026)
+## 📊 Estado Actual del Proyecto (Snapshot al 11/11/2026)
 
 | Métrica / Dimensión | Estado Actual | Detalle |
 |---|:---:|---|
-| **Pruebas Automatizadas (Vitest)** | **158 / 158 (100% pasando)** | 43 suites en verde, 0 fallos |
-| **Linter (Oxlint)** | **0 advertencias, 0 errores** | 115 archivos analizados con 116 reglas |
-| **Compilación (TypeScript / Vite)** | **Compilación Limpia (0 errores)** | Bundle listo para producción generado en ~600ms |
-| **Cobertura de Endpoints Backend** | **38 / 38 Mapeados** | 37 Implementados / 1 Parcial / 1 Planificado |
-| **Módulos Base Completados** | **16 / 18 Módulos (88.9%)** | Módulos 1 al 16 finalizados y testeados |
-| **Capa de Transporte HTTP** | **Completa (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`)** | Métodos extendidos, soporte `FormData`, streams y RFC 7807 |
-| **Contrato y Tipado OpenAPI 3.1** | **Sincronizado al 100%** | Generado en `src/types/api.generated.ts` (4.705 LOC) con script `types:sync` |
-| **Siguiente Módulo Activo** | ⏳ **Módulo 17** | Visor Interactivo de Documentación OpenAPI (Scalar) & Diagnóstico |
+| **Pruebas Automatizadas (Vitest)** | **249 / 249 (100% pasando)** | 71 suites en verde, 0 fallos |
+| **Linter (Oxlint)** | **0 advertencias, 0 errores** | 183 archivos analizados con 116 reglas |
+| **Compilación (TypeScript / Vite)** | **Compilación Limpia (0 errores)** | Bundle listo para producción; todos los archivos manuales `< 300` líneas |
+| **Cobertura de Endpoints Backend** | **75 / 75 Mapeados (`RUTAS.md`)** | **63 Implementados** / **2 Parciales** (Fase 20) / **10 Pendientes** (Fases 19 y 20) |
+| **Módulos Frontend Completados** | **23 / 26 Módulos (88.5%)** | Módulos 1 al 23 finalizados y certificados; Módulos 24, 25 y 26 pendientes |
+| **Capa de Transporte HTTP** | **Completa (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`)** | Falta conector `EventSource` / Stream para SSE (`/api/v1/notifications/stream`) |
+| **Contrato y Tipado OpenAPI 3.1** | ⚠️ **Pendiente Re-Sincronizar (`types:sync`)** | Falta regenerar `src/types/api.generated.ts` con los esquemas de Fases 19 y 20 |
+| **Siguientes Módulos Activos** | ⏳ **Módulos 24, 25 y 26** | Notificaciones SSE + Suscripciones, Jerarquía de Carpetas 3 Niveles (`CONTAINER`/`shared`) y Subida Global PDF |
 
 ---
 
-## 🧭 Matriz Maestra de Cobertura de Rutas Backend (38 / 38 Endpoints)
+## 🧭 Matriz Maestra de Cobertura de Rutas Backend (75 Endpoints — `RUTAS.md`)
 
 | # | Método | Ruta Backend | Módulo Frontend | Componente / Vista | Servicio Frontend | Estado |
 |---|:---:|---|:---:|:---:|:---:|:---:|
-| **1** | `GET` | `/health` | Módulo 1 / 17 | `HealthBadge.tsx`, `StatusBar.tsx`, `SettingsView.tsx` | `healthService.ts` | ✅ Parcial / ⏳ Extendido |
-| **2** | `GET` | `/docs` | Módulo 17 | `ApiDocsModal.tsx` / `SettingsView.tsx` (Scalar UI) | `apiClient.ts` | ⏳ Pendiente |
-| **3** | `GET` | `/openapi.json` | Módulo 10 / 17 | `openapi.json` -> `src/types/api.ts` (Generador) | Scripts de tipado | ✅ Implementado |
+| **1** | `GET` | `/health` | Módulo 1 / 17 | `HealthBadge.tsx`, `StatusBar.tsx`, `SettingsView.tsx` | `healthService.ts` | ✅ Implementado |
+| **2** | `GET` | `/docs` | Módulo 17 | `ScalarDocsCard.tsx` / `SettingsView.tsx` (Scalar UI) | `apiClient.ts` | ✅ Implementado |
+| **3** | `GET` | `/openapi.json` | Módulo 10 / 17 / 26 | `openapi.json` -> `src/types/api.generated.ts` | Scripts de tipado | ⚠️ Re-sync pendiente |
 | **4** | `POST` | `/api/v1/auth/login` | Módulo 4 / 11 | `LoginView.tsx` (Login con roles RBAC) | `authService.ts` | ✅ Implementado |
 | **5** | `POST` | `/api/v1/auth/refresh` | Módulo 11 | `apiClient.ts` (Interceptor de 401 automático) | `authService.ts` | ✅ Implementado |
-| **6** | `POST` | `/api/v1/auth/logout` | Módulo 11 | `Sidebar.tsx` / `UserMenu.tsx` (Cierre en servidor) | `authService.ts` | ✅ Implementado |
+| **6** | `POST` | `/api/v1/auth/logout` | Módulo 11 | `Sidebar.tsx` (Cierre de sesión en servidor) | `authService.ts` | ✅ Implementado |
 | **7** | `GET` | `/api/v1/auth/me` | Módulo 11 | `AuthContext.tsx` (Validación de sesión activa) | `authService.ts` | ✅ Implementado |
 | **8** | `PATCH` | `/api/v1/auth/password` | Módulo 11 | `ChangePasswordModal.tsx` (Autogestión de clave) | `authService.ts` | ✅ Implementado |
 | **9** | `POST` | `/api/v1/users` | Módulo 12 | `UserProfilesView.tsx` (Jerarquía ADMIN > MGR > COL) | `usersService.ts` | ✅ Implementado |
@@ -38,31 +38,68 @@
 | **11** | `PATCH` | `/api/v1/users/:id/status` | Módulo 12 | `UserProfilesView.tsx` (Toggle Activar/Suspender) | `usersService.ts` | ✅ Implementado |
 | **12** | `PATCH` | `/api/v1/users/:id/password` | Módulo 12 | `ResetUserPasswordModal.tsx` (Reset forzado por superior) | `usersService.ts` | ✅ Implementado |
 | **13** | `DELETE` | `/api/v1/users/:id` | Módulo 12 | `DeleteUserModal.tsx` (Borrado con cascada) | `usersService.ts` | ✅ Implementado |
-| **14** | `GET` | `/api/v1/folders` | Módulo 13 | `SidebarFoldersTree.tsx` (Filtros, search, permisos) | `foldersService.ts` | ✅ Implementado |
-| **15** | `POST` | `/api/v1/folders` | Módulo 13 | `CreateFolderModal.tsx` (Creación IMAGE/TABLE con color) | `foldersService.ts` | ✅ Implementado |
-| **16** | `PATCH` | `/api/v1/folders/:id` | Módulo 13 | `EditFolderModal.tsx` (Renombrar, color, privacidad) | `foldersService.ts` | ✅ Implementado |
-| **17** | `GET` | `/api/v1/folders/:id` | Módulo 13 | `foldersService.getFolderById` (Detalle y estadísticas) | `foldersService.ts` | ✅ Implementado |
-| **18** | `DELETE` | `/api/v1/folders/:id` | Módulo 13 | `SidebarFoldersTree.tsx` (Borrado en cascada) | `foldersService.ts` | ✅ Implementado |
-| **19** | `POST` | `/api/v1/folders/:id/shares` | Módulo 13 | `ShareFolderModal.tsx` (Asignar colaborador READ/EDIT) | `foldersService.ts` | ✅ Implementado |
-| **20** | `GET` | `/api/v1/folders/:id/shares` | Módulo 13 | `ShareFolderModal.tsx` (Lista de miembros con acceso) | `foldersService.ts` | ✅ Implementado |
-| **21** | `PATCH` | `/api/v1/folders/:id/shares/:userId` | Módulo 13 | `ShareFolderModal.tsx` (Alternar READ <-> EDIT) | `foldersService.ts` | ✅ Implementado |
-| **22** | `DELETE` | `/api/v1/folders/:id/shares/:userId` | Módulo 13 | `ShareFolderModal.tsx` (Revocar y expulsar) | `foldersService.ts` | ✅ Implementado |
-| **23** | `GET` | `/api/v1/images` | Módulo 14 | `ImagesView.tsx` (Paginación server-side y folderId) | `imagesService.ts` | ✅ Implementado |
-| **24** | `POST` | `/api/v1/images` | Módulo 14 | `UploadModal.tsx`, `DropzoneOverlay.tsx` | `imagesService.ts` | ✅ Implementado |
-| **25** | `PATCH` | `/api/v1/images/:id` | Módulo 14 | `RenameImageModal.tsx` / `ImageCard.tsx` (Renombrado) | `imagesService.ts` | ✅ Implementado |
-| **26** | `PUT` | `/api/v1/images/:id` | Módulo 14 | `HotSwapImageModal.tsx` (Reemplazo binario en caliente) | `imagesService.ts` | ✅ Implementado |
-| **27** | `DELETE` | `/api/v1/images/:id` | Módulo 14 | `ImageCard.tsx`, `ImageInspector.tsx` | `imagesService.ts` | ✅ Implementado |
-| **28** | `PATCH` | `/api/v1/images/:id/folder` | Módulo 13 | `MoveToFolderModal.tsx` (Reasignar carpeta en DB) | `foldersService.ts` | ✅ Implementado |
-| **29** | `GET` | `/i/:short_code` | Módulo 14 | `ImageCard.tsx` (?variant=thumb), `Inspector` (original) | `imagesService.ts` | ✅ Implementado |
-| **30** | `GET` | `/api/v1/tables` | Módulo 15 | `TablesCatalogView.tsx` (Paginación y folderId) | `tablesService.ts` | ✅ Implementado |
-| **31** | `POST` | `/api/v1/tables` | Módulo 15 | `UploadModal.tsx` (CSV/XLSX con carpeta) | `tablesService.ts` | ✅ Implementado |
-| **32** | `DELETE` | `/api/v1/tables/:id` | Módulo 15 | `TablesCatalogView.tsx`, `TableDataStudioView.tsx` | `tablesService.ts` | ✅ Implementado |
-| **33** | `PATCH` | `/api/v1/tables/:id/folder` | Módulo 13 | `MoveToFolderModal.tsx` (Reasignar carpeta en DB) | `foldersService.ts` | ✅ Implementado |
-| **34** | `GET` | `/t/:short_code` | Módulo 15 | `TableDataStudioView.tsx` (Headers, merges, styles, raw) | `tablesService.ts` | ✅ Implementado |
-| **35** | `PATCH` | `/api/v1/tables/:id/metadata` | Módulo 15 | `TableMetadataEditorModal.tsx` (Ficha Técnica) | `tablesService.ts` | ✅ Implementado |
-| **36** | `POST` | `/api/v1/chat/ask` | Módulo 16 | `ChatStudioView.tsx` (RAG Tabular con fuentes y charts) | `chatService.ts` | ✅ Implementado |
-| **37** | `POST` | `/api/v1/public/chat/ask` | Módulo 16 | `PublicWidgetPreviewModal.tsx` (Widget web embebible) | `chatService.ts` | ✅ Implementado |
-| **38** | `GET` | `/api/v1/public/chat/suggestions` | Módulo 16 | `ChatStudioView.tsx` (Chips de preguntas sugeridas) | `chatService.ts` | ✅ Implementado |
+| **14** | `GET` | `/api/v1/folders` | Módulo 13 / 25 | `MainExplorerHeader.tsx` (Falta `?parentId=`, `CONTAINER`, `isSystem`) | `foldersService.ts` | ⚠️ Parcial (Mód. 25) |
+| **15** | `GET` | `/api/v1/folders/tree` | **Módulo 25** | `MainExplorerHeader.tsx` / `FolderTreeSelector.tsx` (Árbol 3 niveles) | `foldersService.ts` | ⏳ **Pendiente** |
+| **16** | `POST` | `/api/v1/folders` | Módulo 13 / 25 | `CreateFolderModal.tsx` (Falta tipo `CONTAINER` y reglas 3 niveles) | `foldersService.ts` | ⚠️ Parcial (Mód. 25) |
+| **17** | `PATCH` | `/api/v1/folders/:id` | Módulo 13 / 25 | `EditFolderModal.tsx` (Falta proteger `isSystem: true`) | `foldersService.ts` | ✅ Implementado |
+| **18** | `GET` | `/api/v1/folders/:id` | Módulo 13 | `foldersService.getFolderById` (Detalle y estadísticas) | `foldersService.ts` | ✅ Implementado |
+| **19** | `DELETE` | `/api/v1/folders/:id` | Módulo 13 / 25 | `MainExplorerHeader.tsx` (Borrado en cascada; proteger `shared`) | `foldersService.ts` | ✅ Implementado |
+| **20** | `POST` | `/api/v1/folders/:id/shares` | Módulo 13 / 26 | `ShareFolderModal.tsx` (Asignar colaborador READ/EDIT + `ai_manager`) | `foldersService.ts` | ✅ Implementado |
+| **21** | `GET` | `/api/v1/folders/:id/shares` | Módulo 13 | `ShareFolderModal.tsx` (Lista de miembros con acceso) | `foldersService.ts` | ✅ Implementado |
+| **22** | `PATCH` | `/api/v1/folders/:id/shares/:userId` | Módulo 13 | `ShareFolderModal.tsx` (Alternar READ <-> EDIT) | `foldersService.ts` | ✅ Implementado |
+| **23** | `DELETE` | `/api/v1/folders/:id/shares/:userId` | Módulo 13 | `ShareFolderModal.tsx` (Revocar y expulsar) | `foldersService.ts` | ✅ Implementado |
+| **24** | `GET` | `/api/v1/images` | Módulo 14 / 19 | `ImagesView.tsx` (Paginación, `folderId` y `search`) | `imagesService.ts` | ✅ Implementado |
+| **25** | `POST` | `/api/v1/images` | Módulo 14 | `UploadModal.tsx`, `DropzoneOverlay.tsx` | `imagesService.ts` | ✅ Implementado |
+| **26** | `PATCH` | `/api/v1/images/:id` | Módulo 14 | `RenameImageModal.tsx` / `ImageCard.tsx` (Renombrado) | `imagesService.ts` | ✅ Implementado |
+| **27** | `PUT` | `/api/v1/images/:id` | Módulo 14 | `HotSwapImageModal.tsx` (Reemplazo binario en caliente) | `imagesService.ts` | ✅ Implementado |
+| **28** | `DELETE` | `/api/v1/images/:id` | Módulo 14 | `ImageCard.tsx`, `ImageInspector.tsx` | `imagesService.ts` | ✅ Implementado |
+| **29** | `PATCH` | `/api/v1/images/:id/folder` | Módulo 13 | `MoveToFolderModal.tsx` (Reasignar carpeta en DB) | `foldersService.ts` | ✅ Implementado |
+| **30** | `POST` | `/api/v1/images/bulk-delete` | Módulo 19 | `BulkActionsBar.tsx`, `BulkDeleteModal.tsx` | `imagesService.ts` | ✅ Implementado |
+| **31** | `POST` | `/api/v1/images/bulk-move` | Módulo 19 | `BulkActionsBar.tsx`, `BulkMoveModal.tsx` | `imagesService.ts` | ✅ Implementado |
+| **32** | `GET` | `/i/:short_code` | Módulo 14 | `ImageCard.tsx` (?variant=thumb), `Inspector` (original) | `imagesService.ts` | ✅ Implementado |
+| **33** | `GET` | `/api/v1/tables` | Módulo 15 / 19 | `TablesCatalogView.tsx` (Paginación, `folderId` y `search`) | `tablesService.ts` | ✅ Implementado |
+| **34** | `POST` | `/api/v1/tables` | Módulo 15 | `UploadModal.tsx` (CSV/XLSX con carpeta) | `tablesService.ts` | ✅ Implementado |
+| **35** | `PATCH` | `/api/v1/tables/:id` | Módulo 19 | `RenameTableModal.tsx` (Renombrar dataset) | `tablesService.ts` | ✅ Implementado |
+| **36** | `PUT` | `/api/v1/tables/:id` | Módulo 19 | `HotSwapTableModal.tsx` (Reemplazo en caliente) | `tablesService.ts` | ✅ Implementado |
+| **37** | `DELETE` | `/api/v1/tables/:id` | Módulo 15 | `TablesCatalogView.tsx`, `TableDataStudioView.tsx` | `tablesService.ts` | ✅ Implementado |
+| **38** | `PATCH` | `/api/v1/tables/:id/folder` | Módulo 13 | `MoveToFolderModal.tsx` (Reasignar carpeta en DB) | `foldersService.ts` | ✅ Implementado |
+| **39** | `POST` | `/api/v1/tables/bulk-delete` | Módulo 19 | `BulkActionsBar.tsx`, `BulkDeleteModal.tsx` | `tablesService.ts` | ✅ Implementado |
+| **40** | `POST` | `/api/v1/tables/bulk-move` | Módulo 19 | `BulkActionsBar.tsx`, `BulkMoveModal.tsx` | `tablesService.ts` | ✅ Implementado |
+| **41** | `GET` | `/t/:short_code` | Módulo 15 | `TableDataStudioView.tsx` (Headers, merges, styles, raw) | `tablesService.ts` | ✅ Implementado |
+| **42** | `PATCH` | `/api/v1/tables/:id/metadata` | Módulo 15 | `TableMetadataEditorModal.tsx` (Ficha Técnica) | `tablesService.ts` | ✅ Implementado |
+| **43** | `POST` | `/api/v1/chat/ask` | Módulo 16 / 21 | `ChatStudioView.tsx` (RAG Tabular + PDF con citas y charts) | `chatService.ts` | ✅ Implementado |
+| **44** | `POST` | `/api/v1/public/chat/ask` | Módulo 16 | `PublicWidgetPreviewModal.tsx` (Widget web embebible) | `chatService.ts` | ✅ Implementado |
+| **45** | `GET` | `/api/v1/public/chat/suggestions` | Módulo 16 | `ChatStudioView.tsx` (Chips de preguntas sugeridas) | `chatService.ts` | ✅ Implementado |
+| **46** | `GET` | `/api/v1/audit-logs` | Módulo 20 | `AuditLogsView.tsx` (Historial inmutable ADMIN/MANAGER) | `auditService.ts` | ✅ Implementado |
+| **47** | `POST` | `/api/v1/api-keys` | Módulo 20 | `ApiKeysManagerCard.tsx` (Emisión de clave M2M) | `apiKeysService.ts` | ✅ Implementado |
+| **48** | `GET` | `/api/v1/api-keys` | Módulo 20 | `ApiKeysManagerCard.tsx` (Listado con prefijo `mk_live_`) | `apiKeysService.ts` | ✅ Implementado |
+| **49** | `DELETE` | `/api/v1/api-keys/:id` | Módulo 20 | `ApiKeysManagerCard.tsx` (Revocación inmediata) | `apiKeysService.ts` | ✅ Implementado |
+| **50** | `GET` | `/api/v1/stats/storage` | Módulo 20 | `StorageMonitorCard.tsx` (Cuotas, disco y desglose) | `apiKeysService.ts` | ✅ Implementado |
+| **51** | `POST` | `/api/v1/public/forms/:slug/entries` | Módulo 22 | `FormsStudioView.tsx` (Envío público de entradas status `NEW`) | `formsService.ts` | ✅ Implementado |
+| **52** | `POST` | `/api/v1/forms` | Módulo 22 | `CreateFormModal.tsx` (Constructor de formulario + tabla abierta) | `formsService.ts` | ✅ Implementado |
+| **53** | `GET` | `/api/v1/forms` | Módulo 22 | `FormsStudioView.tsx` (Catálogo de formularios activos) | `formsService.ts` | ✅ Implementado |
+| **54** | `GET` | `/api/v1/forms/:id` | Módulo 22 | `FormsStudioView.tsx` (Detalle de formulario por ID/slug) | `formsService.ts` | ✅ Implementado |
+| **55** | `PATCH` | `/api/v1/forms/entries/:id/resolve` | Módulo 22 | `ResolveEntryModal.tsx` (Resolución Write-Once `VALID`/`INVALID`) | `formsService.ts` | ✅ Implementado |
+| **56** | `POST` | `/api/v1/forms/entries/:id/dispatch` | Módulo 22 | `FormsStudioView.tsx` (Reenvío bajo demanda a motor externo) | `formsService.ts` | ✅ Implementado |
+| **57** | `GET` | `/api/v1/forms/:id/entries` | Módulo 22 | `FormsStudioView.tsx` (Bandeja mensual `?month=YYYY-MM&status=`) | `formsService.ts` | ✅ Implementado |
+| **58** | `GET` | `/api/v1/forms/:id/export` | Módulo 22 | `FormsStudioView.tsx` (Exportación `.xlsx` / `.csv` mensual) | `formsService.ts` | ✅ Implementado |
+| **59** | `GET` | `/p/:short_code` | Módulo 21 | `PdfViewerModal.tsx` (`inline`, `?download=true`, `?format=text`) | `pdfsService.ts` | ✅ Implementado |
+| **60** | `GET` | `/api/v1/pdfs` | Módulo 21 | `PdfsCatalogView.tsx` (Catálogo paginado, `folderId`, `search`) | `pdfsService.ts` | ✅ Implementado |
+| **61** | `POST` | `/api/v1/pdfs` | Módulo 21 / 26 | `UploadPdfModal.tsx` + `UploadModal.tsx` (Doble artefacto PDF) | `pdfsService.ts` | ✅ Implementado |
+| **62** | `PATCH` | `/api/v1/pdfs/:id` | Módulo 21 | `RenamePdfModal.tsx` (Renombrar documento PDF) | `pdfsService.ts` | ✅ Implementado |
+| **63** | `PUT` | `/api/v1/pdfs/:id` | Módulo 21 | `HotSwapPdfModal.tsx` (Reemplazo en caliente de PDF) | `pdfsService.ts` | ✅ Implementado |
+| **64** | `PATCH` | `/api/v1/pdfs/:id/metadata` | Módulo 21 | `PdfMetadataEditorModal.tsx` (Ficha técnica documental) | `pdfsService.ts` | ✅ Implementado |
+| **65** | `DELETE` | `/api/v1/pdfs/:id` | Módulo 21 | `PdfCard.tsx`, `PdfsCatalogView.tsx` (Borrado físico y lógico) | `pdfsService.ts` | ✅ Implementado |
+| **66** | `PATCH` | `/api/v1/pdfs/:id/folder` | Módulo 21 | `MoveToFolderModal.tsx` (Reasignar carpeta de tipo `PDF`) | `pdfsService.ts` | ✅ Implementado |
+| **67** | `GET` | `/api/v1/notifications` | **Módulo 24** | `NotificationsPopover.tsx` (Bandeja paginada `?unreadOnly=`) | `notificationsService.ts` | ⏳ **Pendiente** |
+| **68** | `GET` | `/api/v1/notifications/unread-count` | **Módulo 24** | `NotificationBell.tsx` (Badge numérico de no leídas) | `notificationsService.ts` | ⏳ **Pendiente** |
+| **69** | `PATCH` | `/api/v1/notifications/:id/read` | **Módulo 24** | `NotificationsPopover.tsx` (Marcar notificación individual leída) | `notificationsService.ts` | ⏳ **Pendiente** |
+| **70** | `PATCH` | `/api/v1/notifications/read-all` | **Módulo 24** | `NotificationsPopover.tsx` (Botón "Marcar todas como leídas") | `notificationsService.ts` | ⏳ **Pendiente** |
+| **71** | `DELETE` | `/api/v1/notifications/:id` | **Módulo 24** | `NotificationsPopover.tsx` (Eliminar notificación de bandeja) | `notificationsService.ts` | ⏳ **Pendiente** |
+| **72** | `GET` | `/api/v1/notifications/stream` | **Módulo 24** | `useNotificationsStream.ts` (Canal SSE en tiempo real `?token=`) | `notificationsService.ts` | ⏳ **Pendiente** |
+| **73** | `POST` | `/api/v1/forms/:id/subscribe` | **Módulo 24** | `FormSubscriptionButton.tsx` / `FormsStudioView.tsx` (Activar alertas) | `notificationsService.ts` | ⏳ **Pendiente** |
+| **74** | `DELETE` | `/api/v1/forms/:id/subscribe` | **Módulo 24** | `FormSubscriptionButton.tsx` / `FormsStudioView.tsx` (Cancelar alertas) | `notificationsService.ts` | ⏳ **Pendiente** |
+| **75** | `GET` | `/api/v1/forms/:id/subscription` | **Módulo 24** | `FormSubscriptionButton.tsx` / `FormsStudioView.tsx` (Estado actual) | `notificationsService.ts` | ⏳ **Pendiente** |
 
 ---
 
@@ -505,4 +542,102 @@
     - Tolerancia y absorción de respuestas 404 / 400 en `imagesService.deleteImage`, `tablesService.deleteTable` y `pdfsService.deletePdf`, garantizando siempre limpieza de almacenamiento local y eliminación optimista en UI.
     - Soporte de credenciales Dokploy de producción (`AdminPass2026!`) en fallback de autenticación `LoginView.tsx`.
     - Eliminación de `window.confirm` bloqueante y corrección de `e.stopPropagation()` en `PdfCard.tsx`.
+- [x] **23.3 Rediseño del Explorador Principal Unificado y Compactación de Espacio (`UnifiedExplorerView` + `MainExplorerHeader`)**
+  - [x] `23.3.1` Simplificación radical del `Sidebar.tsx` en modo explorador (`explorerMode`): eliminación de enlaces individuales de Imágenes, Tablas, PDFs y Formularios del menú lateral, conservando el botón primario **"Subir Archivo"** y acceso al Explorador y Asistente IA.
+  - [x] `23.3.2` Restricción RBAC estricta en `Sidebar.tsx`: la sección de **Configuración** solo se muestra al rol `ADMIN`.
+  - [x] `23.3.3` Creación de `MainExplorerHeader.tsx` y `UnifiedExplorerView.tsx`: carpetas renderizadas directamente en `<main>` con migas de pan (`breadcrumbs`), píldoras de filtro rápido (`Todo`, `Galería de Imágenes`, `Data Studio (Tablas)`, `Documentos PDF`, `Formularios`) y optimización del espacio vertical/horizontal (249 tests en 71 suites pasando).
+
+---
+
+## 🚀 FASES DE SINCRONIZACIÓN CON NUEVOS MÓDULOS DE `MONOLITH-BACKEND` (FASES 19 Y 20)
+
+> **Sincronización con `RUTAS.md`, `TODO.md` y `docs/frontend-integration.md` del backend:** Cobertura de las **Fases 19 y 20** de `monolith-backend` (9 rutas nuevas de Notificaciones In-App, Streaming SSE en Tiempo Real y Suscripciones a Formularios + 1 ruta nueva de Árbol Jerárquico `/folders/tree`, carpetas departamentales Nivel 1 `CONTAINER`, herencia de subcarpetas en 3 niveles y bóveda compartida universal `shared`).
+
+---
+
+## 🔔 Módulo 24: Sistema de Notificaciones en Vivo (SSE), Bandeja In-App & Suscripciones a Formularios (Backend Fase 19)
+
+> **Rutas Backend (9 Endpoints Nuevos — #67 a #75):**
+> - `GET /api/v1/notifications` (`?page=&limit=&unreadOnly=true|false`)
+> - `GET /api/v1/notifications/unread-count`
+> - `PATCH /api/v1/notifications/:id/read`
+> - `PATCH /api/v1/notifications/read-all`
+> - `DELETE /api/v1/notifications/:id`
+> - `GET /api/v1/notifications/stream` (Server-Sent Events `text/event-stream` con `?token=<jwt>` o Header `Authorization`)
+> - `POST /api/v1/forms/:id/subscribe` (`{ notifyOnNewEntry: boolean, notifyOnResolution: boolean }`)
+> - `DELETE /api/v1/forms/:id/subscribe`
+> - `GET /api/v1/forms/:id/subscription`
+
+- [ ] **24.1 Contratos y Servicio de Notificaciones (`notificationsService.ts`)**
+  - [ ] `24.1.1` Crear `src/types/notifications.ts` con las interfaces `NotificationItem` (`id`, `title`, `message`, `type: 'FORM_NEW_ENTRY' | 'FORM_ENTRY_RESOLVED' | 'SYSTEM'`, `resourceId`, `read`, `createdAt`), `NotificationsPaginatedResponse`, `UnreadCountResponse` y `FormSubscription`.
+  - [ ] `24.1.2` Implementar `src/services/notificationsService.ts` cubriendo los 9 endpoints:
+    - `fetchNotifications({ page, limit, unreadOnly })` -> `GET /api/v1/notifications`
+    - `fetchUnreadCount()` -> `GET /api/v1/notifications/unread-count`
+    - `markNotificationAsRead(id)` -> `PATCH /api/v1/notifications/:id/read`
+    - `markAllNotificationsAsRead()` -> `PATCH /api/v1/notifications/read-all`
+    - `deleteNotification(id)` -> `DELETE /api/v1/notifications/:id`
+    - `getNotificationStreamUrl(accessToken)` -> URL para `EventSource` hacia `GET /api/v1/notifications/stream?token=...`
+    - `subscribeToForm(formId, prefs)` -> `POST /api/v1/forms/:id/subscribe`
+    - `unsubscribeFromForm(formId)` -> `DELETE /api/v1/forms/:id/subscribe`
+    - `getFormSubscription(formId)` -> `GET /api/v1/forms/:id/subscription`
+
+- [ ] **24.2 Streaming en Tiempo Real (SSE) y Campana de Notificaciones (`NotificationBell.tsx` + `NotificationsPopover.tsx`)**
+  - [ ] `24.2.1` Crear custom hook `src/hooks/useNotifications.ts` que al iniciar sesión consulte `GET /api/v1/notifications/unread-count` y abra una conexión `EventSource` contra `/api/v1/notifications/stream?token=<accessToken>`.
+  - [ ] `24.2.2` Escuchar el evento `notification` del stream SSE para incrementar en vivo el contador `unreadCount`, insertar la alerta en la cabeza de la bandeja y disparar un Toast no intrusivo con el `title` y `message` recibidos.
+  - [ ] `24.2.3` Crear componente `NotificationBell.tsx` y `NotificationsPopover.tsx` integrados en la cabecera/barra lateral:
+    - Badge numérico rojo con conteo de no leídas.
+    - Filtro rápido "Todas / No leídas", botón **"Marcar todas como leídas"** (`PATCH /api/v1/notifications/read-all`) y botón de eliminar alerta individual (`DELETE /api/v1/notifications/:id`).
+    - Navegación directa: al hacer clic en una notificación con `resourceId` de formulario, marcarla como leída (`PATCH /api/v1/notifications/:id/read`) y abrir directamente la bandeja del formulario correspondiente.
+
+- [ ] **24.3 Botón e Interruptor de Suscripción por Formulario (`FormSubscriptionButton.tsx`)**
+  - [ ] `24.3.1` Crear componente `src/components/forms/FormSubscriptionButton.tsx` e integrarlo en `FormsStudioView.tsx` (tanto en las tarjetas del catálogo de formularios como en la cabecera de la bandeja de entradas de un formulario).
+  - [ ] `24.3.2` Consultar `GET /api/v1/forms/:id/subscription` y permitir activar/configurar alertas granulares (`notifyOnNewEntry`, `notifyOnResolution`) mediante `POST /api/v1/forms/:id/subscribe` o cancelarlas con `DELETE /api/v1/forms/:id/subscribe`.
+
+---
+
+## 🗂️ Módulo 25: Arquitectura Jerárquica de Carpetas en 3 Niveles (`CONTAINER`, `parentId`, `/folders/tree`) & Bóveda Compartida (`shared`) (Backend Fase 20)
+
+> **Rutas Backend Nuevas y Evolucionadas (#14, #15, #16, #17, #19):**
+> - **Nueva Ruta #15:** `GET /api/v1/folders/tree` (Árbol jerárquico anidado completo con `children[]`, `parentId`, `isSystem` y `type: 'CONTAINER' | 'IMAGE' | 'TABLE' | 'PDF'`).
+> - **Ruta #14 Mejorada:** `GET /api/v1/folders?parentId=&type=&search=&page=&limit=` (Soporta filtro por `parentId`, tipo `CONTAINER` y devuelve `parentId: string | null`, `isSystem: boolean`).
+> - **Ruta #16 Mejorada:** `POST /api/v1/folders` (Reglas estrictas de 3 niveles: Nivel 1 `CONTAINER`, Nivel 2 subcarpeta especializada `IMAGE | TABLE | PDF`, Nivel 3 hereda el `type` del Nivel 2; máximo 3 niveles de profundidad).
+
+- [ ] **25.1 Actualización de Contratos y Servicio de Carpetas (`foldersService.ts`)**
+  - [ ] `25.1.1` Ampliar `FolderType` en `src/services/foldersService.ts` y `src/types/media.ts` para incluir `'CONTAINER'` (`'container'`) además de `'IMAGE' | 'TABLE' | 'PDF'`, y añadir las propiedades `parentId: string | null`, `isSystem?: boolean` y `children?: RemoteFolder[]`.
+  - [ ] `25.1.2` Implementar `fetchFolderTree()` en `foldersService.ts` consumiendo `GET /api/v1/folders/tree` para obtener la estructura jerárquica completa de hasta 3 niveles.
+  - [ ] `25.1.3` Actualizar `fetchFolders(params)` en `foldersService.ts` para enviar opcionalmente `parentId` en el query string (`GET /api/v1/folders?parentId=...`).
+
+- [ ] **25.2 Reglas de Negocio de 3 Niveles en Creación y Subida de Archivos**
+  - [ ] `25.2.1` Actualizar `CreateFolderModal.tsx` según el nivel jerárquico del padre seleccionado:
+    - **Si se crea en Nivel 1 (`parentId: null`)**: solo permitido para `ADMIN`/`MANAGER` con tipo `CONTAINER` (o carpeta raíz según rol; un `COLLABORATOR` no puede crear carpetas en raíz `parentId: null`).
+    - **Si el padre es Nivel 1 (`parent.type === 'CONTAINER'`)**: obligar a elegir el tipo especializado de la subcarpeta de Nivel 2 (`IMAGE`, `TABLE` o `PDF`).
+    - **Si el padre es Nivel 2 (`IMAGE | TABLE | PDF`)**: bloquear/autoseleccionar el mismo `type` del padre para la subcarpeta de Nivel 3 (cumpliendo la regla de herencia estricta `parent.type === child.type`).
+    - **Si la carpeta actual ya está en Nivel 3 (profundidad máxima = 3)**: deshabilitar el botón **"Nueva Subcarpeta"** con tooltip explicativo (evitando el error `400 MAX_FOLDER_DEPTH_EXCEEDED`).
+  - [ ] `25.2.2` **Bloqueo y Guía UX en Carpetas Contenedoras (`CONTAINER` - Nivel 1)**:
+    - Como el backend prohíbe subir archivos o crear formularios directamente en una carpeta `CONTAINER` (`400 CANNOT_UPLOAD_TO_CONTAINER_FOLDER`), cuando el usuario esté posicionado en una carpeta de Nivel 1 (`type === 'CONTAINER'`), mostrar un banner claro indicando que es una carpeta departamental/raíz e invitarle a entrar o crear una subcarpeta especializada (Nivel 2 o 3) al intentar subir un archivo.
+
+- [ ] **25.3 Bóveda Compartida del Sistema (`shared` / `isSystem: true`) y Árbol Visual en `<main>`**
+  - [ ] `25.3.1` Destacar visualmente en `MainExplorerHeader.tsx` la carpeta corporativa del sistema **`shared`** (`isSystem: true`) con icono de bóveda compartida y badge **"Sistema · Compartida"**.
+  - [ ] `25.3.2` Ocultar los botones de **Editar** y **Eliminar** en carpetas con `isSystem: true` (como `shared` o la carpeta departamental raíz del Manager cuando no sea `ADMIN`), previniendo el error `400 CANNOT_MODIFY_SYSTEM_FOLDER`.
+  - [ ] `25.3.3` Integrar selector jerárquico basado en `GET /api/v1/folders/tree` dentro de `MoveToFolderModal.tsx` y `BulkMoveModal.tsx` para permitir mover imágenes, tablas y PDFs hacia subcarpetas de Nivel 2 y Nivel 3 compatibles con el tipo de archivo.
+
+---
+
+## ⚡ Módulo 26: Unificación de Subida Global (Imágenes + Tablas + PDFs), Publicación `ai_manager`, Sincronización OpenAPI 3.1 & Certificación E2E
+
+- [ ] **26.1 Soporte de Documentos PDF en el Botón Global "Subir Archivo" (`UploadModal.tsx` / `useMediaWorkspace.ts`)**
+  - [ ] `26.1.1` Ampliar `UploadModal.tsx`, `DropzoneOverlay.tsx` y `handleFilesUpload` en `useMediaWorkspace.ts` para aceptar archivos `.pdf` (`application/pdf`) además de imágenes y tablas CSV/XLSX.
+  - [ ] `26.1.2` Enrutar automáticamente los archivos `.pdf` hacia `pdfsService.uploadPdf(file, folderId)` desde el flujo global de subida, garantizando que el único botón **"Subir Archivo"** del menú lateral suba cualquier formato soportado por el backend.
+
+- [ ] **26.2 Interruptor Directo de Publicación al Chat Web Público (`ai_manager`) en `ShareFolderModal.tsx`**
+  - [ ] `26.2.1` Añadir en `ShareFolderModal.tsx` un interruptor rápido **"Publicar en Widget de Chat Web Público (`ai_manager`)"** que comparta o revoque con un solo clic el permiso `READ` al usuario de sistema `ai_manager` (`POST /api/v1/folders/:id/shares` / `DELETE /api/v1/folders/:id/shares/:userId`).
+
+- [ ] **26.3 Re-Sincronización de Contrato OpenAPI 3.1 y Pruebas Automatizadas E2E**
+  - [ ] `26.3.1` Actualizar `src/types/api.generated.ts` ejecutando `npm run types:sync` contra el `openapi.json` actualizado de `monolith-backend` (incluyendo los esquemas de `Notifications` y `Folders` de 3 niveles).
+  - [ ] `26.3.2` Crear tests unitarios y de componentes en archivos nuevos (respetando la Regla 1.1 de `AGENTS.md`):
+    - `src/services/notificationsService.test.ts`
+    - `src/components/notifications/NotificationsPopover.test.tsx`
+    - `src/services/foldersService.tree.test.ts`
+  - [ ] `26.3.3` Certificar `npm run test` (100% en verde), `npm run lint` (0 advertencias, 0 errores) y `npm run build` (0 errores TypeScript y todos los archivos manuales `< 300` líneas).
+
 

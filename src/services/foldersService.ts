@@ -6,15 +6,16 @@ import type {
   ApiUpdateFolderInput,
   ApiFolderShare,
 } from '../types/api';
-import type { FolderItem, MediaCategory } from '../types/media';
+import type { FolderItem, FolderCategory, MediaCategory } from '../types/media';
 
 /**
  * Payload de entrada para crear una carpeta (`POST /api/v1/folders`).
- * Soporta tanto `'IMAGE' | 'TABLE'` como `'image' | 'table'`.
+ * Soporta tanto `'CONTAINER' | 'IMAGE' | 'TABLE' | 'PDF'` como `'container' | 'image' | 'table' | 'pdf'`.
  */
 export interface CreateFolderPayload {
   name: string;
-  type: 'IMAGE' | 'TABLE' | MediaCategory;
+  type: 'CONTAINER' | 'IMAGE' | 'TABLE' | 'PDF' | FolderCategory;
+  parentId?: string | null;
   color?: string;
   isPrivate?: boolean;
 }
@@ -26,17 +27,32 @@ export interface CreateFolderPayload {
  * @returns Entidad `FolderItem` tipada y normalizada.
  */
 export function normalizeFolder(
-  raw?: (Omit<Partial<ApiFolder>, 'type'> & { id?: string; name?: string; type?: string; isShared?: boolean }) | null
+  raw?: (Omit<Partial<ApiFolder>, 'type'> & {
+    id?: string;
+    name?: string;
+    type?: string;
+    parentId?: string | null;
+    isSystem?: boolean;
+    isShared?: boolean;
+  }) | null
 ): FolderItem {
   const safe = raw || {};
   const rawType = String(safe.type || 'IMAGE').toUpperCase();
-  const normalizedType: MediaCategory =
-    rawType === 'TABLE' ? 'table' : rawType === 'PDF' ? 'pdf' : 'image';
+  const normalizedType: FolderCategory =
+    rawType === 'CONTAINER'
+      ? 'container'
+      : rawType === 'TABLE'
+      ? 'table'
+      : rawType === 'PDF'
+      ? 'pdf'
+      : 'image';
 
   return {
     id: safe.id || `fld-${Date.now()}`,
     name: safe.name || 'General',
     type: normalizedType,
+    parentId: safe.parentId ?? null,
+    isSystem: safe.isSystem ?? false,
     color: safe.color ?? '#3b82f6',
     isPrivate: safe.isPrivate ?? false,
     itemCount: safe.itemCount ?? 0,
@@ -94,20 +110,30 @@ export class FoldersService {
   }
 
   /**
-   * Crea una nueva carpeta de imágenes o tablas en PostgreSQL (`POST /api/v1/folders`).
+   * Crea una nueva carpeta (`CONTAINER`, `IMAGE`, `TABLE` o `PDF`) en PostgreSQL (`POST /api/v1/folders`).
    */
   async createFolder(payload: CreateFolderPayload): Promise<FolderItem> {
-    const apiType: 'IMAGE' | 'TABLE' =
-      payload.type.toUpperCase() === 'TABLE' ? 'TABLE' : 'IMAGE';
+    const rawUpper = payload.type.toUpperCase();
+    const apiType: 'CONTAINER' | 'IMAGE' | 'TABLE' | 'PDF' =
+      rawUpper === 'CONTAINER'
+        ? 'CONTAINER'
+        : rawUpper === 'TABLE'
+        ? 'TABLE'
+        : rawUpper === 'PDF'
+        ? 'PDF'
+        : 'IMAGE';
+
+    const body: Record<string, unknown> = {
+      name: payload.name.trim(),
+      type: apiType,
+      color: payload.color,
+      isPrivate: payload.isPrivate ?? false,
+    };
+    if (payload.parentId !== undefined) body.parentId = payload.parentId;
 
     const res = await apiClient.post<{ folder?: ApiFolder } & Partial<ApiFolder>>(
       '/api/v1/folders',
-      {
-        name: payload.name.trim(),
-        type: apiType,
-        color: payload.color,
-        isPrivate: payload.isPrivate ?? false,
-      }
+      body
     );
 
     const created = normalizeFolder(res?.folder || res);
@@ -157,9 +183,6 @@ export class FoldersService {
 
   /**
    * Elimina una carpeta en cascada física y lógica (`DELETE /api/v1/folders/:id`).
-   *
-   * @param id UUID de la carpeta a eliminar.
-   * @returns Mensaje de confirmación y cantidad de archivos eliminados.
    */
   async deleteFolder(id: string): Promise<{ message: string; deletedCount: number }> {
     try {
@@ -179,20 +202,10 @@ export class FoldersService {
 
   /**
    * Reasigna una imagen a otra carpeta de tipo IMAGE en PostgreSQL (`PATCH /api/v1/images/:id/folder`).
-   *
-   * @param imageId UUID de la imagen.
-   * @param folderId UUID de la carpeta destino (o `null` para raíz local).
-   * @returns Confirmación con los datos de la imagen reasignada.
    */
-  async moveImageToFolder(
-    imageId: string,
-    folderId: string | null
-  ): Promise<{ id?: string; folderId?: string | null }> {
+  async moveImageToFolder(imageId: string, folderId: string | null): Promise<{ id?: string; folderId?: string | null }> {
     if (folderId) {
-      const res = await apiClient.patch<{ image: { id?: string; folderId?: string } }>(
-        `/api/v1/images/${imageId}/folder`,
-        { folderId }
-      );
+      const res = await apiClient.patch<{ image: { id?: string; folderId?: string } }>(`/api/v1/images/${imageId}/folder`, { folderId });
       storageService.moveImageToFolder(imageId, folderId);
       return res.image || { id: imageId, folderId };
     }
@@ -202,20 +215,10 @@ export class FoldersService {
 
   /**
    * Reasigna una tabla/dataset a otra carpeta de tipo TABLE en PostgreSQL (`PATCH /api/v1/tables/:id/folder`).
-   *
-   * @param tableId UUID de la tabla.
-   * @param folderId UUID de la carpeta destino (o `null` para raíz local).
-   * @returns Confirmación con los datos de la tabla reasignada.
    */
-  async moveTableToFolder(
-    tableId: string,
-    folderId: string | null
-  ): Promise<{ id?: string; folderId?: string | null }> {
+  async moveTableToFolder(tableId: string, folderId: string | null): Promise<{ id?: string; folderId?: string | null }> {
     if (folderId) {
-      const res = await apiClient.patch<{ table: { id?: string; folderId?: string } }>(
-        `/api/v1/tables/${tableId}/folder`,
-        { folderId }
-      );
+      const res = await apiClient.patch<{ table: { id?: string; folderId?: string } }>(`/api/v1/tables/${tableId}/folder`, { folderId });
       storageService.moveTableToFolder(tableId, folderId);
       return res.table || { id: tableId, folderId };
     }
@@ -225,68 +228,33 @@ export class FoldersService {
 
   /**
    * Comparte una carpeta con un colaborador asignándole permiso inicial (`POST /api/v1/folders/:id/shares`).
-   *
-   * @param folderId UUID de la carpeta a compartir.
-   * @param userId UUID del colaborador destinatario.
-   * @param permission Nivel de acceso inicial (`'READ'` o `'EDIT'`).
-   * @returns El registro de permiso compartido creado.
    */
-  async shareFolder(
-    folderId: string,
-    userId: string,
-    permission: 'READ' | 'EDIT' = 'READ'
-  ): Promise<ApiFolderShare> {
-    const res = await apiClient.post<{ share: ApiFolderShare }>(
-      `/api/v1/folders/${folderId}/shares`,
-      { userId, permission }
-    );
+  async shareFolder(folderId: string, userId: string, permission: 'READ' | 'EDIT' = 'READ'): Promise<ApiFolderShare> {
+    const res = await apiClient.post<{ share: ApiFolderShare }>(`/api/v1/folders/${folderId}/shares`, { userId, permission });
     return res.share;
   }
 
   /**
    * Lista todos los colaboradores que tienen acceso compartido a una carpeta (`GET /api/v1/folders/:id/shares`).
-   *
-   * @param folderId UUID de la carpeta.
-   * @returns Arreglo de miembros compartidos con sus permisos (`READ` / `EDIT`).
    */
   async listShares(folderId: string): Promise<ApiFolderShare[]> {
-    const res = await apiClient.get<{ shares: ApiFolderShare[] }>(
-      `/api/v1/folders/${folderId}/shares`
-    );
+    const res = await apiClient.get<{ shares: ApiFolderShare[] }>(`/api/v1/folders/${folderId}/shares`);
     return res.shares || [];
   }
 
   /**
    * Modifica el permiso (`READ` <-> `EDIT`) de un colaborador en una carpeta (`PATCH /api/v1/folders/:id/shares/:userId`).
-   *
-   * @param folderId UUID de la carpeta.
-   * @param userId UUID del colaborador.
-   * @param permission Nuevo nivel de permiso (`'READ'` o `'EDIT'`).
-   * @returns El registro de permiso actualizado.
    */
-  async updateSharePermission(
-    folderId: string,
-    userId: string,
-    permission: 'READ' | 'EDIT'
-  ): Promise<ApiFolderShare> {
-    const res = await apiClient.patch<{ share: ApiFolderShare }>(
-      `/api/v1/folders/${folderId}/shares/${userId}`,
-      { permission }
-    );
+  async updateSharePermission(folderId: string, userId: string, permission: 'READ' | 'EDIT'): Promise<ApiFolderShare> {
+    const res = await apiClient.patch<{ share: ApiFolderShare }>(`/api/v1/folders/${folderId}/shares/${userId}`, { permission });
     return res.share;
   }
 
   /**
    * Revoca y expulsa el acceso de un colaborador sobre una carpeta (`DELETE /api/v1/folders/:id/shares/:userId`).
-   *
-   * @param folderId UUID de la carpeta.
-   * @param userId UUID del colaborador a revocar.
-   * @returns `{ revoked: boolean }` confirmando la expulsión.
    */
   async revokeShare(folderId: string, userId: string): Promise<{ revoked: boolean }> {
-    const res = await apiClient.delete<{ revoked: boolean }>(
-      `/api/v1/folders/${folderId}/shares/${userId}`
-    );
+    const res = await apiClient.delete<{ revoked: boolean }>(`/api/v1/folders/${folderId}/shares/${userId}`);
     return res ?? { revoked: true };
   }
 }

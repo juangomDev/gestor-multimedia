@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { imagesService } from '../services/imagesService';
 import { tablesService } from '../services/tablesService';
+import { pdfsService } from '../services/pdfsService';
 import { foldersService } from '../services/foldersService';
 import { storageService } from '../services/storageService';
 import { useAuth } from '../context/useAuth';
@@ -99,37 +100,34 @@ export function useMediaWorkspace() {
   }, [isAuthenticated]);
 
   /**
-   * Procesa y sube una lista de archivos (imágenes o hojas de cálculo) al backend.
+   * Procesa y sube una lista de archivos (imágenes, tablas o PDFs) al backend según la carpeta activa.
    */
   const handleFilesUpload = useCallback(
     async (fileList: FileList | File[]) => {
       const files = Array.from(fileList);
-      showToast(`Iniciando subida de ${files.length} archivo(s)...`, 'info');
       const currentFolders = storageService.getFolders();
       const currentActiveFolder = currentFolders.find((f) => f.id === activeFolderId) || null;
+      if (currentActiveFolder?.type === 'container') {
+        showToast('No puedes subir archivos en una carpeta contenedora. Entra a una subcarpeta.', 'error');
+        return;
+      }
+
+      showToast(`Iniciando subida de ${files.length} archivo(s)...`, 'info');
       const imageFolderId =
-        currentActiveFolder && currentActiveFolder.type === 'image'
-          ? activeFolderId
-          : currentActiveFolder === null
-          ? activeFolderId
-          : null;
+        currentActiveFolder?.type === 'image' ? activeFolderId : currentActiveFolder === null ? activeFolderId : null;
       const tableFolderId =
-        currentActiveFolder && currentActiveFolder.type === 'table'
-          ? activeFolderId
-          : currentActiveFolder === null
-          ? activeFolderId
-          : null;
+        currentActiveFolder?.type === 'table' ? activeFolderId : currentActiveFolder === null ? activeFolderId : null;
+      const pdfFolderId =
+        currentActiveFolder?.type === 'pdf' ? activeFolderId : currentActiveFolder === null ? activeFolderId : null;
 
       for (const file of files) {
-        const isImage =
-          file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name);
+        const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name);
         const isTable =
-          file.type === 'text/csv' ||
-          file.type.includes('spreadsheet') ||
-          file.type.includes('excel') ||
-          /\.(csv|xlsx|xls)$/i.test(file.name);
+          file.type === 'text/csv' || file.type.includes('spreadsheet') ||
+          file.type.includes('excel') || /\.(csv|xlsx|xls)$/i.test(file.name);
+        const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
 
-        if (!isImage && !isTable) {
+        if (!isImage && !isTable && !isPdf) {
           showToast(`Formato no soportado: ${file.name}`, 'error');
           continue;
         }
@@ -138,9 +136,12 @@ export function useMediaWorkspace() {
           if (isImage) {
             const item = await imagesService.uploadImage(file, imageFolderId);
             showToast(`Imagen '${item.originalName}' subida (${item.shortCode})`, 'success');
-          } else {
+          } else if (isTable) {
             const item = await tablesService.uploadTable(file, tableFolderId);
             showToast(`Tabla '${item.tableName}' subida (${item.shortCode})`, 'success');
+          } else if (isPdf) {
+            const item = await pdfsService.uploadPdf(file, pdfFolderId ?? undefined);
+            showToast(`PDF '${item.originalName}' subido (${item.shortCode})`, 'success');
           }
         } catch (err: any) {
           showToast(`Error al subir '${file.name}': ${err.message}`, 'error');

@@ -31,6 +31,7 @@ export interface ImagesViewProps {
   pageLimit?: number;
   folders?: FolderItem[];
   onBulkActionFinished?: () => void;
+  leadingGridItems?: React.ReactNode;
 }
 
 const DEFAULT_PAGE_LIMIT = 24;
@@ -51,6 +52,7 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
   pageLimit = DEFAULT_PAGE_LIMIT,
   folders = [],
   onBulkActionFinished,
+  leadingGridItems,
 }) => {
   const { showToast } = useToast();
   const [selectedFormat, setSelectedFormat] = useState<FormatFilter>('ALL');
@@ -189,7 +191,7 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
         onOpenUpload={onOpenUpload}
       />
 
-      {visibleImages.length === 0 ? (
+      {!leadingGridItems && visibleImages.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>
             <ImageIcon size={28} />
@@ -208,6 +210,7 @@ export const ImagesView: React.FC<ImagesViewProps> = ({
         </div>
       ) : (
         <div className={styles.grid}>
+          {leadingGridItems}
           {visibleImages.map((image) => (
             <ImageCard
               key={image.id || image.shortCode}
