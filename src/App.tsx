@@ -26,6 +26,7 @@ import { ChangePasswordModal } from './components/auth/ChangePasswordModal';
 import { StatusBar } from './components/layout/StatusBar';
 import { authService } from './services/authService';
 import { storageService } from './services/storageService';
+import { pdfsService } from './services/pdfsService';
 import { useMediaWorkspace } from './hooks/useMediaWorkspace';
 import type { ImageItem, TableItem, FolderItem } from './types/media';
 
@@ -64,16 +65,20 @@ const MainApp: React.FC = () => {
 
   const handleOpenFolder = (folder: FolderItem) => {
     setActiveFolderId(folder.id);
-    const nextView: WorkspaceView =
-      folder.type === 'container' ? 'all' : folder.type === 'table' ? 'tables' : folder.type === 'pdf' ? 'pdfs' : 'images';
-    setActiveView(nextView);
+    if (activeView !== 'images' && activeView !== 'tables' && activeView !== 'pdfs') {
+      setActiveView('all');
+    } else {
+      const nextView: WorkspaceView =
+        folder.type === 'container' ? 'all' : folder.type === 'table' ? 'tables' : folder.type === 'pdf' ? 'pdfs' : 'images';
+      setActiveView(nextView);
+    }
   };
 
   if (!isAuthenticated || activeView === 'login') {
     return (
       <LoginView
-        onLoginSuccess={() => setActiveView('images')}
-        onExploreDemo={() => setActiveView('images')}
+        onLoginSuccess={() => setActiveView('all')}
+        onExploreDemo={() => setActiveView('all')}
       />
     );
   }
@@ -142,11 +147,19 @@ const MainApp: React.FC = () => {
         <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {activeView === 'all' && (
             <UnifiedExplorerView
-              folders={folders} activeFolder={activeFolder} images={images} tables={tables} pdfsCount={pdfsCount}
+              folders={folders} activeFolder={activeFolder} images={images} tables={tables}
+              pdfs={storageService.getPdfs()} pdfsCount={pdfsCount}
               searchQuery={searchQuery} onSearchChange={setSearchQuery} onOpenUpload={() => setIsUploadOpen(true)}
               onOpenNewFolder={() => setIsNewFolderOpen(true)} onOpenFolder={handleOpenFolder} onEditFolder={setEditingFolder}
               onShareFolder={setSharingFolder} onDeleteFolder={handleDeleteFolder} onDeleteImage={handleDeleteImage}
-              onDeleteTable={handleDeleteTable} onOpenStudio={setSelectedTableForStudio}
+              onDeleteTable={handleDeleteTable}
+              onDeletePdf={(pdf) => {
+                void pdfsService.deletePdf(pdf.id).then(() => {
+                  setPdfsCount(storageService.getPdfs().length);
+                  refreshItems();
+                });
+              }}
+              onOpenStudio={setSelectedTableForStudio}
               onMoveImageToFolder={(img) => setMovingTarget({ item: img, type: 'image' })}
               onMoveTableToFolder={(tbl) => setMovingTarget({ item: tbl, type: 'table' })}
               onViewChange={handleViewChange}
@@ -207,7 +220,7 @@ const MainApp: React.FC = () => {
       {ENABLE_FOLDERS && (
         <CreateFolderModal
           isOpen={isNewFolderOpen} onClose={() => setIsNewFolderOpen(false)}
-          type={activeFolder?.type ?? (activeView === 'tables' ? 'table' : activeView === 'pdfs' ? 'pdf' : 'image')}
+          type={activeFolder?.type ?? (activeView === 'all' ? 'container' : activeView === 'tables' ? 'table' : activeView === 'pdfs' ? 'pdf' : 'image')}
           parentFolder={activeFolder}
           onFolderCreated={(created) => { handleOpenFolder(created); refreshItems(); void syncRemote(); }}
         />
@@ -236,6 +249,7 @@ const MainApp: React.FC = () => {
           itemName={movingTarget.type === 'image' ? (movingTarget.item as ImageItem).originalName : (movingTarget.item as TableItem).tableName}
           currentFolderId={movingTarget.item.folderId || null}
           folders={folders.filter((f) => f.type === movingTarget.type)}
+          allFolders={folders}
           onMove={handleConfirmMove}
         />
       )}

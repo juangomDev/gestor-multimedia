@@ -64,6 +64,7 @@ export interface FolderItem extends Partial<Omit<ApiFolder, 'id' | 'name' | 'typ
   type: FolderCategory;
   parentId?: string | null;
   isSystem?: boolean;
+  children?: FolderItem[];
   color?: string | null;
   isPrivate?: boolean;
   itemCount?: number;

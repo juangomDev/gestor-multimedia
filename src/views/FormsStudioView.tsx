@@ -10,6 +10,7 @@ import { FormCard } from '../components/forms/FormCard';
 import { CreateFormModal } from '../components/forms/CreateFormModal';
 import { ResolveEntryModal } from '../components/forms/ResolveEntryModal';
 import { FormEntriesTable } from '../components/forms/FormEntriesTable';
+import { FormSubscriptionButton } from '../components/forms/FormSubscriptionButton';
 import { formsService } from '../services/formsService';
 import { foldersService } from '../services/foldersService';
 import type { FormDefinition, FormEntry, FormEntryStatus, CreateFormInput } from '../types/forms';
@@ -175,6 +176,11 @@ export const FormsStudioView: React.FC<FormsStudioViewProps> = ({ onNotify }) =>
             </div>
 
             <div className={styles.filterBar}>
+              <FormSubscriptionButton
+                formId={selectedForm.id}
+                formTitle={selectedForm.title}
+                onNotify={onNotify}
+              />
               <input
                 type="month"
                 className={styles.filterInput}

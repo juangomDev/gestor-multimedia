@@ -6,6 +6,7 @@ import { foldersService } from '../../services/foldersService';
 import { usersService } from '../../services/usersService';
 import { storageService } from '../../services/storageService';
 import { useToast } from '../../context/useToast';
+import { AiPublishToggle, AI_MANAGER_USERNAME } from './AiPublishToggle';
 import type { FolderItem } from '../../types/media';
 import type { ApiFolderShare } from '../../types/api';
 import type { User } from '../../types/auth';
@@ -48,12 +49,8 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
       ([sharesRes, usersRes]) => {
         if (!active) return;
 
-        const loadedShares =
-          sharesRes.status === 'fulfilled' ? sharesRes.value : [];
-        const loadedUsers =
-          usersRes.status === 'fulfilled'
-            ? usersRes.value
-            : storageService.getCreatedUsers();
+        const loadedShares = sharesRes.status === 'fulfilled' ? sharesRes.value : [];
+        const loadedUsers = usersRes.status === 'fulfilled' ? usersRes.value : storageService.getCreatedUsers();
 
         setShares(loadedShares);
         setAvailableUsers(loadedUsers);
@@ -70,7 +67,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
 
   const sharedUserIds = new Set(shares.map((s) => s.userId || s.user?.id).filter(Boolean));
   const candidateUsers = availableUsers.filter(
-    (u) => u.id !== folder.userId && !sharedUserIds.has(u.id)
+    (u) => u.id !== folder.userId && !sharedUserIds.has(u.id) && u.username !== AI_MANAGER_USERNAME
   );
 
   /**
@@ -174,6 +171,8 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
             <span>{error}</span>
           </div>
         )}
+
+        <AiPublishToggle folderId={folder.id} users={availableUsers} shares={shares} setShares={setShares} onChanged={onSharesChanged} />
 
         <form onSubmit={handleAddShare} className={styles.field}>
           <label htmlFor="share-user-select" className={styles.label}>

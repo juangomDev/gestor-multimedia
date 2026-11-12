@@ -1,25 +1,44 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Folder, FolderRoot, Check } from 'lucide-react';
 import { Modal } from '../common/Modal';
+import { flattenFolderTree, getFolderPathLabel } from '../../services/foldersService';
 import type { FolderItem } from '../../types/media';
 
+/**
+ * Propiedades del modal para mover un archivo individual a una carpeta o subcarpeta compatible.
+ */
 interface MoveToFolderModalProps {
   isOpen: boolean;
   onClose: () => void;
   itemName: string;
   currentFolderId: string | null;
   folders: FolderItem[];
+  allFolders?: FolderItem[];
   onMove: (folderId: string | null) => void;
 }
 
+/**
+ * Modal de reasignación de carpeta que soporta rutas jerárquicas de hasta 3 niveles (`Padre › Subcarpeta`).
+ */
 export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
   isOpen,
   onClose,
   itemName,
   currentFolderId,
   folders,
+  allFolders,
   onMove,
 }) => {
+  const flatPool = useMemo(
+    () => flattenFolderTree(allFolders && allFolders.length > 0 ? allFolders : folders),
+    [allFolders, folders]
+  );
+
+  const selectableFolders = useMemo(
+    () => flattenFolderTree(folders).filter((f) => f.type !== 'container'),
+    [folders]
+  );
+
   const handleSelect = (folderId: string | null) => {
     onMove(folderId);
     onClose();
@@ -29,7 +48,7 @@ export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose} title={`Mover "${itemName}" a carpeta`}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 0' }}>
         <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 8 }}>
-          Selecciona el espacio o carpeta de destino:
+          Selecciona el espacio o subcarpeta de destino:
         </p>
 
         {/* Opción Raíz */}
@@ -56,9 +75,10 @@ export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
           {currentFolderId === null && <Check size={16} color="var(--primary)" />}
         </button>
 
-        {/* Carpetas registradas */}
-        {folders.map((folder) => {
+        {/* Carpetas y subcarpetas registradas */}
+        {selectableFolders.map((folder) => {
           const isCurrent = currentFolderId === folder.id;
+          const pathLabel = getFolderPathLabel(folder, flatPool);
           return (
             <button
               key={folder.id}
@@ -88,7 +108,7 @@ export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
                   }}
                 />
                 <Folder size={16} color={folder.color || 'var(--text-muted)'} />
-                <span style={{ fontWeight: 500, fontSize: '0.875rem' }}>{folder.name}</span>
+                <span style={{ fontWeight: 500, fontSize: '0.875rem' }}>{pathLabel}</span>
               </div>
               {isCurrent && <Check size={16} color="var(--primary)" />}
             </button>

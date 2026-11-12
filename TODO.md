@@ -10,14 +10,14 @@
 
 | Métrica / Dimensión | Estado Actual | Detalle |
 |---|:---:|---|
-| **Pruebas Automatizadas (Vitest)** | **249 / 249 (100% pasando)** | 71 suites en verde, 0 fallos |
-| **Linter (Oxlint)** | **0 advertencias, 0 errores** | 183 archivos analizados con 116 reglas |
+| **Pruebas Automatizadas (Vitest)** | **269 / 269 (100% pasando)** | 75 suites en verde, 0 fallos |
+| **Linter (Oxlint)** | **0 advertencias, 0 errores** | 195 archivos analizados con 116 reglas |
 | **Compilación (TypeScript / Vite)** | **Compilación Limpia (0 errores)** | Bundle listo para producción; todos los archivos manuales `< 300` líneas |
-| **Cobertura de Endpoints Backend** | **75 / 75 Mapeados (`RUTAS.md`)** | **63 Implementados** / **2 Parciales** (Fase 20) / **10 Pendientes** (Fases 19 y 20) |
-| **Módulos Frontend Completados** | **23 / 26 Módulos (88.5%)** | Módulos 1 al 23 finalizados y certificados; Módulos 24, 25 y 26 pendientes |
-| **Capa de Transporte HTTP** | **Completa (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`)** | Falta conector `EventSource` / Stream para SSE (`/api/v1/notifications/stream`) |
-| **Contrato y Tipado OpenAPI 3.1** | ⚠️ **Pendiente Re-Sincronizar (`types:sync`)** | Falta regenerar `src/types/api.generated.ts` con los esquemas de Fases 19 y 20 |
-| **Siguientes Módulos Activos** | ⏳ **Módulos 24, 25 y 26** | Notificaciones SSE + Suscripciones, Jerarquía de Carpetas 3 Niveles (`CONTAINER`/`shared`) y Subida Global PDF |
+| **Cobertura de Endpoints Backend** | **75 / 75 Mapeados (`RUTAS.md`)** | **75 Implementados (100%)** |
+| **Módulos Frontend Completados** | **26 / 26 Módulos (100%)** | Módulos 1 al 26 finalizados |
+| **Capa de Transporte HTTP + SSE** | **Completa (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `EventSource`)** | Incluye conector SSE en tiempo real (`/api/v1/notifications/stream`) |
+| **Contrato y Tipado OpenAPI 3.1** | ✅ **Sincronizado (`types:sync`)** | `src/types/api.generated.ts` regenerado con Notifications, Subscriptions y `/folders/tree` |
+| **Siguiente Módulo Activo** | ✅ **Plan completado** | Sin módulos pendientes |
 
 ---
 
@@ -27,7 +27,7 @@
 |---|:---:|---|:---:|:---:|:---:|:---:|
 | **1** | `GET` | `/health` | Módulo 1 / 17 | `HealthBadge.tsx`, `StatusBar.tsx`, `SettingsView.tsx` | `healthService.ts` | ✅ Implementado |
 | **2** | `GET` | `/docs` | Módulo 17 | `ScalarDocsCard.tsx` / `SettingsView.tsx` (Scalar UI) | `apiClient.ts` | ✅ Implementado |
-| **3** | `GET` | `/openapi.json` | Módulo 10 / 17 / 26 | `openapi.json` -> `src/types/api.generated.ts` | Scripts de tipado | ⚠️ Re-sync pendiente |
+| **3** | `GET` | `/openapi.json` | Módulo 10 / 17 / 26 | `openapi.json` -> `src/types/api.generated.ts` | Scripts de tipado | ✅ Sincronizado |
 | **4** | `POST` | `/api/v1/auth/login` | Módulo 4 / 11 | `LoginView.tsx` (Login con roles RBAC) | `authService.ts` | ✅ Implementado |
 | **5** | `POST` | `/api/v1/auth/refresh` | Módulo 11 | `apiClient.ts` (Interceptor de 401 automático) | `authService.ts` | ✅ Implementado |
 | **6** | `POST` | `/api/v1/auth/logout` | Módulo 11 | `Sidebar.tsx` (Cierre de sesión en servidor) | `authService.ts` | ✅ Implementado |
@@ -38,12 +38,12 @@
 | **11** | `PATCH` | `/api/v1/users/:id/status` | Módulo 12 | `UserProfilesView.tsx` (Toggle Activar/Suspender) | `usersService.ts` | ✅ Implementado |
 | **12** | `PATCH` | `/api/v1/users/:id/password` | Módulo 12 | `ResetUserPasswordModal.tsx` (Reset forzado por superior) | `usersService.ts` | ✅ Implementado |
 | **13** | `DELETE` | `/api/v1/users/:id` | Módulo 12 | `DeleteUserModal.tsx` (Borrado con cascada) | `usersService.ts` | ✅ Implementado |
-| **14** | `GET` | `/api/v1/folders` | Módulo 13 / 25 | `MainExplorerHeader.tsx` (Falta `?parentId=`, `CONTAINER`, `isSystem`) | `foldersService.ts` | ⚠️ Parcial (Mód. 25) |
-| **15** | `GET` | `/api/v1/folders/tree` | **Módulo 25** | `MainExplorerHeader.tsx` / `FolderTreeSelector.tsx` (Árbol 3 niveles) | `foldersService.ts` | ⏳ **Pendiente** |
-| **16** | `POST` | `/api/v1/folders` | Módulo 13 / 25 | `CreateFolderModal.tsx` (Falta tipo `CONTAINER` y reglas 3 niveles) | `foldersService.ts` | ⚠️ Parcial (Mód. 25) |
-| **17** | `PATCH` | `/api/v1/folders/:id` | Módulo 13 / 25 | `EditFolderModal.tsx` (Falta proteger `isSystem: true`) | `foldersService.ts` | ✅ Implementado |
+| **14** | `GET` | `/api/v1/folders` | Módulo 13 / 25 | `FolderGridCard.tsx`, `MainExplorerHeader.tsx` (`?parentId=`, `CONTAINER`) | `foldersService.ts` | ✅ Implementado |
+| **15** | `GET` | `/api/v1/folders/tree` | **Módulo 25** | `MoveToFolderModal.tsx`, `BulkMoveModal.tsx` (Árbol 3 niveles) | `foldersService.ts` | ✅ Implementado |
+| **16** | `POST` | `/api/v1/folders` | Módulo 13 / 25 | `CreateFolderModal.tsx` (`CONTAINER` + herencia 3 niveles) | `foldersService.ts` | ✅ Implementado |
+| **17** | `PATCH` | `/api/v1/folders/:id` | Módulo 13 / 25 | `EditFolderModal.tsx` (Protección `isSystem: true`) | `foldersService.ts` | ✅ Implementado |
 | **18** | `GET` | `/api/v1/folders/:id` | Módulo 13 | `foldersService.getFolderById` (Detalle y estadísticas) | `foldersService.ts` | ✅ Implementado |
-| **19** | `DELETE` | `/api/v1/folders/:id` | Módulo 13 / 25 | `MainExplorerHeader.tsx` (Borrado en cascada; proteger `shared`) | `foldersService.ts` | ✅ Implementado |
+| **19** | `DELETE` | `/api/v1/folders/:id` | Módulo 13 / 25 | `FolderGridCard.tsx` (Borrado en cascada; protege `shared`) | `foldersService.ts` | ✅ Implementado |
 | **20** | `POST` | `/api/v1/folders/:id/shares` | Módulo 13 / 26 | `ShareFolderModal.tsx` (Asignar colaborador READ/EDIT + `ai_manager`) | `foldersService.ts` | ✅ Implementado |
 | **21** | `GET` | `/api/v1/folders/:id/shares` | Módulo 13 | `ShareFolderModal.tsx` (Lista de miembros con acceso) | `foldersService.ts` | ✅ Implementado |
 | **22** | `PATCH` | `/api/v1/folders/:id/shares/:userId` | Módulo 13 | `ShareFolderModal.tsx` (Alternar READ <-> EDIT) | `foldersService.ts` | ✅ Implementado |
@@ -91,15 +91,15 @@
 | **64** | `PATCH` | `/api/v1/pdfs/:id/metadata` | Módulo 21 | `PdfMetadataEditorModal.tsx` (Ficha técnica documental) | `pdfsService.ts` | ✅ Implementado |
 | **65** | `DELETE` | `/api/v1/pdfs/:id` | Módulo 21 | `PdfCard.tsx`, `PdfsCatalogView.tsx` (Borrado físico y lógico) | `pdfsService.ts` | ✅ Implementado |
 | **66** | `PATCH` | `/api/v1/pdfs/:id/folder` | Módulo 21 | `MoveToFolderModal.tsx` (Reasignar carpeta de tipo `PDF`) | `pdfsService.ts` | ✅ Implementado |
-| **67** | `GET` | `/api/v1/notifications` | **Módulo 24** | `NotificationsPopover.tsx` (Bandeja paginada `?unreadOnly=`) | `notificationsService.ts` | ⏳ **Pendiente** |
-| **68** | `GET` | `/api/v1/notifications/unread-count` | **Módulo 24** | `NotificationBell.tsx` (Badge numérico de no leídas) | `notificationsService.ts` | ⏳ **Pendiente** |
-| **69** | `PATCH` | `/api/v1/notifications/:id/read` | **Módulo 24** | `NotificationsPopover.tsx` (Marcar notificación individual leída) | `notificationsService.ts` | ⏳ **Pendiente** |
-| **70** | `PATCH` | `/api/v1/notifications/read-all` | **Módulo 24** | `NotificationsPopover.tsx` (Botón "Marcar todas como leídas") | `notificationsService.ts` | ⏳ **Pendiente** |
-| **71** | `DELETE` | `/api/v1/notifications/:id` | **Módulo 24** | `NotificationsPopover.tsx` (Eliminar notificación de bandeja) | `notificationsService.ts` | ⏳ **Pendiente** |
-| **72** | `GET` | `/api/v1/notifications/stream` | **Módulo 24** | `useNotificationsStream.ts` (Canal SSE en tiempo real `?token=`) | `notificationsService.ts` | ⏳ **Pendiente** |
-| **73** | `POST` | `/api/v1/forms/:id/subscribe` | **Módulo 24** | `FormSubscriptionButton.tsx` / `FormsStudioView.tsx` (Activar alertas) | `notificationsService.ts` | ⏳ **Pendiente** |
-| **74** | `DELETE` | `/api/v1/forms/:id/subscribe` | **Módulo 24** | `FormSubscriptionButton.tsx` / `FormsStudioView.tsx` (Cancelar alertas) | `notificationsService.ts` | ⏳ **Pendiente** |
-| **75** | `GET` | `/api/v1/forms/:id/subscription` | **Módulo 24** | `FormSubscriptionButton.tsx` / `FormsStudioView.tsx` (Estado actual) | `notificationsService.ts` | ⏳ **Pendiente** |
+| **67** | `GET` | `/api/v1/notifications` | **Módulo 24** | `NotificationsPopover.tsx` (Bandeja paginada `?unreadOnly=`) | `notificationsService.ts` | ✅ Implementado |
+| **68** | `GET` | `/api/v1/notifications/unread-count` | **Módulo 24** | `NotificationBell.tsx` (Badge numérico de no leídas) | `notificationsService.ts` | ✅ Implementado |
+| **69** | `PATCH` | `/api/v1/notifications/:id/read` | **Módulo 24** | `NotificationsPopover.tsx` (Marcar notificación individual leída) | `notificationsService.ts` | ✅ Implementado |
+| **70** | `PATCH` | `/api/v1/notifications/read-all` | **Módulo 24** | `NotificationsPopover.tsx` (Botón "Marcar todas como leídas") | `notificationsService.ts` | ✅ Implementado |
+| **71** | `DELETE` | `/api/v1/notifications/:id` | **Módulo 24** | `NotificationsPopover.tsx` (Eliminar notificación de bandeja) | `notificationsService.ts` | ✅ Implementado |
+| **72** | `GET` | `/api/v1/notifications/stream` | **Módulo 24** | `useNotifications.ts` (Canal SSE en tiempo real `?token=`) | `notificationsService.ts` | ✅ Implementado |
+| **73** | `POST` | `/api/v1/forms/:id/subscribe` | **Módulo 24** | `FormSubscriptionButton.tsx` / `FormsStudioView.tsx` (Activar alertas) | `notificationsService.ts` | ✅ Implementado |
+| **74** | `DELETE` | `/api/v1/forms/:id/subscribe` | **Módulo 24** | `FormSubscriptionButton.tsx` / `FormsStudioView.tsx` (Cancelar alertas) | `notificationsService.ts` | ✅ Implementado |
+| **75** | `GET` | `/api/v1/forms/:id/subscription` | **Módulo 24** | `FormSubscriptionButton.tsx` / `FormsStudioView.tsx` (Estado actual) | `notificationsService.ts` | ✅ Implementado |
 
 ---
 
@@ -568,9 +568,9 @@
 > - `DELETE /api/v1/forms/:id/subscribe`
 > - `GET /api/v1/forms/:id/subscription`
 
-- [ ] **24.1 Contratos y Servicio de Notificaciones (`notificationsService.ts`)**
-  - [ ] `24.1.1` Crear `src/types/notifications.ts` con las interfaces `NotificationItem` (`id`, `title`, `message`, `type: 'FORM_NEW_ENTRY' | 'FORM_ENTRY_RESOLVED' | 'SYSTEM'`, `resourceId`, `read`, `createdAt`), `NotificationsPaginatedResponse`, `UnreadCountResponse` y `FormSubscription`.
-  - [ ] `24.1.2` Implementar `src/services/notificationsService.ts` cubriendo los 9 endpoints:
+- [x] **24.1 Contratos y Servicio de Notificaciones (`notificationsService.ts`)**
+  - [x] `24.1.1` Crear `src/types/notifications.ts` con las interfaces `NotificationItem` (`id`, `title`, `message`, `type: 'FORM_NEW_ENTRY' | 'FORM_ENTRY_RESOLVED' | 'SYSTEM'`, `resourceId`, `read`, `createdAt`), `NotificationsPaginatedResponse`, `UnreadCountResponse` y `FormSubscription`.
+  - [x] `24.1.2` Implementar `src/services/notificationsService.ts` cubriendo los 9 endpoints:
     - `fetchNotifications({ page, limit, unreadOnly })` -> `GET /api/v1/notifications`
     - `fetchUnreadCount()` -> `GET /api/v1/notifications/unread-count`
     - `markNotificationAsRead(id)` -> `PATCH /api/v1/notifications/:id/read`
@@ -581,17 +581,17 @@
     - `unsubscribeFromForm(formId)` -> `DELETE /api/v1/forms/:id/subscribe`
     - `getFormSubscription(formId)` -> `GET /api/v1/forms/:id/subscription`
 
-- [ ] **24.2 Streaming en Tiempo Real (SSE) y Campana de Notificaciones (`NotificationBell.tsx` + `NotificationsPopover.tsx`)**
-  - [ ] `24.2.1` Crear custom hook `src/hooks/useNotifications.ts` que al iniciar sesión consulte `GET /api/v1/notifications/unread-count` y abra una conexión `EventSource` contra `/api/v1/notifications/stream?token=<accessToken>`.
-  - [ ] `24.2.2` Escuchar el evento `notification` del stream SSE para incrementar en vivo el contador `unreadCount`, insertar la alerta en la cabeza de la bandeja y disparar un Toast no intrusivo con el `title` y `message` recibidos.
-  - [ ] `24.2.3` Crear componente `NotificationBell.tsx` y `NotificationsPopover.tsx` integrados en la cabecera/barra lateral:
+- [x] **24.2 Streaming en Tiempo Real (SSE) y Campana de Notificaciones (`NotificationBell.tsx` + `NotificationsPopover.tsx`)**
+  - [x] `24.2.1` Crear custom hook `src/hooks/useNotifications.ts` que al iniciar sesión consulte `GET /api/v1/notifications/unread-count` y abra una conexión `EventSource` contra `/api/v1/notifications/stream?token=<accessToken>`.
+  - [x] `24.2.2` Escuchar el evento `notification` del stream SSE para incrementar en vivo el contador `unreadCount`, insertar la alerta en la cabeza de la bandeja y disparar un Toast no intrusivo con el `title` y `message` recibidos.
+  - [x] `24.2.3` Crear componente `NotificationBell.tsx` y `NotificationsPopover.tsx` integrados en la cabecera/barra lateral:
     - Badge numérico rojo con conteo de no leídas.
     - Filtro rápido "Todas / No leídas", botón **"Marcar todas como leídas"** (`PATCH /api/v1/notifications/read-all`) y botón de eliminar alerta individual (`DELETE /api/v1/notifications/:id`).
     - Navegación directa: al hacer clic en una notificación con `resourceId` de formulario, marcarla como leída (`PATCH /api/v1/notifications/:id/read`) y abrir directamente la bandeja del formulario correspondiente.
 
-- [ ] **24.3 Botón e Interruptor de Suscripción por Formulario (`FormSubscriptionButton.tsx`)**
-  - [ ] `24.3.1` Crear componente `src/components/forms/FormSubscriptionButton.tsx` e integrarlo en `FormsStudioView.tsx` (tanto en las tarjetas del catálogo de formularios como en la cabecera de la bandeja de entradas de un formulario).
-  - [ ] `24.3.2` Consultar `GET /api/v1/forms/:id/subscription` y permitir activar/configurar alertas granulares (`notifyOnNewEntry`, `notifyOnResolution`) mediante `POST /api/v1/forms/:id/subscribe` o cancelarlas con `DELETE /api/v1/forms/:id/subscribe`.
+- [x] **24.3 Botón e Interruptor de Suscripción por Formulario (`FormSubscriptionButton.tsx`)**
+  - [x] `24.3.1` Crear componente `src/components/forms/FormSubscriptionButton.tsx` e integrarlo en `FormsStudioView.tsx` (tanto en las tarjetas del catálogo de formularios como en la cabecera de la bandeja de entradas de un formulario).
+  - [x] `24.3.2` Consultar `GET /api/v1/forms/:id/subscription` y permitir activar/configurar alertas granulares (`notifyOnNewEntry`, `notifyOnResolution`) mediante `POST /api/v1/forms/:id/subscribe` o cancelarlas con `DELETE /api/v1/forms/:id/subscribe`.
 
 ---
 
@@ -602,42 +602,42 @@
 > - **Ruta #14 Mejorada:** `GET /api/v1/folders?parentId=&type=&search=&page=&limit=` (Soporta filtro por `parentId`, tipo `CONTAINER` y devuelve `parentId: string | null`, `isSystem: boolean`).
 > - **Ruta #16 Mejorada:** `POST /api/v1/folders` (Reglas estrictas de 3 niveles: Nivel 1 `CONTAINER`, Nivel 2 subcarpeta especializada `IMAGE | TABLE | PDF`, Nivel 3 hereda el `type` del Nivel 2; máximo 3 niveles de profundidad).
 
-- [ ] **25.1 Actualización de Contratos y Servicio de Carpetas (`foldersService.ts`)**
-  - [ ] `25.1.1` Ampliar `FolderType` en `src/services/foldersService.ts` y `src/types/media.ts` para incluir `'CONTAINER'` (`'container'`) además de `'IMAGE' | 'TABLE' | 'PDF'`, y añadir las propiedades `parentId: string | null`, `isSystem?: boolean` y `children?: RemoteFolder[]`.
-  - [ ] `25.1.2` Implementar `fetchFolderTree()` en `foldersService.ts` consumiendo `GET /api/v1/folders/tree` para obtener la estructura jerárquica completa de hasta 3 niveles.
-  - [ ] `25.1.3` Actualizar `fetchFolders(params)` en `foldersService.ts` para enviar opcionalmente `parentId` en el query string (`GET /api/v1/folders?parentId=...`).
+- [x] **25.1 Actualización de Contratos y Servicio de Carpetas (`foldersService.ts`)**
+  - [x] `25.1.1` Ampliar `FolderType` en `src/services/foldersService.ts` y `src/types/media.ts` para incluir `'CONTAINER'` (`'container'`) además de `'IMAGE' | 'TABLE' | 'PDF'`, y añadir las propiedades `parentId: string | null`, `isSystem?: boolean` y `children?: RemoteFolder[]`.
+  - [x] `25.1.2` Implementar `fetchFolderTree()` en `foldersService.ts` consumiendo `GET /api/v1/folders/tree` para obtener la estructura jerárquica completa de hasta 3 niveles.
+  - [x] `25.1.3` Actualizar `fetchFolders(params)` en `foldersService.ts` para enviar opcionalmente `parentId` en el query string (`GET /api/v1/folders?parentId=...`).
 
-- [ ] **25.2 Reglas de Negocio de 3 Niveles en Creación y Subida de Archivos**
-  - [ ] `25.2.1` Actualizar `CreateFolderModal.tsx` según el nivel jerárquico del padre seleccionado:
+- [x] **25.2 Reglas de Negocio de 3 Niveles en Creación y Subida de Archivos**
+  - [x] `25.2.1` Actualizar `CreateFolderModal.tsx` según el nivel jerárquico del padre seleccionado:
     - **Si se crea en Nivel 1 (`parentId: null`)**: solo permitido para `ADMIN`/`MANAGER` con tipo `CONTAINER` (o carpeta raíz según rol; un `COLLABORATOR` no puede crear carpetas en raíz `parentId: null`).
     - **Si el padre es Nivel 1 (`parent.type === 'CONTAINER'`)**: obligar a elegir el tipo especializado de la subcarpeta de Nivel 2 (`IMAGE`, `TABLE` o `PDF`).
     - **Si el padre es Nivel 2 (`IMAGE | TABLE | PDF`)**: bloquear/autoseleccionar el mismo `type` del padre para la subcarpeta de Nivel 3 (cumpliendo la regla de herencia estricta `parent.type === child.type`).
     - **Si la carpeta actual ya está en Nivel 3 (profundidad máxima = 3)**: deshabilitar el botón **"Nueva Subcarpeta"** con tooltip explicativo (evitando el error `400 MAX_FOLDER_DEPTH_EXCEEDED`).
-  - [ ] `25.2.2` **Bloqueo y Guía UX en Carpetas Contenedoras (`CONTAINER` - Nivel 1)**:
+  - [x] `25.2.2` **Bloqueo y Guía UX en Carpetas Contenedoras (`CONTAINER` - Nivel 1)**:
     - Como el backend prohíbe subir archivos o crear formularios directamente en una carpeta `CONTAINER` (`400 CANNOT_UPLOAD_TO_CONTAINER_FOLDER`), cuando el usuario esté posicionado en una carpeta de Nivel 1 (`type === 'CONTAINER'`), mostrar un banner claro indicando que es una carpeta departamental/raíz e invitarle a entrar o crear una subcarpeta especializada (Nivel 2 o 3) al intentar subir un archivo.
 
-- [ ] **25.3 Bóveda Compartida del Sistema (`shared` / `isSystem: true`) y Árbol Visual en `<main>`**
-  - [ ] `25.3.1` Destacar visualmente en `MainExplorerHeader.tsx` la carpeta corporativa del sistema **`shared`** (`isSystem: true`) con icono de bóveda compartida y badge **"Sistema · Compartida"**.
-  - [ ] `25.3.2` Ocultar los botones de **Editar** y **Eliminar** en carpetas con `isSystem: true` (como `shared` o la carpeta departamental raíz del Manager cuando no sea `ADMIN`), previniendo el error `400 CANNOT_MODIFY_SYSTEM_FOLDER`.
-  - [ ] `25.3.3` Integrar selector jerárquico basado en `GET /api/v1/folders/tree` dentro de `MoveToFolderModal.tsx` y `BulkMoveModal.tsx` para permitir mover imágenes, tablas y PDFs hacia subcarpetas de Nivel 2 y Nivel 3 compatibles con el tipo de archivo.
+- [x] **25.3 Bóveda Compartida del Sistema (`shared` / `isSystem: true`) y Árbol Visual en `<main>`**
+  - [x] `25.3.1` Destacar visualmente en `MainExplorerHeader.tsx` y `FolderGridCard.tsx` la carpeta corporativa del sistema **`shared`** (`isSystem: true`) con icono de bóveda compartida y badge **"Sistema · Compartida"**.
+  - [x] `25.3.2` Ocultar los botones de **Editar** y **Eliminar** en carpetas con `isSystem: true` (como `shared` o la carpeta departamental raíz del Manager cuando no sea `ADMIN`), previniendo el error `400 CANNOT_MODIFY_SYSTEM_FOLDER`.
+  - [x] `25.3.3` Integrar selector jerárquico basado en `GET /api/v1/folders/tree` dentro de `MoveToFolderModal.tsx` y `BulkMoveModal.tsx` para permitir mover imágenes, tablas y PDFs hacia subcarpetas de Nivel 2 y Nivel 3 compatibles con el tipo de archivo.
 
 ---
 
 ## ⚡ Módulo 26: Unificación de Subida Global (Imágenes + Tablas + PDFs), Publicación `ai_manager`, Sincronización OpenAPI 3.1 & Certificación E2E
 
-- [ ] **26.1 Soporte de Documentos PDF en el Botón Global "Subir Archivo" (`UploadModal.tsx` / `useMediaWorkspace.ts`)**
-  - [ ] `26.1.1` Ampliar `UploadModal.tsx`, `DropzoneOverlay.tsx` y `handleFilesUpload` en `useMediaWorkspace.ts` para aceptar archivos `.pdf` (`application/pdf`) además de imágenes y tablas CSV/XLSX.
-  - [ ] `26.1.2` Enrutar automáticamente los archivos `.pdf` hacia `pdfsService.uploadPdf(file, folderId)` desde el flujo global de subida, garantizando que el único botón **"Subir Archivo"** del menú lateral suba cualquier formato soportado por el backend.
+- [x] **26.1 Soporte de Documentos PDF en el Botón Global "Subir Archivo" (`UploadModal.tsx` / `useMediaWorkspace.ts`)**
+  - [x] `26.1.1` Ampliar `UploadModal.tsx`, `DropzoneOverlay.tsx` y `handleFilesUpload` en `useMediaWorkspace.ts` para aceptar archivos `.pdf` (`application/pdf`) además de imágenes y tablas CSV/XLSX.
+  - [x] `26.1.2` Enrutar automáticamente los archivos `.pdf` hacia `pdfsService.uploadPdf(file, folderId)` desde el flujo global de subida, garantizando que el único botón **"Subir Archivo"** del menú lateral suba cualquier formato soportado por el backend.
 
-- [ ] **26.2 Interruptor Directo de Publicación al Chat Web Público (`ai_manager`) en `ShareFolderModal.tsx`**
-  - [ ] `26.2.1` Añadir en `ShareFolderModal.tsx` un interruptor rápido **"Publicar en Widget de Chat Web Público (`ai_manager`)"** que comparta o revoque con un solo clic el permiso `READ` al usuario de sistema `ai_manager` (`POST /api/v1/folders/:id/shares` / `DELETE /api/v1/folders/:id/shares/:userId`).
+- [x] **26.2 Interruptor Directo de Publicación al Chat Web Público (`ai_manager`) en `ShareFolderModal.tsx`**
+  - [x] `26.2.1` Añadir en `ShareFolderModal.tsx` un interruptor rápido **"Publicar en Widget de Chat Web Público (`ai_manager`)"** que comparta o revoque con un solo clic el permiso `READ` al usuario de sistema `ai_manager` (`POST /api/v1/folders/:id/shares` / `DELETE /api/v1/folders/:id/shares/:userId`). Implementado en `AiPublishToggle.tsx` (se excluye `ai_manager` del selector de colaboradores; test `ShareFolderModal.aiManager.test.tsx`).
 
-- [ ] **26.3 Re-Sincronización de Contrato OpenAPI 3.1 y Pruebas Automatizadas E2E**
-  - [ ] `26.3.1` Actualizar `src/types/api.generated.ts` ejecutando `npm run types:sync` contra el `openapi.json` actualizado de `monolith-backend` (incluyendo los esquemas de `Notifications` y `Folders` de 3 niveles).
-  - [ ] `26.3.2` Crear tests unitarios y de componentes en archivos nuevos (respetando la Regla 1.1 de `AGENTS.md`):
+- [x] **26.3 Re-Sincronización de Contrato OpenAPI 3.1 y Pruebas Automatizadas E2E**
+  - [x] `26.3.1` Actualizar `src/types/api.generated.ts` ejecutando `npm run types:sync` contra el `openapi.json` actualizado de `monolith-backend` (incluyendo los esquemas de `Notifications` y `Folders` de 3 niveles).
+  - [x] `26.3.2` Crear tests unitarios y de componentes en archivos nuevos (respetando la Regla 1.1 de `AGENTS.md`):
     - `src/services/notificationsService.test.ts`
     - `src/components/notifications/NotificationsPopover.test.tsx`
-    - `src/services/foldersService.tree.test.ts`
-  - [ ] `26.3.3` Certificar `npm run test` (100% en verde), `npm run lint` (0 advertencias, 0 errores) y `npm run build` (0 errores TypeScript y todos los archivos manuales `< 300` líneas).
+    - `src/services/foldersService.tree.test.tsx`
+  - [x] `26.3.3` Certificar `npm run test` (100% en verde), `npm run lint` (0 advertencias, 0 errores) y `npm run build` (0 errores TypeScript y todos los archivos manuales `< 300` líneas).
 
 

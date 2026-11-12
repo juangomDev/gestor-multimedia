@@ -37,10 +37,12 @@ export const FolderGridCard: React.FC<FolderGridCardProps> = ({
 }) => {
   const { user: currentUser } = useAuth();
 
+  const lowerName = folder.name.trim().toLowerCase();
   const isSystemFolder =
     Boolean(folder.isSystem) ||
-    folder.name.trim().toLowerCase() === 'general' ||
-    folder.name.trim().toLowerCase() === 'shared';
+    lowerName === 'general' ||
+    lowerName === 'shared';
+  const isSharedSystemVault = Boolean(folder.isSystem) || lowerName === 'shared';
 
   const isOwnerOrAdmin =
     currentUser?.role === 'ADMIN' ||
@@ -54,14 +56,15 @@ export const FolderGridCard: React.FC<FolderGridCardProps> = ({
     folder.myPermission === 'READ' ||
     folder.myPermission === 'EDIT';
 
-  const typeLabel =
-    folder.type === 'container'
-      ? 'CONTENEDOR'
-      : folder.type === 'table'
-      ? 'TABLAS'
-      : folder.type === 'pdf'
-      ? 'PDF'
-      : 'IMÁGENES';
+  const typeLabel = isSharedSystemVault
+    ? 'Sistema · Compartida'
+    : folder.type === 'container'
+    ? 'CONTENEDOR'
+    : folder.type === 'table'
+    ? 'TABLAS'
+    : folder.type === 'pdf'
+    ? 'PDF'
+    : 'IMÁGENES';
 
   const folderColor = folder.color || '#3b82f6';
 

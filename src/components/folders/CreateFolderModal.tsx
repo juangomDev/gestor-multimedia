@@ -4,6 +4,7 @@ import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { foldersService } from '../../services/foldersService';
 import { storageService } from '../../services/storageService';
+import { useAuth } from '../../context/useAuth';
 import { useToast } from '../../context/useToast';
 import type { FolderCategory, FolderItem } from '../../types/media';
 import styles from './CreateFolderModal.module.css';
@@ -32,15 +33,14 @@ export const CreateFolderModal: React.FC<CreateFolderModalProps> = ({
   parentFolder = null,
   onFolderCreated,
 }) => {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [name, setName] = useState('');
   const [typeOverride, setTypeOverride] = useState<FolderCategory | null>(null);
 
-  const inheritedType =
-    parentFolder && parentFolder.type !== 'container' ? parentFolder.type : null;
-  const defaultType: FolderCategory =
-    inheritedType ?? (parentFolder?.type === 'container' && type === 'container' ? 'image' : type);
-  const selectedType: FolderCategory = inheritedType ?? typeOverride ?? defaultType;
+  const isCollaboratorAtRoot = user?.role === 'COLLABORATOR' && !parentFolder;
+  const defaultType: FolderCategory = typeOverride ?? type ?? (parentFolder?.type ?? 'container');
+  const selectedType: FolderCategory = typeOverride ?? defaultType;
 
   const [color, setColor] = useState(PRESET_COLORS[0]);
   const [isPrivate, setIsPrivate] = useState(false);
@@ -51,7 +51,7 @@ export const CreateFolderModal: React.FC<CreateFolderModalProps> = ({
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || isCollaboratorAtRoot) return;
 
     setLoading(true);
     try {
@@ -97,29 +97,29 @@ export const CreateFolderModal: React.FC<CreateFolderModalProps> = ({
       : selectedType === 'image'
       ? 'Imágenes'
       : selectedType === 'table'
-      ? 'Datasets/Tablas'
-      : 'Documentos PDF';
+      ? 'Tablas'
+      : 'PDFs';
 
   const title = parentFolder
     ? `Nueva Subcarpeta en "${parentFolder.name}" (${typeLabel})`
     : `Crear Carpeta (${typeLabel})`;
 
-  const typeOptions = parentFolder
-    ? ([
-        { id: 'image', label: 'Imágenes' },
-        { id: 'table', label: 'Tablas' },
-        { id: 'pdf', label: 'PDFs' },
-      ] as const)
-    : ([
-        { id: 'container', label: 'Contenedor' },
-        { id: 'image', label: 'Imágenes' },
-        { id: 'table', label: 'Tablas' },
-        { id: 'pdf', label: 'PDFs' },
-      ] as const);
+  const typeOptions = [
+    { id: 'container', label: 'Contenedor' },
+    { id: 'image', label: 'Imágenes' },
+    { id: 'table', label: 'Tablas' },
+    { id: 'pdf', label: 'PDFs' },
+  ] as const;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title}>
       <form onSubmit={handleSubmit} className={styles.form}>
+        {isCollaboratorAtRoot && (
+          <div style={{ padding: '8px 10px', borderRadius: 6, background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#fbbf24', fontSize: '0.76rem' }}>
+            Los colaboradores solo pueden crear subcarpetas dentro de carpetas donde tengan permiso de edición (EDIT).
+          </div>
+        )}
+
         <div className={styles.field}>
           <label htmlFor="folder-name" className={styles.label}>
             Nombre de la carpeta o proyecto
@@ -131,38 +131,36 @@ export const CreateFolderModal: React.FC<CreateFolderModalProps> = ({
             placeholder="ej. Proyecto A, Campaña 2026..."
             value={name}
             onChange={(e) => setName(e.target.value)}
-            disabled={loading}
+            disabled={loading || isCollaboratorAtRoot}
             autoFocus
           />
         </div>
 
-        {!inheritedType && (
-          <div className={styles.field}>
-            <span className={styles.label}>Tipo de carpeta</span>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {typeOptions.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setTypeOverride(opt.id)}
-                  style={{
-                    flex: 1,
-                    padding: '6px 8px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.76rem',
-                    fontWeight: 600,
-                    border: selectedType === opt.id ? '1px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
-                    background: selectedType === opt.id ? 'var(--accent-primary-bg)' : 'var(--bg-card)',
-                    color: selectedType === opt.id ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+        <div className={styles.field}>
+          <span className={styles.label}>Tipo de carpeta</span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {typeOptions.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setTypeOverride(opt.id)}
+                style={{
+                  flex: 1,
+                  padding: '6px 8px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.76rem',
+                  fontWeight: 600,
+                  border: selectedType === opt.id ? '1px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
+                  background: selectedType === opt.id ? 'var(--accent-primary-bg)' : 'var(--bg-card)',
+                  color: selectedType === opt.id ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
 
         <div className={styles.field}>
           <span className={styles.label}>Color identificador</span>

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Folder, Check, FolderInput } from 'lucide-react';
 import { Modal } from './Modal';
 import { Button } from './Button';
+import { flattenFolderTree, getFolderPathLabel } from '../../services/foldersService';
 import type { FolderItem, MediaCategory } from '../../types/media';
 
 /**
@@ -17,7 +18,7 @@ export interface BulkMoveModalProps {
 }
 
 /**
- * Modal para seleccionar una carpeta de destino y reasignar masivamente los elementos seleccionados
+ * Modal para seleccionar una carpeta o subcarpeta de destino y reasignar masivamente los elementos seleccionados
  * (`POST /api/v1/images/bulk-move` o `POST /api/v1/tables/bulk-move`).
  */
 export const BulkMoveModal: React.FC<BulkMoveModalProps> = ({
@@ -31,10 +32,13 @@ export const BulkMoveModal: React.FC<BulkMoveModalProps> = ({
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isMoving, setIsMoving] = useState(false);
 
-  if (!isOpen) return null;
+  const flatFolders = useMemo(() => flattenFolderTree(folders), [folders]);
+  const compatibleFolders = useMemo(
+    () => flatFolders.filter((f) => f.type === category),
+    [flatFolders, category]
+  );
 
-  // Filtrar carpetas por la categoría correspondiente
-  const compatibleFolders = folders.filter((f) => f.type === category);
+  if (!isOpen) return null;
 
   const handleExecute = async () => {
     if (!selectedFolderId) return;
@@ -111,7 +115,9 @@ export const BulkMoveModal: React.FC<BulkMoveModalProps> = ({
                       }}
                     />
                     <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{folder.name}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                        {getFolderPathLabel(folder, flatFolders)}
+                      </div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                         {folder.itemCount ?? 0} elementos
                       </div>

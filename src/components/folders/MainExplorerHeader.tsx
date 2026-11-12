@@ -4,6 +4,7 @@ import {
   Share2, Pencil, Trash2, X, Image, Table2, FileText, FileSpreadsheet, LayoutGrid,
 } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
+import { NotificationBell } from '../notifications/NotificationBell';
 import type { FolderItem } from '../../types/media';
 import type { WorkspaceView } from '../layout/Sidebar';
 import styles from './MainExplorerHeader.module.css';
@@ -71,7 +72,9 @@ export const MainExplorerHeader: React.FC<MainExplorerHeaderProps> = ({
       return;
     }
     const targetView: WorkspaceView =
-      folder.type === 'container'
+      compactHeaderOnly && activeView === 'all'
+        ? 'all'
+        : folder.type === 'container'
         ? 'all'
         : folder.type === 'table'
         ? 'tables'
@@ -188,12 +191,19 @@ export const MainExplorerHeader: React.FC<MainExplorerHeaderProps> = ({
               <span>{activeView === 'forms' ? 'Ver Tablas' : 'Formularios de esta carpeta'}</span>
             </button>
           )}
-          {canCreateFolderHere && (
-            <button type="button" onClick={onOpenNewFolder} className={styles.newFolderBtn} aria-label="Nueva carpeta">
-              <FolderPlus size={14} />
-              <span>{activeFolder ? 'Nueva subcarpeta' : 'Nueva carpeta'}</span>
-            </button>
-          )}
+          <NotificationBell onNavigateToForms={() => onViewChange('forms')} />
+          <button
+            type="button"
+            onClick={canCreateFolderHere ? onOpenNewFolder : undefined}
+            disabled={!canCreateFolderHere}
+            className={styles.newFolderBtn}
+            style={!canCreateFolderHere ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+            title={!canCreateFolderHere ? 'Profundidad máxima de 3 niveles alcanzada' : undefined}
+            aria-label="Nueva carpeta"
+          >
+            <FolderPlus size={14} />
+            <span>{activeFolder ? 'Nueva subcarpeta' : 'Nueva carpeta'}</span>
+          </button>
         </div>
       </div>
 
@@ -201,7 +211,9 @@ export const MainExplorerHeader: React.FC<MainExplorerHeaderProps> = ({
         <div className={styles.foldersSection} data-testid="main-folders-section">
           <div className={styles.foldersGrid}>
             {visibleFolders.map((folder) => {
-              const isSystemGeneral = folder.name.trim().toLowerCase() === 'general';
+              const lowerName = folder.name.trim().toLowerCase();
+              const isSystemFolder = Boolean(folder.isSystem) || lowerName === 'general' || lowerName === 'shared';
+              const isSystemShared = Boolean(folder.isSystem) || lowerName === 'shared';
               const isOwnerOrAdmin =
                 currentUser?.role === 'ADMIN' || folder.myPermission === 'ADMIN' ||
                 !folder.userId || folder.userId === currentUser?.id;
@@ -209,6 +221,7 @@ export const MainExplorerHeader: React.FC<MainExplorerHeaderProps> = ({
                 Boolean(folder.isShared) || Boolean(folder.userId && currentUser && folder.userId !== currentUser.id) ||
                 folder.myPermission === 'READ' || folder.myPermission === 'EDIT';
               const typeBadgeLabel =
+                isSystemShared ? 'Sistema · Compartida' :
                 folder.type === 'container' ? 'DIR' : folder.type === 'table' ? 'TAB' : folder.type === 'pdf' ? 'PDF' : 'IMG';
 
               return (
@@ -222,7 +235,7 @@ export const MainExplorerHeader: React.FC<MainExplorerHeaderProps> = ({
                       <span className={styles.folderName}>{folder.name}</span>
                     </div>
                     <div className={styles.folderMeta}>
-                      {activeView === 'all' && <span className={styles.typeBadge}>{typeBadgeLabel}</span>}
+                      {(activeView === 'all' || isSystemShared) && <span className={styles.typeBadge}>{typeBadgeLabel}</span>}
                       {folder.isPrivate && (
                         <span title="Carpeta privada" aria-label="Carpeta privada">
                           <Lock size={11} style={{ color: '#fbbf24' }} />
@@ -242,7 +255,7 @@ export const MainExplorerHeader: React.FC<MainExplorerHeaderProps> = ({
                       <button type="button" onClick={() => onShareFolder(folder)} className={styles.miniBtn} title={`Compartir ${folder.name}`} aria-label={`Compartir carpeta ${folder.name}`}>
                         <Share2 size={11} />
                       </button>
-                      {!isSystemGeneral && (
+                      {!isSystemFolder && (
                         <>
                           <button type="button" onClick={() => onEditFolder(folder)} className={styles.miniBtn} title={`Editar ${folder.name}`} aria-label={`Editar carpeta ${folder.name}`}>
                             <Pencil size={11} />

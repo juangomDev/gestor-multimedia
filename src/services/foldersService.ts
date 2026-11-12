@@ -33,6 +33,7 @@ export function normalizeFolder(
     type?: string;
     parentId?: string | null;
     isSystem?: boolean;
+    children?: unknown[];
     isShared?: boolean;
   }) | null
 ): FolderItem {
@@ -47,12 +48,17 @@ export function normalizeFolder(
       ? 'pdf'
       : 'image';
 
+  const normalizedChildren = Array.isArray(safe.children)
+    ? safe.children.map((child) => normalizeFolder(child as Record<string, unknown>))
+    : undefined;
+
   return {
     id: safe.id || `fld-${Date.now()}`,
     name: safe.name || 'General',
     type: normalizedType,
     parentId: safe.parentId ?? null,
     isSystem: safe.isSystem ?? false,
+    ...(normalizedChildren ? { children: normalizedChildren } : {}),
     color: safe.color ?? '#3b82f6',
     isPrivate: safe.isPrivate ?? false,
     itemCount: safe.itemCount ?? 0,
@@ -65,64 +71,91 @@ export function normalizeFolder(
 }
 
 /**
+ * Aplana recursivamente un árbol jerárquico de carpetas conservando `parentId` en cada nodo.
+ */
+export function flattenFolderTree(nodes: FolderItem[], parentId: string | null = null): FolderItem[] {
+  const flat: FolderItem[] = [];
+  const seen = new Set<string>();
+  const walk = (items: FolderItem[], currentParent: string | null) => {
+    for (const node of items) {
+      const normalizedNode: FolderItem = { ...node, parentId: node.parentId ?? currentParent };
+      if (!seen.has(normalizedNode.id)) {
+        seen.add(normalizedNode.id);
+        flat.push(normalizedNode);
+      }
+      if (Array.isArray(node.children) && node.children.length > 0) {
+        walk(node.children, normalizedNode.id);
+      }
+    }
+  };
+  walk(nodes, parentId);
+  return flat;
+}
+
+/**
+ * Construye la ruta legible de hasta 3 niveles (`Padre › Subcarpeta`) para selectores de carpetas.
+ */
+export function getFolderPathLabel(folder: FolderItem, allFolders: FolderItem[]): string {
+  const parts: string[] = [folder.name];
+  let curr: FolderItem | undefined = folder;
+  const visited = new Set<string>([folder.id]);
+  while (curr?.parentId && !visited.has(curr.parentId)) {
+    visited.add(curr.parentId);
+    const parent = allFolders.find((f) => f.id === curr!.parentId);
+    if (!parent) break;
+    parts.unshift(parent.name);
+    curr = parent;
+  }
+  return parts.join(' › ');
+}
+
+/**
  * Servicio centralizado de gestión de carpetas, permisos RBAC y compartición en PostgreSQL (`monolith-backend`).
- * Cubre las 11 rutas de carpetas y reasignación de activos.
  */
 export class FoldersService {
   /**
    * Obtiene el listado de carpetas desde PostgreSQL respetando reglas de privacidad (`GET /api/v1/folders`).
-   *
-   * @param type Filtro opcional por tipo (`'IMAGE' | 'TABLE' | 'image' | 'table'`).
-   * @param search Búsqueda opcional por nombre de carpeta.
-   * @param page Número de página para paginación.
-   * @param limit Cantidad de carpetas por página.
-   * @returns Lista de carpetas normalizadas.
    */
   async fetchFolders(
-    type?: 'IMAGE' | 'TABLE' | 'PDF' | MediaCategory,
+    type?: 'CONTAINER' | 'IMAGE' | 'TABLE' | 'PDF' | FolderCategory | MediaCategory,
     search?: string,
     page?: number,
-    limit?: number
+    limit?: number,
+    parentId?: string | null
   ): Promise<FolderItem[]> {
     const params = new URLSearchParams();
     if (type) params.set('type', type.toUpperCase());
     if (search && search.trim()) params.set('search', search.trim());
     if (page !== undefined) params.set('page', String(page));
     if (limit !== undefined) params.set('limit', String(limit));
+    if (parentId) params.set('parentId', parentId);
 
     const qs = params.toString();
     const endpoint = qs ? `/api/v1/folders?${qs}` : '/api/v1/folders';
 
     const res = await apiClient.get<ApiFolderListResponse>(endpoint);
     const folders = (res.folders || []).map((f) => normalizeFolder(f));
-    if (!type && !search) storageService.saveFolders(folders);
+    if (!type && !search && !parentId) storageService.saveFolders(folders);
     return folders;
   }
 
-  /**
-   * Obtiene el detalle de una carpeta específica por su UUID (`GET /api/v1/folders/:id`).
-   */
+  /** Obtiene el árbol jerárquico completo de hasta 3 niveles (`GET /api/v1/folders/tree`). */
+  async fetchFolderTree(): Promise<FolderItem[]> {
+    const res = await apiClient.get<{ tree?: Record<string, unknown>[]; folders?: Record<string, unknown>[] }>('/api/v1/folders/tree');
+    return (res.tree || res.folders || []).map((node) => normalizeFolder(node));
+  }
+
+  /** Obtiene el detalle de una carpeta específica por su UUID (`GET /api/v1/folders/:id`). */
   async getFolderById(id: string): Promise<FolderItem> {
-    const res = await apiClient.get<{ folder?: ApiFolder } & Partial<ApiFolder>>(
-      `/api/v1/folders/${id}`
-    );
+    const res = await apiClient.get<{ folder?: ApiFolder } & Partial<ApiFolder>>(`/api/v1/folders/${id}`);
     return normalizeFolder(res?.folder || res);
   }
 
-  /**
-   * Crea una nueva carpeta (`CONTAINER`, `IMAGE`, `TABLE` o `PDF`) en PostgreSQL (`POST /api/v1/folders`).
-   */
+  /** Crea una nueva carpeta (`CONTAINER`, `IMAGE`, `TABLE` o `PDF`) en PostgreSQL (`POST /api/v1/folders`). */
   async createFolder(payload: CreateFolderPayload): Promise<FolderItem> {
     const rawUpper = payload.type.toUpperCase();
     const apiType: 'CONTAINER' | 'IMAGE' | 'TABLE' | 'PDF' =
-      rawUpper === 'CONTAINER'
-        ? 'CONTAINER'
-        : rawUpper === 'TABLE'
-        ? 'TABLE'
-        : rawUpper === 'PDF'
-        ? 'PDF'
-        : 'IMAGE';
-
+      rawUpper === 'CONTAINER' ? 'CONTAINER' : rawUpper === 'TABLE' ? 'TABLE' : rawUpper === 'PDF' ? 'PDF' : 'IMAGE';
     const body: Record<string, unknown> = {
       name: payload.name.trim(),
       type: apiType,
@@ -130,29 +163,18 @@ export class FoldersService {
       isPrivate: payload.isPrivate ?? false,
     };
     if (payload.parentId !== undefined) body.parentId = payload.parentId;
-
-    const res = await apiClient.post<{ folder?: ApiFolder } & Partial<ApiFolder>>(
-      '/api/v1/folders',
-      body
-    );
-
+    const res = await apiClient.post<{ folder?: ApiFolder } & Partial<ApiFolder>>('/api/v1/folders', body);
     const created = normalizeFolder(res?.folder || res);
     storageService.addFolder(created);
     return created;
   }
 
-  /**
-   * Actualiza las propiedades de una carpeta existente: nombre, color o privacidad (`PATCH /api/v1/folders/:id`).
-   */
+  /** Actualiza las propiedades de una carpeta existente: nombre, color o privacidad (`PATCH /api/v1/folders/:id`). */
   async updateFolder(id: string, payload: ApiUpdateFolderInput): Promise<FolderItem> {
     const cached = storageService.getFolders();
     const existing = cached.find((f) => f.id === id);
-
     try {
-      const res = await apiClient.patch<{ folder?: ApiFolder } & Partial<ApiFolder>>(
-        `/api/v1/folders/${id}`,
-        payload
-      );
+      const res = await apiClient.patch<{ folder?: ApiFolder } & Partial<ApiFolder>>(`/api/v1/folders/${id}`, payload);
       const updated = normalizeFolder(res?.folder || res);
       storageService.saveFolders(cached.map((f) => (f.id === id ? { ...f, ...updated } : f)));
       return updated;
@@ -160,18 +182,14 @@ export class FoldersService {
       if (!/^fld-\d+$/.test(id)) throw err;
       try {
         const promoted = await this.createFolder({
-          name: payload.name || existing?.name || 'Carpeta',
-          type: existing?.type || 'image',
-          color: payload.color ?? existing?.color ?? '#3b82f6',
-          isPrivate: payload.isPrivate ?? existing?.isPrivate ?? false,
+          name: payload.name || existing?.name || 'Carpeta', type: existing?.type || 'image',
+          color: payload.color ?? existing?.color ?? '#3b82f6', isPrivate: payload.isPrivate ?? existing?.isPrivate ?? false,
         });
         storageService.removeFolder(id);
         return promoted;
       } catch {
         const localUpdated = normalizeFolder({
-          ...existing,
-          id,
-          name: payload.name ?? existing?.name ?? 'Carpeta',
+          ...existing, id, name: payload.name ?? existing?.name ?? 'Carpeta',
           color: payload.color !== undefined ? payload.color : existing?.color,
           isPrivate: payload.isPrivate !== undefined ? payload.isPrivate : existing?.isPrivate,
         });
