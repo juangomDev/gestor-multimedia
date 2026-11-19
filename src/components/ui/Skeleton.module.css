@@ -2,7 +2,19 @@
   display: block;
   background-color: var(--paper-well);
   border-radius: var(--radius-control);
-  animation: editorialShimmer 1.4s ease-in-out infinite;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0.45;
+  }
 }
 
 .line {

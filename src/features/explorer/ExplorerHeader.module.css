@@ -64,7 +64,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  width: min(260px, 100%);
+  width: 240px;
+  max-width: 100%;
   min-height: 36px;
   padding: 0 10px;
   gap: 7px;

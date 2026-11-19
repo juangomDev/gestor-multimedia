@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
 import {
-  Archive,
   AlertCircle,
   Clock,
   Eye,
@@ -140,20 +139,9 @@ export const LoginPage: React.FC = () => {
 
       <main className={styles.center}>
         <section className={styles.sheet} aria-labelledby="login-heading">
-          <div className={styles.brandBlock}>
-            <div className={styles.brandRow}>
-              <span className={styles.brandMark} aria-hidden="true">
-                <Archive size={15} />
-              </span>
-              <span className={styles.brandName}>Bóveda · Archivo Editorial</span>
-            </div>
-            <h1 id="login-heading" className={styles.heading}>
-              Iniciar sesión
-            </h1>
-            <p className={styles.subheading}>
-              Accede con tu cuenta para explorar carpetas, tablas, documentos y análisis.
-            </p>
-          </div>
+          <h1 id="login-heading" className={styles.heading}>
+            Iniciar sesión
+          </h1>
 
           <form onSubmit={handleSubmit} className={styles.form} noValidate>
             {errorState ? (

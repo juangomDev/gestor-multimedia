@@ -15,9 +15,31 @@
 
 .content[data-state='delayed-open'],
 .content[data-state='instant-open'] {
-  animation: editorialSurfaceIn var(--duration-popover) var(--ease-out-quint);
+  animation: tooltipIn var(--duration-popover) var(--ease-out-quint);
 }
 
 .content[data-state='closed'] {
-  animation: editorialSurfaceOut var(--duration-press) var(--ease-out-quint);
+  animation: tooltipOut var(--duration-press) var(--ease-out-quint) forwards;
+}
+
+@keyframes tooltipIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tooltipOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
 }

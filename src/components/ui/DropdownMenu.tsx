@@ -2,8 +2,15 @@ import React from 'react';
 import * as RadixDropdown from '@radix-ui/react-dropdown-menu';
 import styles from './DropdownMenu.module.css';
 
-/** Raíz del menú desplegable contextual accesible (`@radix-ui/react-dropdown-menu`). */
-export const DropdownMenu = RadixDropdown.Root;
+/**
+ * Raíz del menú desplegable contextual accesible (`@radix-ui/react-dropdown-menu`).
+ * Usa `modal={false}` por defecto para permitir abrir diálogos modales desde `onSelect`
+ * sin conflictos de foco (`aria-hidden`) ni bloqueos de `pointer-events` en `<body>`.
+ */
+export const DropdownMenu: React.FC<RadixDropdown.DropdownMenuProps> = ({
+  modal = false,
+  ...rest
+}) => <RadixDropdown.Root modal={modal} {...rest} />;
 
 /** Elemento disparador del menú contextual. */
 export const DropdownMenuTrigger = RadixDropdown.Trigger;

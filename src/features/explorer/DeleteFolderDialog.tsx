@@ -30,8 +30,13 @@ export const DeleteFolderDialog: React.FC<DeleteFolderDialogProps> = ({
 }) => {
   const { showToast } = useToast();
   const deleteMutation = useDeleteFolderMutation();
+  const [lastFolder, setLastFolder] = React.useState<FolderItem | null>(folder);
+  if (folder && folder !== lastFolder) {
+    setLastFolder(folder);
+  }
+  const displayFolder = folder ?? lastFolder;
 
-  const isProtected = isSystemFolder(folder) || isGeneralFolder(folder);
+  const isProtected = isSystemFolder(displayFolder) || isGeneralFolder(displayFolder);
 
   const handleConfirm = async () => {
     if (!folder || isProtected) return;
@@ -51,7 +56,7 @@ export const DeleteFolderDialog: React.FC<DeleteFolderDialogProps> = ({
     <Dialog
       open={open && Boolean(folder)}
       onOpenChange={onOpenChange}
-      title={folder ? `Eliminar "${folder.name}"` : 'Eliminar carpeta'}
+      title={displayFolder ? `Eliminar "${displayFolder.name}"` : 'Eliminar carpeta'}
       size="sm"
       footer={
         <div className={styles.actions}>
@@ -89,8 +94,8 @@ export const DeleteFolderDialog: React.FC<DeleteFolderDialogProps> = ({
             <AlertTriangle size={16} aria-hidden="true" />
             <span>
               Advertencia de borrado en cascada: se eliminarán permanentemente la carpeta{' '}
-              <strong>{folder?.name}</strong>, sus subcarpetas y todos los archivos físicos
-              contenidos ({folder?.itemCount ?? 0} ítems).
+              <strong>{displayFolder?.name}</strong>, sus subcarpetas y todos los archivos físicos
+              contenidos ({displayFolder?.itemCount ?? 0} ítems).
             </span>
           </div>
         )}

@@ -12,6 +12,7 @@ import { RenameAssetDialog } from '../images/RenameAssetDialog';
 import { HotSwapAssetDialog } from '../images/HotSwapAssetDialog';
 import { PdfMetadataDialog } from './PdfMetadataDialog';
 import { PdfExtractedTextTab } from './PdfExtractedTextTab';
+import { usePdfBlobUrl } from './usePdfBlobUrl';
 import type { PdfItem } from '../../types/media';
 import styles from './PdfViewerDialog.module.css';
 
@@ -71,7 +72,8 @@ export const PdfViewerDialog: React.FC<PdfViewerDialogProps> = ({
   const activeTitle = localPdf?.originalName || title || `Documento PDF · ${activeCode}`;
   const canonicalUrl = pdfsService.getPdfUrl(activeCode);
   const versionedBase = localPdf?.urlWithVersion || canonicalUrl;
-  const iframeUrl = `${versionedBase}#page=${activePage}`;
+  const pdfPreview = usePdfBlobUrl(versionedBase, open);
+  const iframeUrl = `${pdfPreview.previewBaseUrl}#page=${activePage}`;
   const downloadUrl = pdfsService.getPdfDownloadUrl(activeCode);
 
   const textQuery = usePdfExtractedTextQuery(activeCode, undefined, open && activeTab === 'text');
@@ -183,7 +185,13 @@ export const PdfViewerDialog: React.FC<PdfViewerDialogProps> = ({
               <span className={styles.metaText}>Página activa: #{activePage}</span>
             </div>
 
-            <iframe key={iframeUrl} src={iframeUrl} title={activeTitle} className={styles.frame} />
+            {pdfPreview.status === 'loading' ? (
+              <div className={styles.frameLoading} role="status" aria-live="polite">
+                Cargando previsualización del PDF…
+              </div>
+            ) : (
+              <iframe key={iframeUrl} src={iframeUrl} title={activeTitle} className={styles.frame} />
+            )}
           </TabsContent>
 
           <TabsContent value="text">

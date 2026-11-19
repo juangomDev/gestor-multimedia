@@ -4,7 +4,7 @@
   border-radius: var(--radius-surface);
   box-shadow: var(--elevation-popover);
   padding: var(--space-3);
-  z-index: 105;
+  z-index: 85;
   transform-origin: var(--radix-popover-content-transform-origin);
 }
 
@@ -13,9 +13,31 @@
 }
 
 .content[data-state='open'] {
-  animation: editorialSurfaceIn var(--duration-popover) var(--ease-out-quint);
+  animation: popoverIn var(--duration-popover) var(--ease-out-quint);
 }
 
 .content[data-state='closed'] {
-  animation: editorialSurfaceOut var(--duration-press) var(--ease-out-quint);
+  animation: popoverOut var(--duration-press) var(--ease-out-quint) forwards;
+}
+
+@keyframes popoverIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes popoverOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
 }
