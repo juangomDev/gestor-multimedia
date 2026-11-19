@@ -5,6 +5,11 @@ import type { TableItem } from '../../types/media';
 import type { MetadataCard } from '../../types/api';
 
 /**
+ * Extensiones soportadas por `monolith-backend` Fase 21 para tablas y datasets.
+ */
+export const ACCEPTED_TABLE_EXTENSIONS = '.csv,.xlsx,.xls,.json';
+
+/**
  * Representación cruda de un registro de tabla devuelto por `monolith-backend`.
  */
 export interface RawApiTable {
@@ -25,7 +30,26 @@ export interface RawApiTable {
 }
 
 /**
+ * Valida si un archivo es un dataset tabular soportado (`.csv`, `.xlsx`, `.xls` o `.json` — Fase 21).
+ *
+ * @param file Archivo seleccionado por el usuario.
+ * @returns `true` cuando el MIME o la extensión son válidos para `/api/v1/tables`.
+ */
+export function isSupportedTableFile(file: File): boolean {
+  const mime = (file.type || '').toLowerCase();
+  return (
+    mime === 'text/csv' ||
+    mime === 'application/json' ||
+    mime === 'text/json' ||
+    mime.includes('spreadsheet') ||
+    mime.includes('excel') ||
+    /\.(csv|xlsx|xls|json)$/i.test(file.name)
+  );
+}
+
+/**
  * Normaliza las columnas provenientes del backend hacia un arreglo simple de cadenas.
+ *
  * @param raw Arreglo mixto de cadenas u objetos `{ name }`.
  * @returns Arreglo de nombres de columna normalizados.
  */
@@ -35,10 +59,44 @@ export function normalizeTableColumns(raw?: Array<string | { name: string }>): s
 }
 
 /**
+ * Normaliza una respuesta cruda de tabla proveniente de `monolith-backend` hacia `TableItem`.
+ *
+ * @param raw Datos crudos devueltos por la API.
+ * @param baseUrl URL base activa del backend.
+ * @param fallback Valores de respaldo cuando el endpoint devuelve actualización parcial.
+ * @returns Entidad `TableItem` tipada y normalizada.
+ */
+export function normalizeTableItem(
+  raw: Partial<RawApiTable>,
+  baseUrl: string,
+  fallback?: { id?: string; tableName?: string; sizeBytes?: number; folderId?: string | null }
+): TableItem {
+  const id = raw.id || fallback?.id || '';
+  const shortCode = raw.shortCode || id;
+  const canonicalUrl = buildPublicAssetUrl(baseUrl, 't', shortCode);
+
+  return {
+    id,
+    shortCode,
+    tableName: raw.tableName || fallback?.tableName || shortCode,
+    rowCount: raw.rowCount ?? 0,
+    columns: normalizeTableColumns(raw.columns || raw.columnsSchema),
+    sizeBytes: raw.sizeBytes ?? fallback?.sizeBytes ?? 0,
+    url: canonicalUrl,
+    urlWithVersion: raw.urlWithVersion,
+    metadataCard: raw.metadataCard ?? null,
+    createdAt: raw.createdAt || new Date().toISOString(),
+    updatedAt: raw.updatedAt,
+    folderId: raw.folderId !== undefined ? raw.folderId : fallback?.folderId ?? null,
+  };
+}
+
+/**
  * Ejecuta el renombrado lógico de un dataset en `monolith-backend` (`PATCH /api/v1/tables/:id`).
+ *
  * @param id Identificador UUID de la tabla.
- * @param tableName Nuevo nombre para el dataset (ej. `ventas_q4.csv`).
- * @returns Dataset tabular actualizado con persistencia sincronizada.
+ * @param tableName Nuevo nombre para el dataset (ej. `ventas_q4.json`).
+ * @returns Dataset tabular actualizado desde el servidor.
  */
 export async function executeTableRename(id: string, tableName: string): Promise<TableItem> {
   const cleanName = tableName.trim();
@@ -46,111 +104,49 @@ export async function executeTableRename(id: string, tableName: string): Promise
     throw new Error('El nombre de la tabla no puede estar vacío');
   }
 
-  const base = storageService.getConfig().baseUrl;
-  let res: RawApiTable | null = null;
+  const rawRes = await apiClient.patch<Partial<RawApiTable> & { table?: Partial<RawApiTable> }>(
+    `/api/v1/tables/${id}`,
+    { tableName: cleanName }
+  );
+  const res = rawRes?.table || rawRes || {};
 
-  try {
-    res = await apiClient.patch<RawApiTable>(`/api/v1/tables/${id}`, {
-      tableName: cleanName,
-    });
-  } catch (err: any) {
-    // Resiliencia ante servidores mock o rutas no registradas en caliente
-    const msg = err?.message || err?.detail || '';
-    if (msg.includes('Route PATCH:') || msg.includes('not found') || id.startsWith('tbl-mock')) {
-      console.warn('Fallback local para renombrado de tabla:', msg);
-    } else {
-      throw err;
-    }
-  }
-
-  const current = storageService.getTables();
-  const existing = current.find((t) => t.id === id);
-  const shortCode = res?.shortCode || existing?.shortCode || id;
-
-  const updated: TableItem = {
-    ...(existing || {
-      id,
-      shortCode,
-      rowCount: 0,
-      sizeBytes: 0,
-      url: buildPublicAssetUrl(base, 't', shortCode),
-      createdAt: new Date().toISOString(),
-    }),
-    id: res?.id || id,
-    shortCode,
-    tableName: res?.tableName || cleanName,
-    rowCount: res?.rowCount ?? existing?.rowCount ?? 0,
-    columns: res ? normalizeTableColumns(res.columns || res.columnsSchema) : existing?.columns || [],
-    sizeBytes: res?.sizeBytes ?? existing?.sizeBytes ?? 0,
-    url: res?.url || buildPublicAssetUrl(base, 't', shortCode),
-    urlWithVersion: res?.urlWithVersion || existing?.urlWithVersion,
-    metadataCard: res?.metadataCard !== undefined ? res.metadataCard : existing?.metadataCard ?? null,
-    updatedAt: res?.updatedAt || new Date().toISOString(),
-    folderId: res?.folderId !== undefined ? res.folderId : existing?.folderId || null,
-  };
-
-  if (existing) {
-    storageService.saveTables(current.map((t) => (t.id === id ? updated : t)));
-  } else {
-    storageService.addTable(updated);
-  }
-
-  return updated;
+  return normalizeTableItem(res, storageService.getApiBaseUrl(), {
+    id,
+    tableName: cleanName,
+  });
 }
 
 /**
  * Ejecuta el reemplazo en caliente (Hot-Swap) del archivo físico de un dataset (`PUT /api/v1/tables/:id`).
- * Conserva el mismo identificador UUID, `shortCode` y URL pública.
+ * Soporta `.csv`, `.xlsx`, `.xls` y `.json` (Fase 21) conservando UUID, `shortCode` y URL pública.
+ *
  * @param id Identificador UUID de la tabla a sustituir.
- * @param file Nuevo archivo binario `.csv` o `.xlsx`.
+ * @param file Nuevo archivo binario `.csv`, `.xlsx`, `.xls` o `.json`.
  * @returns Dataset tabular actualizado con sus nuevas dimensiones y metadatos.
  */
 export async function executeTableHotSwap(id: string, file: File): Promise<TableItem> {
-  const isTable =
-    file.type === 'text/csv' ||
-    file.type.includes('spreadsheet') ||
-    file.type.includes('excel') ||
-    /\.(csv|xlsx|xls)$/i.test(file.name);
-
-  if (!isTable) {
-    throw new Error(`El archivo '${file.name}' no tiene una extensión soportada (.csv, .xlsx, .xls)`);
+  if (!isSupportedTableFile(file)) {
+    throw new Error(
+      `El archivo '${file.name}' no tiene una extensión soportada (.csv, .xlsx, .xls, .json)`
+    );
   }
 
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await apiClient.put<RawApiTable>(`/api/v1/tables/${id}`, formData);
+  const rawRes = await apiClient.put<Partial<RawApiTable> & { table?: Partial<RawApiTable> }>(
+    `/api/v1/tables/${id}`,
+    formData
+  );
+  const res = rawRes?.table || rawRes || {};
+  const normalized = normalizeTableItem(res, storageService.getApiBaseUrl(), {
+    id,
+    tableName: file.name,
+    sizeBytes: file.size,
+  });
 
-  const base = storageService.getConfig().baseUrl;
-  const current = storageService.getTables();
-  const existing = current.find((t) => t.id === id);
-  const shortCode = res.shortCode || existing?.shortCode || id;
-
-  const updated: TableItem = {
-    ...(existing || {
-      id,
-      shortCode,
-      createdAt: new Date().toISOString(),
-    }),
-    id: res.id,
-    shortCode,
-    tableName: res.tableName || file.name,
-    rowCount: res.rowCount ?? 0,
-    columns: normalizeTableColumns(res.columns || res.columnsSchema),
-    sizeBytes: res.sizeBytes ?? file.size,
-    url: res.url || buildPublicAssetUrl(base, 't', shortCode),
-    urlWithVersion: res.urlWithVersion,
-    metadataCard: res.metadataCard !== undefined ? res.metadataCard : existing?.metadataCard ?? null,
-    updatedAt: res.updatedAt || new Date().toISOString(),
-    folderId: res.folderId !== undefined ? res.folderId : existing?.folderId || null,
+  return {
+    ...normalized,
+    updatedAt: normalized.updatedAt || new Date().toISOString(),
   };
-
-  if (existing) {
-    storageService.saveTables(current.map((t) => (t.id === id ? updated : t)));
-  } else {
-    storageService.addTable(updated);
-  }
-
-  return updated;
 }
-

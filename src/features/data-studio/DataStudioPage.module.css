@@ -1,0 +1,131 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  max-width: 1440px;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.leftCluster {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink-primary);
+}
+
+.rightCluster {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 220px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 10px;
+  color: var(--ink-tertiary);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 6px 28px 6px 30px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--control-border);
+  background-color: var(--control-bg);
+  color: var(--ink-primary);
+  font-size: var(--text-sm);
+}
+
+.searchInput:focus {
+  outline: none;
+  background-color: var(--control-bg-focus);
+  border-color: var(--control-border-focus);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.clearBtn {
+  position: absolute;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border: none;
+  background: transparent;
+  color: var(--ink-tertiary);
+  cursor: pointer;
+}
+
+.metaCardStrip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-surface);
+  background-color: var(--paper-sheet);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--spine-table);
+}
+
+.metaCardCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.metaCardTitle {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.metaCardDesc {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+  line-height: 1.45;
+}
+
+.metaBadges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: var(--space-4);
+  }
+}

@@ -36,7 +36,19 @@ export function cleanBaseUrl(url: string): string {
   return url.trim().replace(/\/+$/, '');
 }
 
-export function buildPublicAssetUrl(baseUrl: string, type: 'i' | 't', shortCode: string): string {
+/**
+ * Construye la URL pública canónica de un recurso multimedia (`/i/`, `/t/` o `/p/`).
+ *
+ * @param baseUrl URL base configurada de `monolith-backend`.
+ * @param type Prefijo público del recurso (`i` imagen, `t` tabla, `p` documento PDF).
+ * @param shortCode Código corto público único del recurso.
+ * @returns URL absoluta sin barras duplicadas.
+ */
+export function buildPublicAssetUrl(
+  baseUrl: string,
+  type: 'i' | 't' | 'p',
+  shortCode: string
+): string {
   const clean = cleanBaseUrl(baseUrl);
   return `${clean}/${type}/${shortCode}`;
 }

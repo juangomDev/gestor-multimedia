@@ -1,0 +1,115 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.identityRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background-color: var(--paper-well);
+  border: 1px solid var(--hairline);
+}
+
+.identityHint {
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+}
+
+.dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-4);
+  border-radius: var(--radius-surface);
+  border: 1.5px dashed var(--hairline-strong);
+  background-color: var(--paper-well);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--duration-press) var(--ease-out-quint),
+    background-color var(--duration-press) var(--ease-out-quint);
+}
+
+.dropzone:hover,
+.dropzoneActive {
+  border-color: var(--accent-ink);
+  background-color: var(--accent-ink-soft);
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.dropTitle {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-primary);
+}
+
+.dropHint {
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+}
+
+.selectedFile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background-color: var(--paper-sheet);
+  border: 1px solid var(--hairline);
+}
+
+.fileMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fileName {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileSize {
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  color: var(--ink-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.errorBanner {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background-color: var(--status-danger-bg);
+  border: 1px solid var(--status-danger-border);
+  color: var(--status-danger);
+  font-size: var(--text-xs);
+}
+
+.footerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}

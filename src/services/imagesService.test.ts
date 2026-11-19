@@ -3,13 +3,14 @@ import { imagesService } from './imagesService';
 import { apiClient } from './apiClient';
 import { storageService } from './storageService';
 
-describe('imagesService', () => {
+describe('imagesService (v2 Stateless)', () => {
   beforeEach(() => {
     localStorage.clear();
+    storageService.resetCache();
     vi.restoreAllMocks();
   });
 
-  it('uploads valid image, stores it, and returns ImageItem', async () => {
+  it('uploads valid image and returns normalized ImageItem without localStorage writes', async () => {
     const file = new File(['fake-image-bytes'], 'banner.png', { type: 'image/png' });
 
     const mockResponse = {
@@ -30,7 +31,7 @@ describe('imagesService', () => {
     expect(item.shortCode).toBe('bnr777');
     expect(item.folderId).toBe('folder-1');
     expect(postSpy).toHaveBeenCalledTimes(1);
-    expect(storageService.getImages()).toHaveLength(1);
+    expect(localStorage.getItem('dokploy_images')).toBeNull();
   });
 
   it('rejects non-image files with error', async () => {
@@ -41,26 +42,15 @@ describe('imagesService', () => {
     );
   });
 
-  it('deletes image from backend and storage', async () => {
-    storageService.addImage({
-      id: 'img-to-del',
-      shortCode: 'del123',
-      originalName: 'temp.jpg',
-      mimeType: 'image/jpeg',
-      sizeBytes: 500,
-      url: 'http://localhost:3000/i/del123',
-      createdAt: new Date().toISOString(),
-    });
-
+  it('deletes image from backend via DELETE /api/v1/images/:id', async () => {
     const deleteSpy = vi.spyOn(apiClient, 'delete').mockResolvedValue(undefined);
 
-    await imagesService.deleteImage('img-to-del', 'del123');
+    await imagesService.deleteImage('img-to-del');
 
     expect(deleteSpy).toHaveBeenCalledWith('/api/v1/images/img-to-del');
-    expect(storageService.getImages()).toHaveLength(0);
   });
 
-  it('fetchRemoteImages fetches images from backend and syncs with storageService', async () => {
+  it('fetchRemoteImages fetches images from backend', async () => {
     const mockList = {
       images: [
         {
@@ -83,7 +73,6 @@ describe('imagesService', () => {
     expect(getSpy).toHaveBeenCalledWith('/api/v1/images');
     expect(items).toHaveLength(1);
     expect(items[0].shortCode).toBe('rmt123');
-    expect(storageService.getImages()).toHaveLength(1);
   });
 
   it('normalizes remote URLs to client baseUrl even if backend returns internal IP', async () => {

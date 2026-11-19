@@ -1,0 +1,63 @@
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: var(--radius-chip);
+  background-color: var(--paper-well);
+  border: 1px solid var(--hairline);
+  color: var(--ink-secondary);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.45;
+  cursor: pointer;
+  max-width: 100%;
+  transition:
+    background-color var(--duration-press) var(--ease-out-quint),
+    border-color var(--duration-press) var(--ease-out-quint),
+    color var(--duration-press) var(--ease-out-quint),
+    transform var(--duration-press) var(--ease-out-quint);
+}
+
+/* Extiende área de clic en dispositivos táctiles */
+.chip::after {
+  content: '';
+  position: absolute;
+  inset: -6px -4px;
+}
+
+.chip:hover {
+  background-color: var(--paper-hover);
+  border-color: var(--hairline-strong);
+  color: var(--ink-primary);
+}
+
+.chip:active {
+  transform: scale(0.97);
+}
+
+.chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.copied {
+  background-color: var(--status-ok-bg);
+  border-color: var(--status-ok-border);
+  color: var(--status-ok);
+}
+
+.copied:hover {
+  background-color: var(--status-ok-bg);
+  border-color: var(--status-ok-border);
+  color: var(--status-ok);
+}
+
+.codeText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

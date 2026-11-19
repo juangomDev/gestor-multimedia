@@ -1,0 +1,74 @@
+.list {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid var(--hairline);
+  width: 100%;
+}
+
+.listPills {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-control);
+  background-color: var(--paper-well);
+  border: 1px solid var(--hairline);
+}
+
+.trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color var(--duration-press) var(--ease-out-quint),
+    background-color var(--duration-press) var(--ease-out-quint);
+}
+
+.trigger:hover {
+  color: var(--ink-primary);
+}
+
+.trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+  border-radius: var(--radius-control);
+}
+
+.list .trigger[data-state='active'] {
+  color: var(--ink-primary);
+}
+
+.list .trigger[data-state='active']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background-color: var(--accent-ink);
+  border-radius: 2px 2px 0 0;
+}
+
+.listPills .trigger {
+  padding: 5px 10px;
+  border-radius: calc(var(--radius-control) - 2px);
+}
+
+.listPills .trigger[data-state='active'] {
+  background-color: var(--paper-sheet);
+  color: var(--ink-primary);
+  box-shadow: var(--elevation-card);
+}
+
+.content {
+  outline: none;
+}

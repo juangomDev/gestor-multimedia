@@ -1,11 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { pdfsService } from './pdfsService';
 import { apiClient } from './apiClient';
-import { storageService } from './storageService';
 
-describe('pdfsService', () => {
+describe('pdfsService (v2 Stateless)', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   const mockPdf = {
@@ -68,18 +67,22 @@ describe('pdfsService', () => {
       metadataCard: { category: 'Legal', summary: 'Resumen' },
     } as never);
 
-    const res = await pdfsService.updatePdfMetadata('pdf-123', { category: 'Legal', summary: 'Resumen' });
-    expect(patchSpy).toHaveBeenCalledWith('/api/v1/pdfs/pdf-123/metadata', { category: 'Legal', summary: 'Resumen' });
+    const res = await pdfsService.updatePdfMetadata('pdf-123', {
+      category: 'Legal',
+      summary: 'Resumen',
+    });
+    expect(patchSpy).toHaveBeenCalledWith('/api/v1/pdfs/pdf-123/metadata', {
+      category: 'Legal',
+      summary: 'Resumen',
+    });
     expect(res.metadataCard?.category).toBe('Legal');
   });
 
-  it('deletePdf elimina el archivo y limpia caché', async () => {
+  it('deletePdf llama a DELETE /api/v1/pdfs/:id sin estado local', async () => {
     const deleteSpy = vi.spyOn(apiClient, 'delete').mockResolvedValueOnce(undefined as never);
-    const removeSpy = vi.spyOn(storageService, 'removePdf');
 
     await pdfsService.deletePdf('pdf-123');
     expect(deleteSpy).toHaveBeenCalledWith('/api/v1/pdfs/pdf-123');
-    expect(removeSpy).toHaveBeenCalledWith('pdf-123');
   });
 
   it('movePdfToFolder actualiza la carpeta destino', async () => {
@@ -89,11 +92,13 @@ describe('pdfsService', () => {
     } as never);
 
     const res = await pdfsService.movePdfToFolder('pdf-123', 'fld-2');
-    expect(patchSpy).toHaveBeenCalledWith('/api/v1/pdfs/pdf-123/folder', { targetFolderId: 'fld-2' });
+    expect(patchSpy).toHaveBeenCalledWith('/api/v1/pdfs/pdf-123/folder', {
+      targetFolderId: 'fld-2',
+    });
     expect(res.folderId).toBe('fld-2');
   });
 
-  it('fetchPdfExtractedText consulta texto estructurado por página', async () => {
+  it('fetchPdfExtractedText consulta texto estructurado con ruta relativa y skipAuth', async () => {
     const mockText = {
       shortCode: 'doc999',
       totalPages: 1,
@@ -102,8 +107,7 @@ describe('pdfsService', () => {
     const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValueOnce(mockText as never);
 
     const res = await pdfsService.fetchPdfExtractedText('doc999', 1);
-    expect(getSpy).toHaveBeenCalledWith(expect.stringContaining('/p/doc999?format=text&page=1'));
+    expect(getSpy).toHaveBeenCalledWith('/p/doc999?format=text&page=1', { skipAuth: true });
     expect(res.pages[0].text).toBe('Texto de prueba');
   });
 });
-

@@ -1,11 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { foldersService } from './foldersService';
+import { foldersService, getFolderDepth } from './foldersService';
 import { apiClient } from './apiClient';
-import { storageService } from './storageService';
 
-describe('FoldersService (PostgreSQL RBAC Folders & Sharing)', () => {
+describe('FoldersService (v2 Stateless PostgreSQL RBAC Folders & Sharing)', () => {
   beforeEach(() => {
-    localStorage.clear();
     vi.restoreAllMocks();
   });
 
@@ -45,12 +43,23 @@ describe('FoldersService (PostgreSQL RBAC Folders & Sharing)', () => {
     expect(folders[0].type).toBe('image');
     expect(folders[1].type).toBe('table');
     expect(folders[1].isPrivate).toBe(true);
-    expect(storageService.getFolders()).toHaveLength(2);
 
     await foldersService.fetchFolders('IMAGE', 'General', 1, 20);
     expect(getSpy).toHaveBeenCalledWith(
       '/api/v1/folders?type=IMAGE&search=General&page=1&limit=20'
     );
+  });
+
+  it('getFolderDepth calculates 0..3 hierarchy depth accurately', () => {
+    const all = [
+      { id: 'n1', name: 'Raiz', type: 'container' as const, parentId: null, createdAt: '' },
+      { id: 'n2', name: 'Fotos', type: 'image' as const, parentId: 'n1', createdAt: '' },
+      { id: 'n3', name: '2026', type: 'image' as const, parentId: 'n2', createdAt: '' },
+    ];
+    expect(getFolderDepth(null, all)).toBe(0);
+    expect(getFolderDepth('n1', all)).toBe(1);
+    expect(getFolderDepth('n2', all)).toBe(2);
+    expect(getFolderDepth('n3', all)).toBe(3);
   });
 
   it('getFolderById() calls GET /api/v1/folders/:id', async () => {
@@ -73,7 +82,7 @@ describe('FoldersService (PostgreSQL RBAC Folders & Sharing)', () => {
     expect(folder.itemCount).toBe(15);
   });
 
-  it('createFolder() calls POST /api/v1/folders and stores created folder', async () => {
+  it('createFolder() calls POST /api/v1/folders and returns normalized folder', async () => {
     const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValue({
       folder: {
         id: 'fld-new',
@@ -101,21 +110,9 @@ describe('FoldersService (PostgreSQL RBAC Folders & Sharing)', () => {
       isPrivate: true,
     });
     expect(created.id).toBe('fld-new');
-    expect(storageService.getFolders()).toHaveLength(1);
   });
 
-  it('updateFolder() calls PATCH /api/v1/folders/:id and updates cached folder', async () => {
-    storageService.saveFolders([
-      {
-        id: 'fld-edit',
-        name: 'Antiguo Nombre',
-        type: 'image',
-        color: '#3b82f6',
-        isPrivate: false,
-        createdAt: '2026-01-01T00:00:00.000Z',
-      },
-    ]);
-
+  it('updateFolder() calls PATCH /api/v1/folders/:id', async () => {
     const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValue({
       folder: {
         id: 'fld-edit',
@@ -141,19 +138,9 @@ describe('FoldersService (PostgreSQL RBAC Folders & Sharing)', () => {
       isPrivate: true,
     });
     expect(updated.name).toBe('Nuevo Nombre');
-    expect(storageService.getFolders()[0]?.name).toBe('Nuevo Nombre');
   });
 
-  it('deleteFolder() calls DELETE /api/v1/folders/:id and removes from cache', async () => {
-    storageService.saveFolders([
-      {
-        id: 'fld-del',
-        name: 'Temporal',
-        type: 'table',
-        createdAt: '2026-01-01T00:00:00.000Z',
-      },
-    ]);
-
+  it('deleteFolder() calls DELETE /api/v1/folders/:id', async () => {
     const delSpy = vi.spyOn(apiClient, 'delete').mockResolvedValue({
       message: 'Eliminada',
       deletedCount: 2,
@@ -162,7 +149,6 @@ describe('FoldersService (PostgreSQL RBAC Folders & Sharing)', () => {
     const res = await foldersService.deleteFolder('fld-del');
     expect(delSpy).toHaveBeenCalledWith('/api/v1/folders/fld-del');
     expect(res.deletedCount).toBe(2);
-    expect(storageService.getFolders()).toHaveLength(0);
   });
 
   it('moveImageToFolder() and moveTableToFolder() call PATCH endpoints', async () => {
@@ -226,4 +212,3 @@ describe('FoldersService (PostgreSQL RBAC Folders & Sharing)', () => {
     expect(revoked.revoked).toBe(true);
   });
 });
-

@@ -3,9 +3,10 @@ import { imagesService } from './imagesService';
 import { apiClient } from './apiClient';
 import { storageService } from './storageService';
 
-describe('imagesService — Module 14 (WebP Variants, Rename, Hot-Swap & Pagination)', () => {
+describe('imagesService — WebP Variants, Rename, Hot-Swap & Pagination (v2 Stateless)', () => {
   beforeEach(() => {
     localStorage.clear();
+    storageService.resetCache();
     vi.restoreAllMocks();
   });
 
@@ -34,21 +35,13 @@ describe('imagesService — Module 14 (WebP Variants, Rename, Hot-Swap & Paginat
     );
   });
 
-  it('renames an image in-place via PATCH /api/v1/images/:id and updates local storage', async () => {
-    storageService.addImage({
-      id: 'img-10',
-      shortCode: 'sc10',
-      originalName: 'antiguo.png',
-      mimeType: 'image/png',
-      sizeBytes: 1024,
-      url: 'http://localhost:3000/i/sc10',
-      createdAt: '2026-10-30T10:00:00Z',
-    });
-
+  it('renames an image in-place via PATCH /api/v1/images/:id', async () => {
     const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValue({
       id: 'img-10',
       shortCode: 'sc10',
       originalName: 'nuevo-banner.png',
+      mimeType: 'image/png',
+      sizeBytes: 1024,
       updatedAt: '2026-10-30T11:00:00Z',
     });
 
@@ -58,22 +51,10 @@ describe('imagesService — Module 14 (WebP Variants, Rename, Hot-Swap & Paginat
       originalName: 'nuevo-banner.png',
     });
     expect(updated.originalName).toBe('nuevo-banner.png');
-    expect(storageService.getImages()[0].originalName).toBe('nuevo-banner.png');
+    expect(updated.shortCode).toBe('sc10');
   });
 
-  it('replaces image binary via PUT /api/v1/images/:id preserving shortCode and updating metadata & urlWithVersion', async () => {
-    storageService.addImage({
-      id: 'img-20',
-      shortCode: 'keep777',
-      originalName: 'hero.jpg',
-      mimeType: 'image/jpeg',
-      sizeBytes: 15000,
-      width: 800,
-      height: 600,
-      url: 'http://localhost:3000/i/keep777',
-      createdAt: '2026-10-30T10:00:00Z',
-    });
-
+  it('replaces image binary via PUT /api/v1/images/:id preserving shortCode and updating urlWithVersion', async () => {
     const newFile = new File(['new-webp-binary-content'], 'hero-v2.webp', {
       type: 'image/webp',
     });
@@ -103,7 +84,7 @@ describe('imagesService — Module 14 (WebP Variants, Rename, Hot-Swap & Paginat
     expect(replaced.urlWithVersion).toContain('?v=1730339999000');
   });
 
-  it('fetches paginated remote images with page, limit, and folderId query params', async () => {
+  it('listImages fetches paginated remote images with page, limit, and folderId query params', async () => {
     const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({
       images: [
         {
@@ -126,7 +107,7 @@ describe('imagesService — Module 14 (WebP Variants, Rename, Hot-Swap & Paginat
       totalPages: 4,
     });
 
-    const items = await imagesService.fetchRemoteImages({
+    const { items, meta } = await imagesService.listImages({
       page: 2,
       limit: 12,
       folderId: 'folder-abc',
@@ -136,7 +117,7 @@ describe('imagesService — Module 14 (WebP Variants, Rename, Hot-Swap & Paginat
     expect(items).toHaveLength(1);
     expect(items[0].width).toBe(640);
     expect(items[0].height).toBe(480);
-    expect(imagesService.getLastPaginationMeta()).toEqual({
+    expect(meta).toEqual({
       total: 45,
       page: 2,
       limit: 12,
@@ -144,4 +125,3 @@ describe('imagesService — Module 14 (WebP Variants, Rename, Hot-Swap & Paginat
     });
   });
 });
-

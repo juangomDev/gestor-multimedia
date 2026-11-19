@@ -69,6 +69,10 @@ export interface FormDefinition {
   externalTargetUrl?: string | null;
   /** Total de respuestas/entradas registradas */
   entriesCount?: number;
+  /** Conteo anidado devuelto directamente por Prisma en `GET /api/v1/forms` */
+  _count?: {
+    entries?: number;
+  };
   /** Fecha de creación en formato ISO 8601 */
   createdAt: string;
   /** Fecha de última actualización */

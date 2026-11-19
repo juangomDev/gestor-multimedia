@@ -1,0 +1,91 @@
+.bar {
+  position: sticky;
+  bottom: var(--space-4);
+  z-index: 30;
+  margin: var(--space-4) auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-radius: var(--radius-surface);
+  background-color: var(--paper-sheet);
+  box-shadow: var(--elevation-dialog);
+  border: 1px solid var(--accent-ink-border);
+  max-width: 720px;
+  width: 100%;
+  animation: bar-rise var(--duration-popover) var(--ease-out-quint);
+}
+
+.countGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.countText {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.reportStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.failedList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.failedItem {
+  padding: 8px 10px;
+  border-radius: var(--radius-control);
+  background-color: var(--status-danger-bg);
+  border: 1px solid var(--status-danger-border);
+  font-size: var(--text-xs);
+  color: var(--status-danger);
+}
+
+.failedId {
+  font-family: var(--font-code);
+  font-weight: 600;
+}
+
+@keyframes bar-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+  }
+}

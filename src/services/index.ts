@@ -16,4 +16,7 @@ export { apiKeysService, ApiKeysService } from './apiKeysService';
 export { storageStatsService, StorageStatsService } from './storageStatsService';
 export { pdfsService, PdfsService } from './pdfsService';
 export { formsService, FormsService } from './formsService';
+export { chatService, ChatService } from './chatService';
+export { notificationsService, NotificationsService } from './notificationsService';
+export { connectNotificationsStream, parseSseBlock } from './notificationsStream';
 export { storageService, DEFAULT_CONFIG } from './storageService';

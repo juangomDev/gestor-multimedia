@@ -1,14 +1,27 @@
 import { storageService } from '../storageService';
 import type { ApiError } from './apiError';
+import type { Role } from '../../types/auth';
+
+interface RawRefreshPayload {
+  token?: string;
+  accessToken?: string;
+  user?: {
+    id?: string;
+    username?: string;
+    role?: Role;
+    isActive?: boolean;
+    createdById?: string | null;
+  };
+}
 
 /**
- * Gestor de cola de refresco de token JWT y suscriptores de revocación de sesión (`401`).
- * Garantiza que múltiples peticiones concurrentes con token expirado disparen un único
- * llamado a `POST /api/v1/auth/refresh`.
+ * Gestor de cola única de refresco de token JWT y suscriptores de revocación de sesión (`401`).
+ * Garantiza que múltiples peticiones HTTP o conexiones SSE concurrentes con token expirado
+ * disparen un único llamado a `POST /api/v1/auth/refresh`.
  */
 export class TokenRefreshQueue {
   private isRefreshing = false;
-  private refreshSubscribers: Array<(token: string | null, error?: any) => void> = [];
+  private refreshSubscribers: Array<(token: string | null, error?: unknown) => void> = [];
   private unauthorizedListeners: Array<() => void> = [];
 
   /**
@@ -28,9 +41,9 @@ export class TokenRefreshQueue {
    * Notifica a todos los listeners registrados que la sesión ya no es válida.
    */
   private notifyUnauthorized(): void {
-    this.unauthorizedListeners.forEach((l) => {
+    this.unauthorizedListeners.forEach((listener) => {
       try {
-        l();
+        listener();
       } catch (err) {
         console.warn('Error in onUnauthorized listener:', err);
       }
@@ -38,40 +51,35 @@ export class TokenRefreshQueue {
   }
 
   /**
-   * Añade un callback a la cola de peticiones en espera de un nuevo token.
+   * Añade un callback a la cola de operaciones en espera de un nuevo access token.
    */
-  private subscribeTokenRefresh(cb: (token: string | null, error?: any) => void): void {
+  private subscribeTokenRefresh(cb: (token: string | null, error?: unknown) => void): void {
     this.refreshSubscribers.push(cb);
   }
 
   /**
-   * Resuelve o rechaza todas las peticiones encoladas tras finalizar el intento de refresco.
+   * Resuelve o rechaza todas las operaciones encoladas tras finalizar el intento de refresco.
    */
-  private onRefreshed(token: string | null, error?: any): void {
+  private onRefreshed(token: string | null, error?: unknown): void {
     this.refreshSubscribers.forEach((cb) => cb(token, error));
     this.refreshSubscribers = [];
   }
 
   /**
-   * Coordina la renovación del token JWT contra `/api/v1/auth/refresh` y reintenta la operación original.
+   * Ejecuta o comparte el refresco único contra `POST /api/v1/auth/refresh` usando cookies HttpOnly.
+   * Actualiza la sesión local con el nuevo JWT (`token` o `accessToken`) y notifica en caso de fallo.
    *
    * @param refreshUrl URL absoluta del endpoint de refresco.
-   * @param retryOperation Función que reintenta la petición original con `_retry: true`.
-   * @param originalError Error `401` original para propagar si la renovación falla.
-   * @returns Promesa con el resultado de la operación reintentada.
+   * @returns Promesa con el nuevo access token JWT emitido.
    */
-  public async handleTokenRefresh<T>(
-    refreshUrl: string,
-    retryOperation: () => Promise<T>,
-    originalError: ApiError
-  ): Promise<T> {
+  public async refreshToken(refreshUrl: string): Promise<string> {
     if (this.isRefreshing) {
-      return new Promise<T>((resolve, reject) => {
+      return new Promise<string>((resolve, reject) => {
         this.subscribeTokenRefresh((newToken, error) => {
           if (error || !newToken) {
-            reject(originalError);
+            reject(error ?? new Error('Token refresh failed'));
           } else {
-            resolve(retryOperation());
+            resolve(newToken);
           }
         });
       });
@@ -86,14 +94,15 @@ export class TokenRefreshQueue {
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({}),
       });
 
       if (!refreshResponse.ok) {
         throw new Error(`Refresh failed with status ${refreshResponse.status}`);
       }
 
-      const refreshData = await refreshResponse.json();
-      const newToken = refreshData.token;
+      const refreshData = (await refreshResponse.json()) as RawRefreshPayload;
+      const newToken = refreshData.token ?? refreshData.accessToken;
       if (!newToken) {
         throw new Error('Refresh response missing token');
       }
@@ -105,15 +114,34 @@ export class TokenRefreshQueue {
 
       this.isRefreshing = false;
       this.onRefreshed(newToken);
-
-      return retryOperation();
+      return newToken;
     } catch (refreshErr) {
       this.isRefreshing = false;
       this.onRefreshed(null, refreshErr);
       storageService.saveSession(null);
       this.notifyUnauthorized();
+      throw refreshErr;
+    }
+  }
+
+  /**
+   * Coordina la renovación del token JWT ante una respuesta `401` y reintenta la operación original.
+   *
+   * @param refreshUrl URL absoluta del endpoint de refresco.
+   * @param retryOperation Función que reintenta la petición original con `_retry: true`.
+   * @param originalError Error `401` original para propagar si la renovación falla.
+   * @returns Promesa con el resultado de la operación reintentada.
+   */
+  public async handleTokenRefresh<T>(
+    refreshUrl: string,
+    retryOperation: () => Promise<T>,
+    originalError: ApiError
+  ): Promise<T> {
+    try {
+      await this.refreshToken(refreshUrl);
+      return retryOperation();
+    } catch {
       throw originalError;
     }
   }
 }
-

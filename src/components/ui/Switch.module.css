@@ -1,0 +1,51 @@
+.root {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  background-color: var(--control-bg);
+  border: 1px solid var(--control-border);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color var(--duration-press) var(--ease-out-quint),
+    border-color var(--duration-press) var(--ease-out-quint);
+}
+
+/* Área táctil accesible >= 40px */
+.root::after {
+  content: '';
+  position: absolute;
+  inset: -10px -4px;
+}
+
+.root[data-state='checked'] {
+  background-color: var(--accent-ink);
+  border-color: var(--accent-ink);
+}
+
+.root:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.root:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.thumb {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-pill);
+  background-color: var(--paper-sheet);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transform: translateX(2px);
+  transition: transform var(--duration-popover) var(--ease-out-quint);
+}
+
+.root[data-state='checked'] .thumb {
+  transform: translateX(18px);
+  background-color: var(--accent-on-solid);
+}

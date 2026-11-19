@@ -1230,7 +1230,7 @@ export interface paths {
         };
         /**
          * Consulta JSON paginada o descarga de dataset por shortCode
-         * @description Si incluye query param ?download=true, descarga directamente el archivo original (.csv o .xlsx). Si incluye ?raw=true o se solicita con Accept-Encoding: gzip sin paginar, entrega el stream precalculado ultra-rápido (2 ms). De lo contrario, entrega los datos en formato JSON paginado con esquema de columnas y metadatos.
+         * @description Si incluye query param ?download=true, descarga directamente el archivo original (.csv, .xlsx o .json). Si incluye ?raw=true o se solicita con Accept-Encoding: gzip sin paginar, entrega el stream precalculado ultra-rápido (2 ms). De lo contrario, entrega los datos en formato JSON paginado con esquema de columnas y metadatos.
          */
         get: {
             parameters: {
@@ -1455,8 +1455,8 @@ export interface paths {
         };
         put?: never;
         /**
-         * Subir y procesar dataset tabular (CSV o Excel)
-         * @description Ingesta multipart/form-data de archivos CSV o XLSX. Inspecciona cabeceras para deducir columnas y total de filas. Se asigna a General si no se provee folderId.
+         * Subir y procesar dataset tabular (CSV, Excel o JSON)
+         * @description Ingesta multipart/form-data de archivos CSV, XLSX o JSON. Inspecciona cabeceras para deducir columnas y total de filas. Se asigna a General si no se provee folderId.
          */
         post: {
             parameters: {
@@ -1788,7 +1788,7 @@ export interface paths {
         get?: never;
         /**
          * Reemplazar en caliente dataset tabular (Hot-Swap)
-         * @description Sustituye físicamente el archivo .csv o .xlsx conservando intactos su id, shortCode, folderId y URL pública (/t/:short_code). Regenera el artefacto .data.json.gz y actualiza metadataCard e invalida la caché del Chat.
+         * @description Sustituye físicamente el archivo .csv, .xlsx o .json conservando intactos su id, shortCode, folderId y URL pública (/t/:short_code). Regenera el artefacto .data.json.gz y actualiza metadataCard e invalida la caché del Chat.
          */
         put: {
             parameters: {
@@ -5488,6 +5488,11 @@ export interface paths {
                             answer: string;
                             /** @description Indica si los datos existen en el sistema */
                             foundInSystem: boolean;
+                            /**
+                             * @description Indica si la respuesta fue generada/sintetizada por la IA (true) o por el sistema determinista / circuit breaker (false)
+                             * @default false
+                             */
+                            usedAi: boolean;
                             /** @description Tablas utilizadas como fuentes para la respuesta */
                             sources: {
                                 /** Format: uuid */
@@ -5638,6 +5643,11 @@ export interface paths {
                             answer: string;
                             /** @description Indica si los datos existen en el sistema */
                             foundInSystem: boolean;
+                            /**
+                             * @description Indica si la respuesta fue generada/sintetizada por la IA (true) o por el sistema determinista / circuit breaker (false)
+                             * @default false
+                             */
+                            usedAi: boolean;
                             /** @description Tablas utilizadas como fuentes para la respuesta */
                             sources: {
                                 /** Format: uuid */

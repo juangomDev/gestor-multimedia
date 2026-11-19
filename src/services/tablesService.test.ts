@@ -3,13 +3,14 @@ import { tablesService } from './tablesService';
 import { apiClient } from './apiClient';
 import { storageService } from './storageService';
 
-describe('tablesService', () => {
+describe('tablesService (v2 Stateless)', () => {
   beforeEach(() => {
     localStorage.clear();
+    storageService.resetCache();
     vi.restoreAllMocks();
   });
 
-  it('uploads valid CSV file, stores it, and returns TableItem', async () => {
+  it('uploads valid CSV file and returns normalized TableItem without localStorage writes', async () => {
     const file = new File(['id,nombre\n1,Alpha'], 'metricas.csv', { type: 'text/csv' });
 
     const mockResponse = {
@@ -33,7 +34,7 @@ describe('tablesService', () => {
     expect(item.columns).toEqual(['id', 'nombre']);
     expect(item.folderId).toBe('folder-tables-1');
     expect(postSpy).toHaveBeenCalledTimes(1);
-    expect(storageService.getTables()).toHaveLength(1);
+    expect(localStorage.getItem('dokploy_tables')).toBeNull();
   });
 
   it('queries paginated table data', async () => {
@@ -63,7 +64,7 @@ describe('tablesService', () => {
     expect(tablesService.getDownloadUrl('tab111')).toBe('http://localhost:3000/t/tab111?download=true');
   });
 
-  it('fetchRemoteTables fetches tables from backend and syncs with storageService', async () => {
+  it('fetchRemoteTables fetches tables from backend', async () => {
     const mockList = {
       tables: [
         {
@@ -88,7 +89,6 @@ describe('tablesService', () => {
     expect(items).toHaveLength(1);
     expect(items[0].shortCode).toBe('rmtTab888');
     expect(items[0].rowCount).toBe(42);
-    expect(storageService.getTables()).toHaveLength(1);
   });
 
   it('normalizes remote table URLs to client baseUrl even if backend returns internal IP', async () => {

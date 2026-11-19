@@ -4,56 +4,22 @@ import type {
   ApiChatAskInput,
   ApiChatSuggestionsResponse,
 } from '../types/api';
+import type {
+  ChatSource,
+  ChatChartData,
+  ChatResponse,
+  ChatMessage,
+} from '../types/chat';
+
+export type { ChatSource, ChatChartData, ChatResponse, ChatMessage };
 
 /**
- * Fuente documental citada por el motor RAG tabular o documental en una respuesta analítica.
- */
-export interface ChatSource {
-  tableId?: string;
-  tableName?: string;
-  pdfId?: string;
-  pdfName?: string;
-  shortCode: string;
-  title?: string;
-  pages?: number[];
-}
-
-/**
- * Estructura de datos numéricos pre-calculados por el backend para visualización gráfica.
- */
-export type ChatChartData = NonNullable<ApiChatAnswer['chartData']>;
-
-/**
- * Respuesta normalizada de una consulta analítica al motor RAG tabular.
- */
-export type ChatResponse = ApiChatAnswer;
-
-/**
- * Mensaje individual dentro del hilo de conversación del Asistente Analítico.
- */
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-  foundInSystem?: boolean;
-  sources?: ChatSource[];
-  chartData?: ChatChartData | null;
-  contextLabel?: string;
-}
-
-/**
- * Servicio de comunicación con el motor de Asistente Analítico Inteligente (RAG Tabular)
- * de `monolith-backend`. Cubre consultas internas con RBAC, sugerencias dinámicas y sandbox público.
+ * Servicio sin estado de comunicación con el motor Data Chat RAG (`monolith-backend` Fase 21).
+ * Cubre consultas internas con RBAC, sugerencias públicas, sandbox público e indicador `usedAi`.
  */
 export class ChatService {
   /**
-   * Construye el payload limpio para `POST /api/v1/chat/ask` o `POST /api/v1/public/chat/ask`.
-   *
-   * @param question Pregunta en lenguaje natural formulada por el usuario.
-   * @param folderId UUID opcional de carpeta para acotar el contexto.
-   * @param shortCode Código corto opcional de una tabla específica.
-   * @returns Cuerpo de petición validado.
+   * Construye el payload validado para `POST /api/v1/chat/ask` o `POST /api/v1/public/chat/ask`.
    */
   private buildAskPayload(
     question: string,
@@ -76,15 +42,13 @@ export class ChatService {
   }
 
   /**
-   * Normaliza la respuesta del servidor garantizando arreglos seguros en `sources` y `chartData`.
-   *
-   * @param raw Respuesta cruda devuelta por el endpoint de chat.
-   * @returns Objeto `ChatResponse` normalizado.
+   * Normaliza la respuesta del servidor garantizando `usedAi: boolean`, `sources` y `chartData`.
    */
   private normalizeResponse(raw: Partial<ApiChatAnswer> | null | undefined): ChatResponse {
     return {
       answer: raw?.answer || 'No se recibió respuesta del asistente analítico.',
       foundInSystem: raw?.foundInSystem ?? false,
+      usedAi: Boolean(raw?.usedAi),
       sources: Array.isArray(raw?.sources) ? raw.sources : [],
       chartData:
         raw?.chartData &&
@@ -102,13 +66,12 @@ export class ChatService {
   }
 
   /**
-   * Realiza una consulta analítica privada autenticada con control RBAC (`POST /api/v1/chat/ask`).
-   * Respeta la jerarquía de roles (ADMIN ve todas, MANAGER propias/públicas/compartidas, COLLABORATOR compartidas).
+   * Realiza una consulta analítica autenticada con control RBAC (`POST /api/v1/chat/ask`).
    *
-   * @param question Pregunta analítica sobre los datos tabulares.
-   * @param folderId UUID opcional de carpeta para filtrar el alcance.
-   * @param shortCode ShortCode opcional de dataset para consultar una única tabla.
-   * @returns Respuesta fundamentada con fuentes citadas y datos de gráfico opcionales.
+   * @param question Pregunta analítica en lenguaje natural.
+   * @param folderId UUID opcional de carpeta para acotar el alcance.
+   * @param shortCode ShortCode opcional para consultar una única tabla o documento.
+   * @returns Respuesta normalizada incluyendo `usedAi: boolean`, fuentes y gráfico opcional.
    */
   async askInternal(
     question: string,
@@ -121,11 +84,11 @@ export class ChatService {
   }
 
   /**
-   * Obtiene la lista de preguntas recomendadas generadas a partir de las Fichas Técnicas
-   * de las tablas públicas disponibles (`GET /api/v1/public/chat/suggestions`).
+   * Obtiene preguntas sugeridas dinámicas generadas a partir de recursos públicos
+   * (`GET /api/v1/public/chat/suggestions`).
    *
-   * @param folderId UUID opcional de carpeta pública para acotar las sugerencias.
-   * @returns Arreglo de preguntas sugeridas listas para mostrar como chips interactivos.
+   * @param folderId UUID opcional de carpeta pública.
+   * @returns Lista de preguntas sugeridas.
    */
   async getPublicSuggestions(folderId?: string | null): Promise<string[]> {
     const params = new URLSearchParams();
@@ -145,12 +108,12 @@ export class ChatService {
 
   /**
    * Realiza una consulta analítica pública sin autenticación (`POST /api/v1/public/chat/ask`),
-   * diseñada para widgets web embebidos y restringida exclusivamente a carpetas públicas (con rate-limit).
+   * restringida a carpetas compartidas con `ai_manager` (con rate-limit e indicador `usedAi`).
    *
-   * @param question Pregunta sobre los datasets públicos.
+   * @param question Pregunta en lenguaje natural.
    * @param folderId UUID opcional de carpeta pública.
-   * @param shortCode ShortCode opcional de tabla pública.
-   * @returns Respuesta analítica pública con fuentes y gráficos.
+   * @param shortCode ShortCode opcional de recurso público.
+   * @returns Respuesta normalizada incluyendo `usedAi: boolean`, citas y gráfico opcional.
    */
   async askPublic(
     question: string,
@@ -165,5 +128,5 @@ export class ChatService {
   }
 }
 
+/** Instancia singleton del servicio de Data Chat RAG. */
 export const chatService = new ChatService();
-

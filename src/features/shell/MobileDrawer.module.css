@@ -1,0 +1,77 @@
+.mobileBar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  height: var(--topbar-height);
+  padding: 0 var(--space-3);
+  background-color: var(--paper-canvas);
+  border-bottom: 1px solid var(--hairline);
+  flex-shrink: 0;
+}
+
+.leftGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.brandText {
+  font-size: var(--text-md);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink-primary);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--paper-overlay);
+  z-index: 60;
+  animation: fade-in var(--duration-dialog) var(--ease-out-quint);
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(280px, 84vw);
+  z-index: 61;
+  background-color: var(--paper-canvas);
+  box-shadow: var(--elevation-dialog);
+  display: flex;
+  flex-direction: column;
+  animation: drawer-slide-in var(--duration-dialog) var(--ease-out-quint);
+}
+
+.drawerClose {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+}
+
+@keyframes drawer-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 899px) {
+  .mobileBar {
+    display: flex;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .drawer {
+    animation: none;
+  }
+}

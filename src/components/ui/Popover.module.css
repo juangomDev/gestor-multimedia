@@ -1,0 +1,21 @@
+.content {
+  background-color: var(--paper-elevated);
+  color: var(--ink-primary);
+  border-radius: var(--radius-surface);
+  box-shadow: var(--elevation-popover);
+  padding: var(--space-3);
+  z-index: 105;
+  transform-origin: var(--radix-popover-content-transform-origin);
+}
+
+.content:focus {
+  outline: none;
+}
+
+.content[data-state='open'] {
+  animation: editorialSurfaceIn var(--duration-popover) var(--ease-out-quint);
+}
+
+.content[data-state='closed'] {
+  animation: editorialSurfaceOut var(--duration-press) var(--ease-out-quint);
+}

@@ -2,27 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { tablesService } from './tablesService';
 import { imagesService } from './imagesService';
 import { apiClient } from './apiClient';
-import { storageService } from './storageService';
 
-describe('tablesService.mutation & search (Módulo 19)', () => {
+describe('tablesService.mutation & search (v2 Stateless)', () => {
   beforeEach(() => {
-    localStorage.clear();
     vi.restoreAllMocks();
   });
 
-  it('renameTable sends PATCH /api/v1/tables/:id and updates local storage', async () => {
-    const existingTable = {
-      id: 'tbl-123',
-      shortCode: 'tab1234567',
-      tableName: 'antiguo.csv',
-      rowCount: 10,
-      columns: ['a', 'b'],
-      sizeBytes: 1024,
-      url: 'http://localhost:3000/t/tab1234567',
-      createdAt: '2026-11-01T00:00:00Z',
-    };
-    storageService.saveTables([existingTable]);
-
+  it('renameTable sends PATCH /api/v1/tables/:id and returns updated TableItem', async () => {
     const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValue({
       id: 'tbl-123',
       shortCode: 'tab1234567',
@@ -39,23 +25,10 @@ describe('tablesService.mutation & search (Módulo 19)', () => {
       tableName: 'nuevo_balance.xlsx',
     });
     expect(result.tableName).toBe('nuevo_balance.xlsx');
-    const stored = storageService.getTables().find((t) => t.id === 'tbl-123');
-    expect(stored?.tableName).toBe('nuevo_balance.xlsx');
+    expect(result.shortCode).toBe('tab1234567');
   });
 
   it('replaceTable sends PUT /api/v1/tables/:id with FormData (Hot-Swap)', async () => {
-    const existingTable = {
-      id: 'tbl-123',
-      shortCode: 'tab1234567',
-      tableName: 'dataset.csv',
-      rowCount: 10,
-      columns: ['id'],
-      sizeBytes: 500,
-      url: 'http://localhost:3000/t/tab1234567',
-      createdAt: '2026-11-01T00:00:00Z',
-    };
-    storageService.saveTables([existingTable]);
-
     const putSpy = vi.spyOn(apiClient, 'put').mockResolvedValue({
       id: 'tbl-123',
       shortCode: 'tab1234567',
@@ -102,4 +75,3 @@ describe('tablesService.mutation & search (Módulo 19)', () => {
     expect(getSpy).toHaveBeenCalledWith(expect.stringContaining('search=banner_header'));
   });
 });
-

@@ -3,36 +3,29 @@ import { authService } from './authService';
 import { apiClient } from './apiClient';
 import { storageService } from './storageService';
 
-describe('authService — Extended (Módulo 18: sesión local, guards y casos borde)', () => {
+describe('authService — v2 Real Authentication & Role Guards', () => {
   beforeEach(() => {
     localStorage.clear();
+    storageService.resetCache();
     vi.restoreAllMocks();
   });
 
-  it('login sends skipAuth + credentials include and persists the session', async () => {
-    const session = { token: 'jwt-123', user: { id: 'u1', username: 'ana', role: 'ADMIN' as const } };
-    const spy = vi.spyOn(apiClient, 'post').mockResolvedValue(session);
+  it('login sends skipAuth + credentials include, normalizes accessToken, and persists session', async () => {
+    const spy = vi.spyOn(apiClient, 'post').mockResolvedValue({
+      accessToken: 'jwt-real-123',
+      user: { id: 'u1', username: 'ana', role: 'ADMIN' as const },
+    });
 
-    await authService.login({ username: 'ana', password: 'secret' });
+    const session = await authService.login({ username: 'ana', password: 'secret' });
 
     expect(spy).toHaveBeenCalledWith(
       '/api/v1/auth/login',
       { username: 'ana', password: 'secret' },
       expect.objectContaining({ skipAuth: true, credentials: 'include' })
     );
-    expect(storageService.getToken()).toBe('jwt-123');
+    expect(session.token).toBe('jwt-real-123');
+    expect(storageService.getToken()).toBe('jwt-real-123');
     expect(authService.isAuthenticated()).toBe(true);
-  });
-
-  it('loginAsLocalSession stores a local session without contacting the backend', () => {
-    const spy = vi.spyOn(apiClient, 'post');
-    authService.loginAsLocalSession({
-      token: 'dev_jwt_admin_master_token',
-      user: { id: 'local', username: 'admin', role: 'ADMIN' },
-    });
-
-    expect(spy).not.toHaveBeenCalled();
-    expect(authService.getSession()?.user.username).toBe('admin');
     expect(authService.isAdmin()).toBe(true);
   });
 
@@ -40,36 +33,48 @@ describe('authService — Extended (Módulo 18: sesión local, guards y casos bo
     expect(authService.isAdmin()).toBe(false);
     expect(authService.isAuthenticated()).toBe(false);
 
-    authService.loginAsLocalSession({
-      token: 'mock-manager',
+    storageService.saveSession({
+      token: 'jwt-manager',
       user: { id: 'm1', username: 'mgr', role: 'MANAGER' },
     });
     expect(authService.isAdmin()).toBe(false);
+    expect(authService.isAuthenticated()).toBe(true);
   });
 
-  it('refresh does not overwrite the stored token when the backend returns no token', async () => {
-    authService.loginAsLocalSession({
+  it('refresh supports both token and accessToken and preserves existing token if empty', async () => {
+    storageService.saveSession({
       token: 'old-token',
       user: { id: 'u1', username: 'ana', role: 'COLLABORATOR' },
     });
-    vi.spyOn(apiClient, 'post').mockResolvedValue({});
 
+    vi.spyOn(apiClient, 'post').mockResolvedValueOnce({});
     await authService.refresh();
     expect(storageService.getToken()).toBe('old-token');
+
+    vi.spyOn(apiClient, 'post').mockResolvedValueOnce({ accessToken: 'rotated-jwt' });
+    const refreshed = await authService.refresh();
+    expect(refreshed.token).toBe('rotated-jwt');
+    expect(storageService.getToken()).toBe('rotated-jwt');
   });
 
-  it('logout with a local/mock token clears the session without calling the backend', async () => {
-    authService.loginAsLocalSession({
-      token: 'dev_jwt_admin_master_token',
-      user: { id: 'local', username: 'admin', role: 'ADMIN' },
+  it('logout clears session and notifies POST /api/v1/auth/logout with Bearer token', async () => {
+    storageService.saveSession({
+      token: 'real-jwt-999',
+      user: { id: 'u1', username: 'admin', role: 'ADMIN' },
     });
-    const spy = vi.spyOn(apiClient, 'post');
+    const spy = vi.spyOn(apiClient, 'post').mockResolvedValue({ message: 'Logged out' });
 
     await authService.logout();
 
-    expect(spy).not.toHaveBeenCalled();
+    expect(spy).toHaveBeenCalledWith(
+      '/api/v1/auth/logout',
+      undefined,
+      expect.objectContaining({
+        credentials: 'include',
+        headers: { Authorization: 'Bearer real-jwt-999' },
+      })
+    );
     expect(authService.getSession()).toBeNull();
     expect(authService.isAuthenticated()).toBe(false);
   });
 });
-

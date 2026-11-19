@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local agent skills, mockups & design notes
+.agents/
+skills-lock.json
+.superpowers/
+.interface-design/
+docs/superpowers/

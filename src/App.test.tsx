@@ -1,107 +1,68 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { App } from './App';
-import { healthService } from './services/healthService';
-import { imagesService } from './services/imagesService';
-import { tablesService } from './services/tablesService';
 import { storageService } from './services/storageService';
+import { healthService } from './services/healthService';
+import { authService } from './services/authService';
+import { foldersService } from './services/foldersService';
+import { notificationsService } from './services/notificationsService';
+import * as notificationsStream from './services/notificationsStream';
 
-describe('App Root Integration', () => {
+describe('App v2 Root Integration (BrowserRouter + AuthGuard)', () => {
   beforeEach(() => {
     localStorage.clear();
+    storageService.resetCache();
     vi.restoreAllMocks();
-
-    storageService.saveSession({
-      token: 'mock-admin-token',
-      user: { id: 'admin-1', username: 'admin', role: 'ADMIN' },
-    });
+    window.history.pushState({}, '', '/');
 
     vi.spyOn(healthService, 'checkHealth').mockResolvedValue({
       status: 'ok',
       db: 'up',
       storage: 'writable',
-      timestamp: '2026-10-28T18:00:00Z',
+      timestamp: '2026-11-19T00:00:00Z',
+      latencyMs: 12,
     });
-    vi.spyOn(imagesService, 'fetchRemoteImages').mockResolvedValue([]);
-    vi.spyOn(tablesService, 'fetchRemoteTables').mockResolvedValue([]);
+    vi.spyOn(foldersService, 'fetchFolderTree').mockResolvedValue([]);
+    vi.spyOn(notificationsService, 'fetchUnreadCount').mockResolvedValue(0);
+    vi.spyOn(notificationsStream, 'connectNotificationsStream').mockReturnValue({
+      disconnect: vi.fn(),
+    });
   });
 
-  it('renders login view by default when unauthenticated (Auth Guard)', async () => {
-    localStorage.clear();
-    await act(async () => {
-      render(<App />);
-    });
+  it('redirige automáticamente a /login cuando no hay sesión autenticada (sin botón demo)', async () => {
+    render(<App />);
 
-    expect(screen.getByRole('heading', { name: /Iniciar Sesión/i })).toBeInTheDocument();
-    expect(screen.queryByTestId('images-view')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('login-page')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Iniciar sesión/i })).toBeInTheDocument();
+    expect(screen.queryByText(/Administrador Maestro/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Demo/i)).not.toBeInTheDocument();
   });
 
-  it('renders sidebar, and images view when authenticated', async () => {
-    await act(async () => {
-      render(<App />);
+  it('monta el AppShell v2 y el Explorador raíz cuando existe sesión real validada por /auth/me', async () => {
+    storageService.saveSession({
+      token: 'jwt-real-admin',
+      user: { id: 'adm-1', username: 'admin', role: 'ADMIN', isActive: true },
     });
-
-    expect(screen.getByText('Multimedia')).toBeInTheDocument();
-    expect(screen.getAllByText('Galería de Imágenes').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Data Studio (Tablas)')).toBeInTheDocument();
-    expect(screen.getByTestId('images-view')).toBeInTheDocument();
-    expect(screen.getByRole('status', { name: /Estado del sistema/i })).toBeInTheDocument();
-    expect(screen.getByText(/Versión v0\.30\.10/i)).toBeInTheDocument();
-  });
-
-  it('switches between Images View and Tables Catalog View', async () => {
-    await act(async () => {
-      render(<App />);
+    vi.spyOn(authService, 'getMe').mockResolvedValue({
+      user: { id: 'adm-1', username: 'admin', role: 'ADMIN', isActive: true },
     });
+    vi.spyOn(foldersService, 'fetchFolderTree').mockResolvedValue([
+      {
+        id: 'fld-shared',
+        name: 'shared',
+        type: 'container',
+        parentId: null,
+        isSystem: true,
+        itemCount: 2,
+        createdAt: '2026-11-19T00:00:00Z',
+      },
+    ]);
 
-    const tablesTab = screen.getByRole('button', { name: /Data Studio \(Tablas\)/i });
+    render(<App />);
 
-    await act(async () => {
-      fireEvent.click(tablesTab);
-    });
-
-    expect(screen.getByTestId('tables-catalog-view')).toBeInTheDocument();
-  });
-
-  it('synchronizes remote images and tables on mount', async () => {
-    const fetchImgsSpy = vi.spyOn(imagesService, 'fetchRemoteImages').mockResolvedValue([]);
-    const fetchTabsSpy = vi.spyOn(tablesService, 'fetchRemoteTables').mockResolvedValue([]);
-
-    await act(async () => {
-      render(<App />);
-    });
-
-    expect(fetchImgsSpy).toHaveBeenCalledTimes(1);
-    expect(fetchTabsSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('navigates to Settings & API Tools view without modal dialogs', async () => {
-    await act(async () => {
-      render(<App />);
-    });
-
-    const settingsBtn = screen.getByRole('button', { name: /Configuración API/i });
-
-    await act(async () => {
-      fireEvent.click(settingsBtn);
-    });
-
-    expect(screen.getByRole('heading', { name: /Configuración & Herramientas API/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Conexión con Monolith Backend/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Importación por ShortCode/i })).toBeInTheDocument();
-  });
-
-  it('logs out and remains in LoginView on refresh', async () => {
-    await act(async () => {
-      render(<App />);
-    });
-
-    const logoutBtn = screen.getByRole('button', { name: /Cerrar sesión/i });
-    await act(async () => {
-      fireEvent.click(logoutBtn);
-    });
-
-    expect(screen.getByRole('heading', { name: /Iniciar Sesión/i })).toBeInTheDocument();
-    expect(storageService.getSession()).toBeNull();
+    expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
+    expect(await screen.findByTestId('explorer-page')).toBeInTheDocument();
+    expect(await screen.findByText('shared')).toBeInTheDocument();
+    expect(screen.getByText('SISTEMA')).toBeInTheDocument();
   });
 });

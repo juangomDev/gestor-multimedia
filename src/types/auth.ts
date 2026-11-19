@@ -78,9 +78,11 @@ export interface LogoutResponse {
  */
 export interface RefreshResponse {
   token: string;
+  accessToken?: string;
   user?: {
     id?: string;
     username?: string;
     role?: Role;
+    isActive?: boolean;
   };
 }

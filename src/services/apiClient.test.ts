@@ -2,9 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { apiClient, ApiError } from './apiClient';
 import { storageService } from './storageService';
 
-describe('apiClient', () => {
+describe('apiClient (v2 — Bearer estricto sin X-API-Key por defecto)', () => {
   beforeEach(() => {
     localStorage.clear();
+    storageService.resetCache();
     vi.restoreAllMocks();
   });
 
@@ -12,9 +13,12 @@ describe('apiClient', () => {
     vi.unstubAllGlobals();
   });
 
-  it('makes GET request and parses JSON response with Authorization and X-API-Key', async () => {
-    storageService.saveConfig({ baseUrl: 'http://localhost:3000', apiKey: 'test-api-key' });
-    storageService.saveSession({ token: 'jwt.token.abc', user: { id: '1', username: 'test', role: 'COLLABORATOR' } });
+  it('makes GET request with Authorization Bearer, credentials include, and zero default X-API-Key', async () => {
+    storageService.saveConfig({ baseUrl: 'http://localhost:3000', apiKey: '' });
+    storageService.saveSession({
+      token: 'jwt.token.abc',
+      user: { id: '1', username: 'test', role: 'COLLABORATOR' },
+    });
 
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -31,13 +35,14 @@ describe('apiClient', () => {
 
     const [calledUrl, calledInit] = fetchMock.mock.calls[0];
     expect(calledUrl).toBe('http://localhost:3000/health');
+    expect(calledInit.credentials).toBe('include');
     const headers = calledInit.headers as Headers;
     expect(headers.get('Authorization')).toBe('Bearer jwt.token.abc');
-    expect(headers.get('X-API-Key')).toBe('test-api-key');
+    expect(headers.get('X-API-Key')).toBeNull();
     expect(headers.get('Content-Type')).toBe('application/json');
   });
 
-  it('handles 204 No Content', async () => {
+  it('handles 204 No Content on DELETE without empty Content-Type', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 204,
@@ -47,20 +52,33 @@ describe('apiClient', () => {
 
     const res = await apiClient.delete('/api/v1/images/123');
     expect(res).toBeUndefined();
+    const [, calledInit] = fetchMock.mock.calls[0];
+    expect((calledInit.headers as Headers).get('Content-Type')).toBeNull();
   });
 
-  it('throws ApiError with server error details on non-200 responses', async () => {
+  it('throws ApiError with RFC 7807 ProblemDetails on non-200 responses', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
       status: 401,
       statusText: 'Unauthorized',
-      headers: new Headers({ 'content-type': 'application/json' }),
-      json: async () => ({ error: 'UNAUTHORIZED', message: 'Credenciales inválidas' }),
+      headers: new Headers({ 'content-type': 'application/problem+json' }),
+      json: async () => ({
+        type: 'https://api.example.com/errors/unauthorized',
+        title: 'Unauthorized',
+        status: 401,
+        code: 'UNAUTHORIZED',
+        detail: 'Credenciales inválidas',
+      }),
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(apiClient.post('/api/v1/auth/login', { username: 'bad', password: 'bad' }))
-      .rejects.toThrow('Credenciales inválidas');
+    await expect(
+      apiClient.post('/api/v1/auth/login', { username: 'bad', password: 'bad' })
+    ).rejects.toMatchObject({
+      status: 401,
+      code: 'UNAUTHORIZED',
+      detail: 'Credenciales inválidas',
+    });
   });
 
   it('handles network failure gracefully', async () => {

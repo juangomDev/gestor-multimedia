@@ -1,64 +1,217 @@
+import {
+  readStoredTheme,
+  writeStoredTheme,
+  resetThemeStorageCache,
+  type ThemePreference,
+} from '../context/themeStorage';
 import type { ClientConfig } from '../types/api';
-import type { UserSession, User } from '../types/auth';
-import type { ImageItem, TableItem, FolderItem, PdfItem } from '../types/media';
+import type { UserSession } from '../types/auth';
 
-const STORAGE_KEYS = {
+/**
+ * Modo de visualización persistido para el explorador de carpetas y activos.
+ */
+export type ExplorerViewMode = 'grid' | 'list';
+
+/**
+ * Claves persistidas en `localStorage` en v2.
+ * Solo almacena configuración de conexión, sesión autenticada y preferencias de UI
+ * (cero entidades de negocio en `localStorage`).
+ */
+export const STORAGE_KEYS = {
   CONFIG: 'dokploy_config',
   AUTH_SESSION: 'dokploy_auth_session',
-  IMAGES: 'dokploy_images',
-  TABLES: 'dokploy_tables',
-  PDFS: 'dokploy_pdfs',
-  FOLDERS: 'dokploy_folders',
-  ACTIVE_FOLDER: 'dokploy_active_folder',
-  PROFILES: 'dokploy_created_profiles',
-};
+  VIEW_MODE: 'boveda_view_mode',
+} as const;
 
+/**
+ * Configuración base por defecto de conectividad hacia `monolith-backend`.
+ * En v2 no incluye ninguna `apiKey` hardcodeada.
+ */
 export const DEFAULT_CONFIG: ClientConfig = {
   baseUrl: import.meta.env?.VITE_API_BASE_URL || 'http://localhost:3000',
-  apiKey: import.meta.env?.VITE_API_KEY || 'mk_live_dev_test_api_key_12345',
+  apiKey: '',
 };
 
+const memoryCache = new Map<string, string | null>();
+let cacheListenersAttached = false;
+
+/**
+ * Registra listeners de invalidación de caché ante cambios entre pestañas o retorno de foco.
+ */
+function ensureCacheListeners(): void {
+  if (cacheListenersAttached || typeof window === 'undefined') return;
+  cacheListenersAttached = true;
+
+  window.addEventListener('storage', (event) => {
+    if (event.key) {
+      memoryCache.delete(event.key);
+    } else {
+      memoryCache.clear();
+    }
+  });
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        memoryCache.clear();
+      }
+    });
+  }
+}
+
+/**
+ * Lee una clave desde la caché en memoria (`Map`) con fallback perezoso a `localStorage`.
+ */
+function readCachedItem(key: string): string | null {
+  ensureCacheListeners();
+  if (!memoryCache.has(key)) {
+    try {
+      memoryCache.set(key, localStorage.getItem(key));
+    } catch {
+      return null;
+    }
+  }
+  return memoryCache.get(key) ?? null;
+}
+
+/**
+ * Escribe o elimina una clave en `localStorage` manteniendo sincronizada la caché en memoria.
+ */
+function writeCachedItem(key: string, value: string | null): void {
+  ensureCacheListeners();
+  if (value === null) {
+    memoryCache.set(key, null);
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Almacenamiento no disponible (entornos restringidos)
+    }
+    return;
+  }
+
+  memoryCache.set(key, value);
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Almacenamiento no disponible (entornos restringidos)
+  }
+}
+
+/**
+ * Servicio de persistencia ligera con caché en memoria (`js-cache-storage`).
+ * Gestiona exclusivamente URL de backend, sesión JWT, tema y modo de vista del explorador.
+ */
 export const storageService = {
-  // Config
+  /**
+   * Limpia la caché en memoria (`Map`) sin borrar el `localStorage` físico.
+   */
+  resetCache(): void {
+    memoryCache.clear();
+    resetThemeStorageCache();
+  },
+
+  /**
+   * Obtiene la configuración activa de conexión con `monolith-backend`.
+   *
+   * @returns Objeto `ClientConfig` con `baseUrl` y `apiKey` opcional.
+   */
   getConfig(): ClientConfig {
     try {
-      const raw = localStorage.getItem(STORAGE_KEYS.CONFIG);
-      return raw ? { ...DEFAULT_CONFIG, ...JSON.parse(raw) } : DEFAULT_CONFIG;
+      const raw = readCachedItem(STORAGE_KEYS.CONFIG);
+      if (!raw) return { ...DEFAULT_CONFIG };
+      const parsed = JSON.parse(raw) as Partial<ClientConfig>;
+      return {
+        baseUrl:
+          typeof parsed.baseUrl === 'string' && parsed.baseUrl.trim()
+            ? parsed.baseUrl.trim()
+            : DEFAULT_CONFIG.baseUrl,
+        apiKey: typeof parsed.apiKey === 'string' ? parsed.apiKey.trim() : '',
+      };
     } catch {
-      return DEFAULT_CONFIG;
+      return { ...DEFAULT_CONFIG };
     }
   },
 
+  /**
+   * Actualiza parcialmente y persiste la configuración de conexión.
+   *
+   * @param config Campos de configuración a sobreescribir.
+   * @returns Configuración resultante persistida.
+   */
   saveConfig(config: Partial<ClientConfig>): ClientConfig {
     const current = this.getConfig();
-    const updated = { ...current, ...config };
-    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(updated));
+    const updated: ClientConfig = {
+      baseUrl:
+        config.baseUrl !== undefined
+          ? config.baseUrl.trim() || DEFAULT_CONFIG.baseUrl
+          : current.baseUrl,
+      apiKey: config.apiKey !== undefined ? config.apiKey.trim() : current.apiKey,
+    };
+    writeCachedItem(STORAGE_KEYS.CONFIG, JSON.stringify(updated));
     return updated;
   },
 
-  // Auth Session
+  /**
+   * Devuelve la URL base activa del backend (`apiBaseUrl`).
+   *
+   * @returns URL base configurada o el valor de `VITE_API_BASE_URL` / `http://localhost:3000`.
+   */
+  getApiBaseUrl(): string {
+    return this.getConfig().baseUrl;
+  },
+
+  /**
+   * Actualiza y persiste la URL base del backend (`apiBaseUrl`).
+   *
+   * @param baseUrl Nueva URL base del servidor API.
+   * @returns URL base normalizada y persistida.
+   */
+  setApiBaseUrl(baseUrl: string): string {
+    return this.saveConfig({ baseUrl }).baseUrl;
+  },
+
+  /**
+   * Recupera la sesión autenticada actual (`token` + `user`) si existe.
+   *
+   * @returns Sesión del usuario o `null` si no hay sesión activa.
+   */
   getSession(): UserSession | null {
     try {
-      const raw = localStorage.getItem(STORAGE_KEYS.AUTH_SESSION);
-      return raw ? JSON.parse(raw) : null;
+      const raw = readCachedItem(STORAGE_KEYS.AUTH_SESSION);
+      return raw ? (JSON.parse(raw) as UserSession) : null;
     } catch {
       return null;
     }
   },
 
+  /**
+   * Persiste o elimina la sesión autenticada del usuario.
+   *
+   * @param session Sesión a guardar o `null` para cerrar sesión localmente.
+   */
   saveSession(session: UserSession | null): void {
     if (!session) {
-      localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+      writeCachedItem(STORAGE_KEYS.AUTH_SESSION, null);
     } else {
-      localStorage.setItem(STORAGE_KEYS.AUTH_SESSION, JSON.stringify(session));
+      writeCachedItem(STORAGE_KEYS.AUTH_SESSION, JSON.stringify(session));
     }
   },
 
+  /**
+   * Devuelve el token JWT de acceso actual o `null` si no existe.
+   *
+   * @returns Access token JWT o `null`.
+   */
   getToken(): string | null {
     const session = this.getSession();
     return session?.token || null;
   },
 
+  /**
+   * Actualiza únicamente el access token JWT preservando los datos del usuario en sesión.
+   *
+   * @param token Nuevo access token JWT emitido por el backend.
+   */
   saveToken(token: string): void {
     const current = this.getSession();
     if (current) {
@@ -71,6 +224,11 @@ export const storageService = {
     }
   },
 
+  /**
+   * Mezcla cambios del perfil de usuario dentro de la sesión persistida.
+   *
+   * @param userData Campos parciales del perfil autenticado (`GET /api/v1/auth/me`).
+   */
   updateSessionUser(userData: Partial<UserSession['user']>): void {
     const current = this.getSession();
     if (current) {
@@ -84,164 +242,40 @@ export const storageService = {
     }
   },
 
-  // Images
-  getImages(): ImageItem[] {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.IMAGES);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+  /**
+   * Lee el modo de vista preferido para el explorador (`grid` o `list`).
+   *
+   * @returns Modo de vista persistido (`'grid'` por defecto).
+   */
+  getViewMode(): ExplorerViewMode {
+    const raw = readCachedItem(STORAGE_KEYS.VIEW_MODE);
+    return raw === 'list' ? 'list' : 'grid';
   },
 
-  saveImages(images: ImageItem[]): void {
-    localStorage.setItem(STORAGE_KEYS.IMAGES, JSON.stringify(images));
+  /**
+   * Persiste el modo de vista del explorador (`grid` o `list`).
+   *
+   * @param mode Modo de vista seleccionado por el usuario.
+   */
+  setViewMode(mode: ExplorerViewMode): void {
+    writeCachedItem(STORAGE_KEYS.VIEW_MODE, mode);
   },
 
-  addImage(image: ImageItem): void {
-    const current = this.getImages();
-    const updated = [image, ...current.filter((i) => i.id !== image.id && i.shortCode !== image.shortCode)];
-    this.saveImages(updated);
+  /**
+   * Lee la preferencia de tema persistida (`light | dark | system`).
+   *
+   * @returns Preferencia de tema activa.
+   */
+  getTheme(): ThemePreference {
+    return readStoredTheme();
   },
 
-  removeImage(idOrShortCode: string): void {
-    const current = this.getImages();
-    this.saveImages(current.filter((i) => i.id !== idOrShortCode && i.shortCode !== idOrShortCode));
-  },
-
-  moveImageToFolder(idOrShortCode: string, folderId: string | null): void {
-    const current = this.getImages();
-    const updated = current.map((i) =>
-      i.id === idOrShortCode || i.shortCode === idOrShortCode ? { ...i, folderId } : i
-    );
-    this.saveImages(updated);
-  },
-
-  // Tables
-  getTables(): TableItem[] {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.TABLES);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  },
-
-  saveTables(tables: TableItem[]): void {
-    localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(tables));
-  },
-
-  addTable(table: TableItem): void {
-    const current = this.getTables();
-    const updated = [table, ...current.filter((t) => t.id !== table.id && t.shortCode !== table.shortCode)];
-    this.saveTables(updated);
-  },
-
-  removeTable(idOrShortCode: string): void {
-    const current = this.getTables();
-    this.saveTables(current.filter((t) => t.id !== idOrShortCode && t.shortCode !== idOrShortCode));
-  },
-
-  moveTableToFolder(idOrShortCode: string, folderId: string | null): void {
-    const current = this.getTables();
-    const updated = current.map((t) =>
-      t.id === idOrShortCode || t.shortCode === idOrShortCode ? { ...t, folderId } : t
-    );
-    this.saveTables(updated);
-  },
-
-  // PDFs
-  getPdfs(): PdfItem[] {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.PDFS);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  },
-
-  savePdfs(pdfs: PdfItem[]): void {
-    localStorage.setItem(STORAGE_KEYS.PDFS, JSON.stringify(pdfs));
-  },
-
-  addPdf(pdf: PdfItem): void {
-    const current = this.getPdfs();
-    const updated = [pdf, ...current.filter((p) => p.id !== pdf.id && p.shortCode !== pdf.shortCode)];
-    this.savePdfs(updated);
-  },
-
-  removePdf(idOrShortCode: string): void {
-    const current = this.getPdfs();
-    this.savePdfs(current.filter((p) => p.id !== idOrShortCode && p.shortCode !== idOrShortCode));
-  },
-
-  movePdfToFolder(idOrShortCode: string, folderId: string | null): void {
-    const current = this.getPdfs();
-    const updated = current.map((p) =>
-      p.id === idOrShortCode || p.shortCode === idOrShortCode ? { ...p, folderId } : p
-    );
-    this.savePdfs(updated);
-  },
-
-  // Folders
-  getFolders(): FolderItem[] {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.FOLDERS);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  },
-
-  saveFolders(folders: FolderItem[]): void {
-    localStorage.setItem(STORAGE_KEYS.FOLDERS, JSON.stringify(folders));
-  },
-
-  addFolder(folder: FolderItem): void {
-    const current = this.getFolders();
-    this.saveFolders([...current.filter((f) => f.id !== folder.id), folder]);
-  },
-
-  removeFolder(id: string): void {
-    const current = this.getFolders();
-    this.saveFolders(current.filter((f) => f.id !== id));
-  },
-
-  // Active Folder
-  getActiveFolderId(): string | null {
-    return localStorage.getItem(STORAGE_KEYS.ACTIVE_FOLDER);
-  },
-
-  setActiveFolderId(folderId: string | null): void {
-    if (!folderId) {
-      localStorage.removeItem(STORAGE_KEYS.ACTIVE_FOLDER);
-    } else {
-      localStorage.setItem(STORAGE_KEYS.ACTIVE_FOLDER, folderId);
-    }
-  },
-
-  // Created User Profiles
-  getCreatedUsers(): User[] {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.PROFILES);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  },
-
-  saveCreatedUsers(users: User[]): void {
-    localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(users));
-  },
-
-  addCreatedUser(user: User): void {
-    const current = this.getCreatedUsers();
-    const updated = [user, ...current.filter((u) => u.id !== user.id && u.username !== user.username)];
-    this.saveCreatedUsers(updated);
-  },
-
-  removeCreatedUser(userIdOrUsername: string): void {
-    const current = this.getCreatedUsers();
-    this.saveCreatedUsers(current.filter((u) => u.id !== userIdOrUsername && u.username !== userIdOrUsername));
+  /**
+   * Persiste la preferencia de tema (`light | dark | system`).
+   *
+   * @param theme Nueva preferencia de tema.
+   */
+  setTheme(theme: ThemePreference): void {
+    writeStoredTheme(theme);
   },
 };

@@ -1,0 +1,88 @@
+.row {
+  content-visibility: auto;
+  contain-intrinsic-size: 110px;
+  display: flex;
+  flex-direction: column;
+}
+
+.rowUser {
+  align-items: flex-end;
+}
+
+.rowAssistant {
+  align-items: flex-start;
+}
+
+.userBubble {
+  max-width: min(680px, 88%);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-surface);
+  background-color: var(--paper-well);
+  border: 1px solid var(--hairline);
+  color: var(--ink-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.assistantBubble {
+  width: 100%;
+  max-width: 780px;
+  padding: var(--space-4);
+  border-radius: var(--radius-surface);
+  background-color: var(--paper-sheet);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--spine-container);
+  box-shadow: var(--elevation-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.assistantAi {
+  border-left-color: var(--accent-ink);
+}
+
+.metaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.badgeGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.originBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.timestamp {
+  font-family: var(--font-code);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-tertiary);
+}
+
+.contextPill {
+  font-family: var(--font-code);
+  font-size: 0.68rem;
+  color: var(--ink-secondary);
+}
+
+.content {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: 1.55;
+  color: var(--ink-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-wrap: pretty;
+}

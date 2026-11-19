@@ -1,0 +1,181 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink-secondary);
+}
+
+.typeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+}
+
+.typeCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--hairline-strong);
+  border-left-width: 3px;
+  background-color: var(--paper-sheet);
+  color: var(--ink-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--duration-press) var(--ease-out-quint),
+    border-color var(--duration-press) var(--ease-out-quint),
+    color var(--duration-press) var(--ease-out-quint);
+}
+
+.typeCard:hover:not(:disabled) {
+  background-color: var(--paper-hover);
+  color: var(--ink-primary);
+}
+
+.typeCardActive {
+  background-color: var(--accent-ink-soft);
+  border-color: var(--accent-ink-border);
+  color: var(--ink-primary);
+  font-weight: 600;
+}
+
+.typeCard:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.spineContainer {
+  border-left-color: var(--spine-container);
+}
+
+.spineImage {
+  border-left-color: var(--spine-image);
+}
+
+.spineTable {
+  border-left-color: var(--spine-table);
+}
+
+.spinePdf {
+  border-left-color: var(--spine-pdf);
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  background-color: var(--paper-well);
+  border: 1px solid var(--hairline);
+}
+
+.switchText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.switchTitle {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-primary);
+}
+
+.switchSub {
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.noticeWarn {
+  background-color: var(--status-warn-bg);
+  border: 1px solid var(--status-warn-border);
+  color: var(--status-warn);
+}
+
+.noticeDanger {
+  background-color: var(--status-danger-bg);
+  border: 1px solid var(--status-danger-border);
+  color: var(--status-danger);
+}
+
+.noticeInfo {
+  background-color: var(--paper-well);
+  border: 1px solid var(--hairline);
+  color: var(--ink-secondary);
+}
+
+.folderList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.folderOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--hairline);
+  background-color: var(--paper-sheet);
+  color: var(--ink-primary);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.folderOption:hover {
+  background-color: var(--paper-hover);
+}
+
+.folderOptionSelected {
+  border-color: var(--accent-ink-border);
+  background-color: var(--accent-ink-soft);
+  font-weight: 600;
+}
+
+.folderOptionLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding-top: var(--space-1);
+}

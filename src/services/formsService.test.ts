@@ -7,16 +7,19 @@ vi.mock('./apiClient', () => ({
     get: vi.fn(),
     post: vi.fn(),
     patch: vi.fn(),
+    download: vi.fn(),
   },
 }));
 
 vi.mock('./storageService', () => ({
   storageService: {
-    getConfig: vi.fn(() => ({ baseUrl: 'http://localhost:3000' })),
+    getConfig: vi.fn(() => ({ baseUrl: 'http://localhost:3000', apiKey: '' })),
+    getApiBaseUrl: vi.fn(() => 'http://localhost:3000'),
+    resetCache: vi.fn(),
   },
 }));
 
-describe('formsService', () => {
+describe('formsService (v2 Stateless)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -59,11 +62,10 @@ describe('formsService', () => {
       expect(result).toEqual(mockForms);
     });
 
-    it('debe retornar un arreglo vacío si el backend responde 404 Not Found', async () => {
+    it('propaga errores del backend para manejo reactivo en TanStack Query', async () => {
       vi.mocked(apiClient.get).mockRejectedValueOnce(new Error('404 Not Found'));
 
-      const result = await formsService.listForms();
-      expect(result).toEqual([]);
+      await expect(formsService.listForms()).rejects.toThrow('404 Not Found');
     });
   });
 
@@ -91,10 +93,17 @@ describe('formsService', () => {
       const input = {
         slug: 'soporte-tecnico',
         title: 'Soporte Técnico',
-        entryFieldsSchema: [{ name: 'asunto', type: 'string' as const, label: 'Asunto', required: true }],
+        entryFieldsSchema: [
+          { name: 'asunto', type: 'string' as const, label: 'Asunto', required: true },
+        ],
         resolutionFieldsSchema: [{ name: 'solucion', type: 'string' as const, label: 'Solución' }],
       };
-      const created = { id: 'f-new', ...input, allowedResolutionStates: ['VALID', 'INVALID'], createdAt: '2026-03-01T00:00:00Z' };
+      const created = {
+        id: 'f-new',
+        ...input,
+        allowedResolutionStates: ['VALID', 'INVALID'],
+        createdAt: '2026-03-01T00:00:00Z',
+      };
       vi.mocked(apiClient.post).mockResolvedValueOnce({ data: created });
 
       const result = await formsService.createForm(input);
@@ -139,12 +148,10 @@ describe('formsService', () => {
       );
     });
 
-    it('debe manejar 404 devolviendo estructura vacía', async () => {
+    it('propaga errores HTTP al consultar entradas inexistentes', async () => {
       vi.mocked(apiClient.get).mockRejectedValueOnce(new Error('Endpoint not found'));
 
-      const res = await formsService.listEntries('f-unknown');
-      expect(res.entries).toEqual([]);
-      expect(res.total).toBe(0);
+      await expect(formsService.listEntries('f-unknown')).rejects.toThrow('Endpoint not found');
     });
   });
 
@@ -188,21 +195,45 @@ describe('formsService', () => {
     });
   });
 
-  describe('getExportUrl & submitPublicEntry', () => {
+  describe('getExportUrl, downloadExport & submitPublicEntry', () => {
     it('debe generar la URL de exportación con parámetros correctos', () => {
       const url = formsService.getExportUrl('f-1', 'xlsx', { month: '2026-03', status: 'VALID' });
-      expect(url).toBe('http://localhost:3000/api/v1/forms/f-1/export?format=xlsx&month=2026-03&status=VALID');
+      expect(url).toBe(
+        'http://localhost:3000/api/v1/forms/f-1/export?format=xlsx&month=2026-03&status=VALID'
+      );
     });
 
-    it('debe enviar la entrada pública a /api/v1/public/forms/:slug/entries', async () => {
-      vi.mocked(apiClient.post).mockResolvedValueOnce({ id: 'pub-1', status: 'NEW', createdAt: '2026-03-01' });
+    it('debe descargar exportación autenticada vía apiClient.download', async () => {
+      const blob = new Blob(['a,b'], { type: 'text/csv' });
+      vi.mocked(apiClient.download).mockResolvedValueOnce({
+        blob,
+        filename: 'reporte.csv',
+        contentType: 'text/csv',
+        sizeBytes: blob.size,
+      });
+
+      const res = await formsService.downloadExport('f-1', 'csv', { month: '2026-03' });
+      expect(apiClient.download).toHaveBeenCalledWith(
+        '/api/v1/forms/f-1/export?format=csv&month=2026-03',
+        'formulario-f-1.csv'
+      );
+      expect(res.filename).toBe('reporte.csv');
+    });
+
+    it('debe enviar la entrada pública a /api/v1/public/forms/:slug/entries con skipAuth', async () => {
+      vi.mocked(apiClient.post).mockResolvedValueOnce({
+        id: 'pub-1',
+        status: 'NEW',
+        createdAt: '2026-03-01',
+      });
 
       const res = await formsService.submitPublicEntry('reclamos', { detalle: 'Consulta' });
       expect(res.id).toBe('pub-1');
-      expect(apiClient.post).toHaveBeenCalledWith('/api/v1/public/forms/reclamos/entries', {
-        detalle: 'Consulta',
-      });
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/api/v1/public/forms/reclamos/entries',
+        { detalle: 'Consulta' },
+        { skipAuth: true }
+      );
     });
   });
 });
-

@@ -4,4 +4,7 @@
 export * from './api';
 export * from './auth';
 export * from './media';
+export * from './chat';
+export * from './forms';
+export * from './notifications';
 export type { paths as ApiPaths } from './api.generated';

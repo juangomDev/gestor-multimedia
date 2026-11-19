@@ -24,6 +24,14 @@ export interface PdfsPaginationMeta {
 }
 
 /**
+ * Respuesta estructurada de listado paginado de PDFs.
+ */
+export interface PaginatedPdfsResult {
+  items: PdfItem[];
+  meta: PdfsPaginationMeta;
+}
+
+/**
  * Estructura del texto estructurado extraído por página (`/p/:short_code?format=text`).
  */
 export interface PdfExtractedTextResponse {
@@ -54,11 +62,21 @@ interface RawApiPdf {
 }
 
 /**
+ * Valida si un archivo corresponde a un documento PDF soportado.
+ *
+ * @param file Archivo a validar.
+ * @returns `true` si el MIME es `application/pdf` o la extensión es `.pdf`.
+ */
+export function isSupportedPdfFile(file: File): boolean {
+  return file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+}
+
+/**
  * Normaliza una entidad de PDF cruda proveniente del backend hacia `PdfItem`.
  */
 function normalizePdf(raw: RawApiPdf, baseUrl: string): PdfItem {
   const shortCode = raw.shortCode || raw.id;
-  const canonicalUrl = buildPublicAssetUrl(baseUrl, 'p' as 'i', shortCode);
+  const canonicalUrl = buildPublicAssetUrl(baseUrl, 'p', shortCode);
   return {
     id: raw.id,
     shortCode,
@@ -77,66 +95,56 @@ function normalizePdf(raw: RawApiPdf, baseUrl: string): PdfItem {
 }
 
 /**
- * Servicio integral para la gestión de documentos PDF (`/api/v1/pdfs` y `/p/:short_code`).
- * Implementa el patrón de doble artefacto binario/texto, visor enriquecido y RAG documental.
+ * Servicio HTTP sin estado para gestión de documentos PDF (`/api/v1/pdfs` y `/p/:short_code`).
+ * Implementa el patrón de doble artefacto binario/texto, metadatos semánticos y RAG documental.
  */
 export class PdfsService {
   private lastPaginationMeta: PdfsPaginationMeta | null = null;
 
   /**
-   * Obtiene la lista de documentos PDF desde el backend con paginación y filtros.
+   * Lista documentos PDF desde `GET /api/v1/pdfs` devolviendo items y metadatos de paginación.
    */
-  async fetchRemotePdfs(options?: FetchPdfsOptions): Promise<PdfItem[]> {
+  async listPdfs(options?: FetchPdfsOptions): Promise<PaginatedPdfsResult> {
     const params = new URLSearchParams();
     if (options?.page !== undefined) params.set('page', String(options.page));
     if (options?.limit !== undefined) params.set('limit', String(options.limit));
     if (options?.folderId) params.set('folderId', options.folderId);
-    if (options?.search) params.set('search', options.search.trim());
+    if (options?.search && options.search.trim()) params.set('search', options.search.trim());
 
     const qs = params.toString();
     const endpoint = qs ? `/api/v1/pdfs?${qs}` : '/api/v1/pdfs';
 
-    try {
-      const res = await apiClient.get<{
-        data?: RawApiPdf[];
-        pdfs?: RawApiPdf[];
-        meta?: PdfsPaginationMeta;
-        total?: number;
-        page?: number;
-        limit?: number;
-        totalPages?: number;
-      }>(endpoint);
+    const res = await apiClient.get<{
+      data?: RawApiPdf[];
+      pdfs?: RawApiPdf[];
+      meta?: PdfsPaginationMeta;
+      total?: number;
+      page?: number;
+      limit?: number;
+      totalPages?: number;
+    }>(endpoint);
 
-      const rawList = res.data || res.pdfs || [];
-      const base = storageService.getConfig().baseUrl;
-      const items = rawList.map((p) => normalizePdf(p, base));
+    const rawList = res.data || res.pdfs || [];
+    const baseUrl = storageService.getApiBaseUrl();
+    const items = rawList.map((p) => normalizePdf(p, baseUrl));
 
-      const total = res.meta?.total ?? res.total ?? items.length;
-      const page = res.meta?.page ?? res.page ?? options?.page ?? 1;
-      const limit = res.meta?.limit ?? res.limit ?? options?.limit ?? 50;
-      const totalPages = res.meta?.totalPages ?? res.totalPages ?? Math.max(1, Math.ceil(total / limit));
+    const total = res.meta?.total ?? res.total ?? items.length;
+    const page = res.meta?.page ?? res.page ?? options?.page ?? 1;
+    const limit = res.meta?.limit ?? res.limit ?? options?.limit ?? 50;
+    const totalPages =
+      res.meta?.totalPages ?? res.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, limit)));
 
-      this.lastPaginationMeta = { total, page, limit, totalPages };
-      if (!options?.search && !options?.folderId) {
-        storageService.savePdfs(items);
-      }
-      return items;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('404') || msg.toLowerCase().includes('not found')) {
-        return this.getPdfs(options?.folderId);
-      }
-      throw err;
-    }
+    const meta: PdfsPaginationMeta = { total, page, limit, totalPages };
+    this.lastPaginationMeta = meta;
+    return { items, meta };
   }
 
   /**
-   * Obtiene los PDFs almacenados en caché local, opcionalmente filtrados por carpeta.
+   * Obtiene el arreglo de documentos PDF desde el backend con paginación y filtros.
    */
-  getPdfs(folderId?: string | null): PdfItem[] {
-    const all = storageService.getPdfs();
-    if (folderId === undefined) return all;
-    return all.filter((p) => (folderId ? p.folderId === folderId : !p.folderId));
+  async fetchRemotePdfs(options?: FetchPdfsOptions): Promise<PdfItem[]> {
+    const { items } = await this.listPdfs(options);
+    return items;
   }
 
   /**
@@ -147,18 +155,20 @@ export class PdfsService {
   }
 
   /**
-   * Sube un nuevo documento PDF mediante multipart/form-data.
+   * Sube un nuevo documento PDF mediante `multipart/form-data` (`POST /api/v1/pdfs`).
    */
   async uploadPdf(file: File, folderId?: string | null): Promise<PdfItem> {
+    if (!isSupportedPdfFile(file)) {
+      throw new Error(`El archivo '${file.name}' no es un documento PDF válido`);
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     if (folderId) formData.append('folderId', folderId);
 
     const res = await apiClient.post<RawApiPdf | { pdf: RawApiPdf }>('/api/v1/pdfs', formData);
     const raw = 'pdf' in res ? res.pdf : res;
-    const item = normalizePdf(raw, storageService.getConfig().baseUrl);
-    storageService.addPdf(item);
-    return item;
+    return normalizePdf(raw, storageService.getApiBaseUrl());
   }
 
   /**
@@ -166,75 +176,69 @@ export class PdfsService {
    */
   async renamePdf(id: string, originalName: string): Promise<PdfItem> {
     const trimmed = originalName.trim();
+    if (!trimmed) {
+      throw new Error('El nombre del documento PDF no puede estar vacío');
+    }
     const finalName = trimmed.toLowerCase().endsWith('.pdf') ? trimmed : `${trimmed}.pdf`;
     const res = await apiClient.patch<RawApiPdf | { pdf: RawApiPdf }>(`/api/v1/pdfs/${id}`, {
       originalName: finalName,
     });
     const raw = 'pdf' in res ? res.pdf : res;
-    const item = normalizePdf(raw, storageService.getConfig().baseUrl);
-    storageService.addPdf(item);
-    return item;
+    return normalizePdf(raw, storageService.getApiBaseUrl());
   }
 
   /**
-   * Realiza un reemplazo en caliente (Hot-Swap) preservando ID y shortCode (`PUT /api/v1/pdfs/:id`).
+   * Realiza un reemplazo en caliente (Hot-Swap) preservando ID y `shortCode` (`PUT /api/v1/pdfs/:id`).
    */
   async hotSwapPdf(id: string, file: File): Promise<PdfItem> {
+    if (!isSupportedPdfFile(file)) {
+      throw new Error(`El archivo '${file.name}' no es un documento PDF válido`);
+    }
+
     const formData = new FormData();
     formData.append('file', file);
 
     const res = await apiClient.put<RawApiPdf | { pdf: RawApiPdf }>(`/api/v1/pdfs/${id}`, formData);
     const raw = 'pdf' in res ? res.pdf : res;
-    const item = normalizePdf(raw, storageService.getConfig().baseUrl);
-    storageService.addPdf(item);
-    return item;
+    return normalizePdf(raw, storageService.getApiBaseUrl());
   }
 
   /**
    * Actualiza la ficha técnica semántica de un documento PDF (`PATCH /api/v1/pdfs/:id/metadata`).
    */
   async updatePdfMetadata(id: string, metadata: PdfMetadataCard): Promise<PdfItem> {
-    const res = await apiClient.patch<RawApiPdf | { pdf: RawApiPdf }>(`/api/v1/pdfs/${id}/metadata`, metadata);
+    const res = await apiClient.patch<RawApiPdf | { pdf: RawApiPdf }>(
+      `/api/v1/pdfs/${id}/metadata`,
+      metadata
+    );
     const raw = 'pdf' in res ? res.pdf : res;
-    const item = normalizePdf(raw, storageService.getConfig().baseUrl);
-    storageService.addPdf(item);
-    return item;
+    return normalizePdf(raw, storageService.getApiBaseUrl());
   }
 
   /**
    * Destruye lógica y físicamente el documento PDF y su texto comprimido (`DELETE /api/v1/pdfs/:id`).
    */
   async deletePdf(id: string): Promise<void> {
-    try {
-      await apiClient.delete(`/api/v1/pdfs/${id}`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const status = (err as { status?: number })?.status;
-      if (status !== 404 && status !== 400 && !msg.includes('404') && !msg.toLowerCase().includes('not found')) {
-        throw err;
-      }
-    }
-    storageService.removePdf(id);
+    await apiClient.delete(`/api/v1/pdfs/${id}`);
   }
 
   /**
-   * Reasigna un PDF a otra carpeta verificando que sea de tipo PDF (`PATCH /api/v1/pdfs/:id/folder`).
+   * Reasigna un PDF a otra carpeta verificando que sea de tipo `PDF` (`PATCH /api/v1/pdfs/:id/folder`).
    */
   async movePdfToFolder(id: string, targetFolderId: string | null): Promise<PdfItem> {
-    const res = await apiClient.patch<RawApiPdf | { pdf: RawApiPdf }>(`/api/v1/pdfs/${id}/folder`, {
-      targetFolderId,
-    });
+    const res = await apiClient.patch<RawApiPdf | { pdf: RawApiPdf }>(
+      `/api/v1/pdfs/${id}/folder`,
+      { targetFolderId }
+    );
     const raw = 'pdf' in res ? res.pdf : res;
-    const item = normalizePdf(raw, storageService.getConfig().baseUrl);
-    storageService.movePdfToFolder(id, targetFolderId);
-    return item;
+    return normalizePdf(raw, storageService.getApiBaseUrl());
   }
 
   /**
    * Construye la Capability URL pública del PDF (`/p/:shortCode`).
    */
   getPdfUrl(shortCode: string): string {
-    return buildPublicAssetUrl(storageService.getConfig().baseUrl, 'p' as 'i', shortCode);
+    return buildPublicAssetUrl(storageService.getApiBaseUrl(), 'p', shortCode);
   }
 
   /**
@@ -253,13 +257,16 @@ export class PdfsService {
   }
 
   /**
-   * Consulta el texto estructurado del documento PDF descomprimido al vuelo.
+   * Consulta el texto estructurado del documento PDF descomprimido al vuelo (`/p/:shortCode?format=text`).
    */
-  async fetchPdfExtractedText(shortCode: string, page?: number): Promise<PdfExtractedTextResponse> {
-    const url = this.getPdfTextUrl(shortCode, page);
-    return apiClient.get<PdfExtractedTextResponse>(url);
+  async fetchPdfExtractedText(
+    shortCode: string,
+    page?: number
+  ): Promise<PdfExtractedTextResponse> {
+    const path = page ? `/p/${shortCode}?format=text&page=${page}` : `/p/${shortCode}?format=text`;
+    return apiClient.get<PdfExtractedTextResponse>(path, { skipAuth: true });
   }
 }
 
+/** Instancia singleton del servicio de documentos PDF. */
 export const pdfsService = new PdfsService();
-

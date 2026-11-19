@@ -1,78 +1,68 @@
-# Reglas de Ingeniería y Arquitectura — Gestor Multimedia
+# Reglas de Ingeniería y Arquitectura — Gestor Multimedia (v2)
 
-Este documento define las reglas obligatorias y la arquitectura oficial del proyecto `gestor-multimedia`. Deben cumplirse estrictamente en cada cambio, refactorización o nueva funcionalidad.
+Este documento define las reglas obligatorias y la arquitectura oficial del proyecto `gestor-multimedia` (v2 — "Archivo Editorial"). Deben cumplirse estrictamente en cada cambio, refactorización o nueva funcionalidad.
 
 ---
 
 ## 1. Reglas Inquebrantables de Ingeniería
 
-### 1.1. Inmutabilidad de los Tests Existentes (Salvo Rutas de `import`)
-- **La lógica, casos de prueba y aserciones de los tests existentes no se pueden modificar una vez que se creen.**
-- Está estrictamente prohibido editar, eliminar o alterar el cuerpo de los tests (`describe`, `it`, `test`, `expect`, mocks o setup) en archivos `*.test.ts` o `*.test.tsx` ya creados.
-- **Excepción arquitectónica:** **Únicamente las sentencias `import` pueden actualizarse** si una refactorización requiere mover o dividir módulos. Nunca se debe sacrificar la limpieza de la arquitectura por mantener rutas de `import` antiguas.
-- Las nuevas funcionalidades o casos de prueba deben añadirse en **nuevos archivos de test** (por ejemplo, `*.extended.test.ts`, `*.rbac.test.tsx`, etc.).
+### 1.1. Inmutabilidad Estricta de los Tests Existentes (Suite v2 Congelada)
+- **La lógica, casos de prueba y aserciones de toda la suite de tests v2 consolidada están congelados y NO se pueden modificar ni debilitar.**
+- **Excepción arquitectónica única:** únicamente las sentencias `import` pueden actualizarse si una refactorización requiere mover o dividir módulos.
+- Las nuevas funcionalidades o casos de prueba deben añadirse siempre en **nuevos archivos de test** (`*.test.ts` / `*.test.tsx`).
 
 ### 1.2. Documentación Simultánea
-- **Cada nueva función, método, hook o componente debe ser documentado a la par que se crea.**
-- Utilizar comentarios **TSDoc / JSDoc** (`/** ... */`) claros y concisos encima de cada función, método de servicio, custom hook e interfaz exportada, explicando su propósito, parámetros y valor de retorno.
+- **Cada nueva función, método, hook, interfaz exportada o componente debe documentarse a la par que se crea.**
+- Utilizar comentarios **TSDoc / JSDoc** (`/** ... */`) claros y concisos explicando propósito, parámetros y valor de retorno.
 
 ### 1.3. Límite Estricto Anti-"Archivos Dios" (Máximo 300 Líneas)
 - **Ningún archivo de código fuente manual debe superar las 300 líneas.** (Se excluye únicamente `src/types/api.generated.ts` por ser autogenerado por OpenAPI).
-- Si al crear o editar un archivo este supera las **300 líneas**, se debe agregar inmediatamente en `TODO.md` una tarea para refactorizarlo y dividir sus responsabilidades en subcomponentes, hooks o módulos auxiliares más pequeños.
+- Si un archivo se acerca o supera las **300 líneas**, debe dividirse inmediatamente en subcomponentes, hooks o módulos auxiliares más pequeños.
 
 ### 1.4. Cero Sobreingeniería (Principio YAGNI — *You Aren't Gonna Need It*)
 - **Si algo aún no se necesita, no se implementa.**
-- Prohibido crear capas abstractas especulativas, contenedores de inyección de dependencias, patrones complejos innecesarios, librerías de estado redundantes o código "por si acaso".
-- Resolver cada requerimiento de la forma más directa, legible y mantenible posible.
+- Prohibido crear capas abstractas especulativas, archivos barrel gigantes que degraden el tree-shaking, estilos inline repetitivos (`style={{}}`) o código "por si acaso".
+
+### 1.5. Disciplina de Interfaz y Rendimiento React
+- **Sistema de diseño "Archivo Editorial":** todos los componentes usan tokens semánticos de `src/styles/tokens.css` (Modo Claro y Modo Oscuro), primitivas accesibles de `src/components/ui/` (construidas sobre `@radix-ui/react-*`), cero colores hex hardcodeados en `.tsx` y cero `transition: all` (animar únicamente `transform` y `opacity`, respetando `prefers-reduced-motion`).
+- **Rendimiento React:** usar `React.lazy` + `Suspense` en vistas secundarias y visores pesados, `@tanstack/react-query` sin waterfalls (`Promise.all`), cero lecturas de entidades de negocio en `localStorage` durante render y `useDeferredValue` / `content-visibility: auto` en listados largos.
 
 ---
 
-## 2. Arquitectura del Proyecto (Pragmatic Layered Architecture)
-
-El proyecto sigue una **Arquitectura Modular por Capas + Componentes Agrupados por Dominio**, diseñada para mantener archivos cortos (< 300 líneas) y preservar intactas las rutas públicas consumidas por los tests existentes:
+## 2. Arquitectura del Proyecto v2 (Feature-Sliced Pragmatic Layers)
 
 ```plaintext
 src/
-├── types/                  # Contratos OpenAPI (api.generated.ts) y tipos por dominio (api, auth, media)
-├── services/               # 1 Servicio = 1 recurso del backend (< 250 líneas c/u)
-│   ├── http/               # Helpers internos de apiClient (errores RFC 7807, cola refresh)
-│   ├── apiClient.ts        # Fachada HTTP (reexporta tipos/errores para compatibilidad con tests)
-│   ├── authService.ts
-│   ├── usersService.ts     # Gestión jerárquica de usuarios RBAC
-│   ├── foldersService.ts   # Gestión de carpetas y permisos en PostgreSQL
-│   ├── imagesService.ts
-│   ├── tablesService.ts
-│   ├── chatService.ts      # Asistente RAG Tabular
-│   ├── healthService.ts
-│   └── storageService.ts
-├── hooks/                  # Custom hooks extraídos solo cuando una vista/App supere 300 líneas
-├── context/                # Estado transversal global (AuthContext y ToastContext)
-├── components/             # Piezas de UI cohesivas agrupadas por dominio (< 250 líneas c/u)
-│   ├── common/             # Button, Modal, Toast
-│   ├── layout/             # Sidebar, StatusBar
-│   ├── auth/               # ChangePasswordModal
-│   ├── users/              # Subcomponentes de gestión de perfiles y modales RBAC
-│   ├── folders/            # Modales y selectores de carpetas y compartición
-│   ├── images/             # ImageCard, ImageInspector, modales de renombrado/hot-swap
-│   ├── tables/             # TableCard, DataStudioToolbar, DataGrid, editor de ficha técnica
-│   ├── settings/           # Tarjetas de conexión API, importación ShortCode, seguridad y Scalar
-│   ├── upload/             # DropzoneOverlay, UploadModal
-│   ├── health/             # HealthBadge
-│   └── chat/               # Componentes de fuentes citadas, gráficos y widget público
-├── views/                  # Orquestadores ligeros de pantalla (< 200 líneas c/u)
-│   ├── ImagesView.tsx
-│   ├── TablesCatalogView.tsx
-│   ├── TableDataStudioView.tsx
-│   ├── UserProfilesView.tsx
-│   ├── SettingsView.tsx
-│   ├── ChatStudioView.tsx
-│   └── LoginView.tsx
-└── utils/                  # Funciones utilitarias puras (formatters, clipboard)
+├── types/                  # Contratos OpenAPI 3.1 (api.generated.ts) y tipos por dominio
+├── styles/                 # tokens.css (Claro/Oscuro), reset.css, motion.css
+├── services/               # Clientes HTTP puros sin estado contra monolith-backend (75 endpoints)
+│   ├── http/               # Helpers de apiClient (RFC 7807, cola refresh 401)
+│   ├── apiClient.ts        # Transporte HTTP Bearer JWT + credentials: 'include'
+│   ├── notificationsStream.ts # Cliente SSE fetch + ReadableStream con Authorization: Bearer
+│   ├── storageService.ts   # Caché Map + localStorage solo para sesión, URL API, tema y viewMode
+│   └── *Service.ts         # auth, users, folders, images, tables (.json), pdfs, forms, chat (usedAi), notifications, bulk, audit, apiKeys, storageStats, health
+├── queries/                # queryClient, queryKeys y hooks de TanStack Query por dominio
+├── context/                # Estado transversal mínimo (ThemeContext, AuthContext, ToastContext)
+├── components/
+│   └── ui/                 # Primitivas reutilizables (< 200 LOC c/u) sobre @radix-ui/react-*
+├── features/               # Módulos funcionales v2 (vistas lazy + subcomponentes + CSS Modules)
+│   ├── auth/               # Login real (sin fallback offline) + cambio de URL de servidor
+│   ├── shell/              # AppLayout, Sidebar 228px contextual, CommandPalette (⌘K + shortCode)
+│   ├── explorer/           # Explorador unificado (/ solo carpetas, /folder/:id 3 niveles, Bulk, Shares)
+│   ├── images/             # ImageInspector (lazy) y mutaciones
+│   ├── data-studio/        # DataStudioPage (/tables/:shortCode, lazy), DataGrid, TableMetadataDialog
+│   ├── pdfs/               # PdfViewerDialog (lazy, binario + ?format=text), PdfMetadataDialog
+│   ├── forms/              # FormInboxPage (/folder/:folderId/forms/:formId, lazy), Write-Once
+│   ├── notifications/      # NotificationBell + Popover SSE en vivo
+│   ├── chat/               # DataChatPage (/chat, lazy, badge usedAi, citas, Widget Público)
+│   ├── team/               # TeamPage (/team, lazy, MANAGER y ADMIN)
+│   └── admin/              # AdminPage (/admin/*, lazy, exclusivo ADMIN)
+├── router.tsx              # BrowserRouter + guardas de sesión y rol + React.lazy
+└── utils/                  # Funciones puras (formatters, clipboard)
 ```
 
 ### Responsabilidades por Capa
-1. **`src/views/` (Orquestadores de Pantalla):** Coordinan el layout general de la pantalla y conectan estado/eventos con subcomponentes. Nunca deben contener múltiples formularios extensos ni tablas complejas incrustadas que los hagan pasar de 300 líneas.
-2. **`src/components/<dominio>/` (Subcomponentes de Dominio):** Encapsulan tarjetas, tablas, barras de herramientas y modales específicos con su propio `.module.css` acotado.
-3. **`src/hooks/` (Custom Hooks):** Se crean únicamente cuando se necesita extraer lógica de estado/efectos de una vista o de `App.tsx` para mantener el archivo por debajo de 300 líneas.
-4. **`src/services/` (Capa de Datos y Transporte):** Comunicación directa con `monolith-backend` usando los contratos de `src/types/api.ts` y `apiClient`.
-
+1. **`src/services/`:** Comunicación HTTP/SSE pura con `monolith-backend` usando contratos OpenAPI 3.1 y `apiClient`, sin guardar entidades de negocio en `localStorage`.
+2. **`src/queries/`:** Caché de servidor, deduplicación, invalidación y actualizaciones optimistas mediante `@tanstack/react-query`.
+3. **`src/components/ui/`:** Primitivas accesibles de diseño "Archivo Editorial" (importación directa por archivo, sin barrel).
+4. **`src/features/<dominio>/`:** Pantallas, modales y subcomponentes de cada dominio (< 300 líneas c/u) conectados a `src/queries/` y `src/components/ui/`.

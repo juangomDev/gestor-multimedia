@@ -1,6 +1,5 @@
 import { apiClient } from './apiClient';
 import { authService } from './authService';
-import { storageService } from './storageService';
 import type { ApiUser } from '../types/api';
 import type { User, CreateUserInput, Role } from '../types/auth';
 
@@ -12,7 +11,7 @@ import type { User, CreateUserInput, Role } from '../types/auth';
  */
 function normalizeUser(raw: Partial<ApiUser> & { id?: string; username?: string }): User {
   return {
-    id: raw.id || `usr-${Date.now()}`,
+    id: raw.id || '',
     username: raw.username || 'usuario',
     role: (raw.role as Role) || 'COLLABORATOR',
     isActive: raw.isActive ?? true,
@@ -22,7 +21,7 @@ function normalizeUser(raw: Partial<ApiUser> & { id?: string; username?: string 
 }
 
 /**
- * Servicio de administración jerárquica de usuarios RBAC conectado a PostgreSQL (`monolith-backend`).
+ * Servicio sin estado de administración jerárquica de usuarios RBAC (`monolith-backend`).
  * Cubre las 5 rutas de `/api/v1/users`.
  */
 export class UsersService {
@@ -33,24 +32,19 @@ export class UsersService {
    * @returns Lista de usuarios registrados en PostgreSQL.
    */
   async listUsers(): Promise<User[]> {
-    const res = await apiClient.get<{ users: ApiUser[] }>('/api/v1/users');
-    const users = (res.users || []).map((u) => normalizeUser(u));
-    storageService.saveCreatedUsers(users);
-    return users;
+    const res = await apiClient.get<{ users?: ApiUser[] }>('/api/v1/users');
+    return (res.users || []).map((u) => normalizeUser(u));
   }
 
   /**
    * Crea un nuevo usuario respetando la jerarquía RBAC (`POST /api/v1/users`).
-   * `ADMIN` puede asignar rol `MANAGER` o `COLLABORATOR`; `MANAGER` crea `COLLABORATOR`.
    *
    * @param payload Credenciales y rol del nuevo usuario.
    * @returns El usuario recién creado.
    */
   async createUser(payload: CreateUserInput): Promise<{ user: User }> {
     const res = await authService.createUser(payload);
-    const user = normalizeUser(res.user);
-    storageService.addCreatedUser(user);
-    return { user };
+    return { user: normalizeUser(res.user) };
   }
 
   /**
@@ -61,7 +55,7 @@ export class UsersService {
    * @returns El usuario con su estado actualizado.
    */
   async updateUserStatus(userId: string, isActive: boolean): Promise<{ user: User }> {
-    const res = await apiClient.patch<{ user: ApiUser }>(`/api/v1/users/${userId}/status`, {
+    const res = await apiClient.patch<{ user?: ApiUser }>(`/api/v1/users/${userId}/status`, {
       isActive,
     });
     const updatedUser = normalizeUser({
@@ -69,12 +63,6 @@ export class UsersService {
       id: res.user?.id || userId,
       isActive: res.user?.isActive ?? isActive,
     });
-
-    const cached = storageService.getCreatedUsers();
-    storageService.saveCreatedUsers(
-      cached.map((u) => (u.id === userId ? { ...u, isActive: updatedUser.isActive } : u))
-    );
-
     return { user: updatedUser };
   }
 
@@ -99,10 +87,9 @@ export class UsersService {
    */
   async deleteUser(userId: string): Promise<{ deleted: boolean }> {
     const res = await apiClient.delete<{ deleted: boolean }>(`/api/v1/users/${userId}`);
-    storageService.removeCreatedUser(userId);
     return res ?? { deleted: true };
   }
 }
 
+/** Instancia singleton del servicio de administración de usuarios. */
 export const usersService = new UsersService();
-

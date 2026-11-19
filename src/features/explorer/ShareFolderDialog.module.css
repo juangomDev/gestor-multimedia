@@ -1,0 +1,132 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.aiBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 12px 14px;
+  border-radius: var(--radius-surface);
+  border: 1px solid var(--hairline-strong);
+  background-color: var(--paper-well);
+}
+
+.aiBoxActive {
+  border-color: var(--status-ok-border);
+  background-color: var(--status-ok-bg);
+}
+
+.aiInfo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.aiIcon {
+  color: var(--accent-ink);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.aiTitle {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-primary);
+}
+
+.aiSub {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+  line-height: 1.4;
+}
+
+.inviteForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink-secondary);
+}
+
+.inviteRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.select {
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--control-border);
+  background-color: var(--control-bg);
+  color: var(--ink-primary);
+  font-size: var(--text-sm);
+}
+
+.selectGrow {
+  flex: 1;
+  min-width: 160px;
+}
+
+.membersList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 8px 10px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--hairline);
+  background-color: var(--paper-sheet);
+}
+
+.memberInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.memberName {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memberControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.emptyMembers {
+  padding: var(--space-4);
+  text-align: center;
+  border-radius: var(--radius-control);
+  border: 1px dashed var(--hairline-strong);
+  font-size: var(--text-sm);
+  color: var(--ink-tertiary);
+}

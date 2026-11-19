@@ -1,0 +1,23 @@
+.content {
+  padding: 5px 9px;
+  border-radius: var(--radius-control);
+  background-color: var(--ink-primary);
+  color: var(--paper-sheet);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1.35;
+  max-width: 260px;
+  z-index: 120;
+  user-select: none;
+  box-shadow: var(--elevation-popover);
+  transform-origin: var(--radix-tooltip-content-transform-origin);
+}
+
+.content[data-state='delayed-open'],
+.content[data-state='instant-open'] {
+  animation: editorialSurfaceIn var(--duration-popover) var(--ease-out-quint);
+}
+
+.content[data-state='closed'] {
+  animation: editorialSurfaceOut var(--duration-press) var(--ease-out-quint);
+}

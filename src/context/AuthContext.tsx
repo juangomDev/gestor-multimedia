@@ -1,129 +1,143 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { authService } from '../services/authService';
-import { apiClient } from '../services/apiClient';
+import { apiClient, ApiError } from '../services/apiClient';
+import { storageService } from '../services/storageService';
 import { AuthContext } from './authContextDef';
 import type { LoginCredentials, CreateUserInput } from '../types/auth';
 
+/**
+ * Proveedor de autenticación real contra `monolith-backend`.
+ * Al iniciar, valida la sesión persistida con `GET /api/v1/auth/me` (rotando el token vía
+ * `POST /api/v1/auth/refresh` de forma transparente si el access token expiró) y limpia
+ * la sesión si el servidor la rechaza.
+ */
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState(() => authService.getSession());
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(() => Boolean(authService.getSession()?.token));
 
+  /**
+   * Sincroniza el perfil actual desde `GET /api/v1/auth/me` y actualiza la sesión en memoria.
+   */
   const refreshProfile = useCallback(async () => {
     if (!authService.isAuthenticated()) return;
-    try {
-      const res = await authService.getMe();
-      if (res?.user) {
-        setSession((prev) =>
-          prev
-            ? {
-                ...prev,
-                user: {
-                  ...prev.user,
-                  ...res.user,
-                },
-              }
-            : null
-        );
-      }
-    } catch (err) {
-      // In offline/mock mode or non-200, keep current cached session
-      console.warn('Could not synchronize profile with server:', err);
+    const res = await authService.getMe();
+    const freshSession = storageService.getSession();
+    if (res?.user) {
+      setSession((prev) => {
+        const base = freshSession ?? prev;
+        if (!base) return null;
+        return {
+          ...base,
+          user: {
+            ...base.user,
+            ...res.user,
+          },
+        };
+      });
     }
   }, []);
 
   useEffect(() => {
-    // Escuchar eventos de sesión revocada por el interceptor de apiClient
     const unsubscribe = apiClient.onUnauthorized(() => {
       setSession(null);
+      setIsCheckingSession(false);
     });
 
-    // Sincronizar datos reales del usuario (GET /api/v1/auth/me) al iniciar si hay token
-    let isCancelled = false;
-    const isMockOrDev =
-      session?.token?.startsWith('mock-') || session?.token?.startsWith('dev_');
-    if (session?.token === 'dev_jwt_admin_master_token') {
-      authService
-        .login({ username: 'admin', password: 'AdminPass123!' })
-        .then((realSession) => {
-          if (!isCancelled && realSession?.token) {
-            setSession(realSession);
-          }
-        })
-        .catch(() => {
-          // Mantener sesión local si el servidor no acepta credenciales por defecto
-        });
-    } else if (session?.token && !isMockOrDev) {
-      authService
-        .getMe()
-        .then((res) => {
-          if (!isCancelled && res?.user) {
-            setSession((prev) =>
-              prev ? { ...prev, user: { ...prev.user, ...res.user } } : null
-            );
-          }
-        })
-        .catch((err) => {
-          console.warn('Could not synchronize profile with server:', err);
-        });
+    const initialToken = authService.getSession()?.token ?? null;
+    if (!initialToken) {
+      return unsubscribe;
     }
 
+    let cancelled = false;
+
+    authService
+      .getMe()
+      .then((res) => {
+        if (cancelled) return;
+        const freshSession = authService.getSession();
+        if (res?.user) {
+          setSession((prev) => {
+            const base = freshSession ?? prev;
+            if (!base) return null;
+            return {
+              ...base,
+              user: {
+                ...base.user,
+                ...res.user,
+              },
+            };
+          });
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+          storageService.saveSession(null);
+          setSession(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsCheckingSession(false);
+        }
+      });
+
     return () => {
-      isCancelled = true;
+      cancelled = true;
       unsubscribe();
     };
-  }, [session?.token]);
+  }, []);
 
-  const login = async (credentials: LoginCredentials) => {
+  /**
+   * Inicia sesión con credenciales reales (`POST /api/v1/auth/login`) y sincroniza `/auth/me`.
+   */
+  const login = useCallback(async (credentials: LoginCredentials) => {
     setIsLoading(true);
     try {
       const newSession = await authService.login(credentials);
       setSession(newSession);
-      // Tras login exitoso, sincronizar datos frescos del perfil
-      await refreshProfile();
+      try {
+        await refreshProfile();
+      } catch {
+        // Mantener la sesión recién emitida por /login si /me falla transitoriamente
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [refreshProfile]);
 
-  const loginAsLocalAdmin = () => {
-    const adminSession = {
-      token: 'dev_jwt_admin_master_token',
-      user: {
-        id: 'admin-master',
-        username: 'admin',
-        role: 'ADMIN' as const,
-        isActive: true,
-      },
-    };
-    authService.loginAsLocalSession(adminSession);
-    setSession(adminSession);
-  };
-
-  const logout = async () => {
+  /**
+   * Cierra sesión en el backend (`POST /api/v1/auth/logout`) y limpia el estado local.
+   */
+  const logout = useCallback(async () => {
     setSession(null);
     await authService.logout();
-  };
+  }, []);
 
-  const createUser = async (input: CreateUserInput) => {
+  /**
+   * Registra un nuevo usuario respetando la jerarquía RBAC (`POST /api/v1/users`).
+   */
+  const createUser = useCallback(async (input: CreateUserInput) => {
     return authService.createUser(input);
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user: session?.user || null,
-        token: session?.token || null,
-        isAuthenticated: !!session?.token,
-        isAdmin: session?.user?.role === 'ADMIN',
-        isLoading,
-        login,
-        loginAsLocalAdmin,
-        logout,
-        createUser,
-        refreshProfile,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({
+      user: session?.user || null,
+      token: session?.token || null,
+      isAuthenticated: Boolean(session?.token),
+      isAdmin: session?.user?.role === 'ADMIN',
+      isManager: session?.user?.role === 'MANAGER',
+      isLoading,
+      isCheckingSession,
+      login,
+      logout,
+      createUser,
+      refreshProfile,
+    }),
+    [session, isLoading, isCheckingSession, login, logout, createUser, refreshProfile]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

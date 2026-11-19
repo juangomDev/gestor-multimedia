@@ -1,0 +1,45 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-6);
+  border-radius: var(--radius-surface);
+  border: 1px dashed var(--hairline-strong);
+  background-color: var(--paper-sheet);
+}
+
+.iconBox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-surface);
+  background-color: var(--paper-well);
+  color: var(--ink-secondary);
+  border: 1px solid var(--hairline);
+}
+
+.title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--ink-primary);
+}
+
+.description {
+  font-size: var(--text-sm);
+  color: var(--ink-secondary);
+  max-width: 380px;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}

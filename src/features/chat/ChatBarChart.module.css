@@ -1,0 +1,75 @@
+.figure {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background-color: var(--paper-canvas);
+  border: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.caption {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-tertiary);
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rowHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+}
+
+.rowLabel {
+  font-weight: 600;
+  color: var(--ink-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMetrics {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-code);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-secondary);
+  flex-shrink: 0;
+}
+
+.rowPct {
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.track {
+  height: 8px;
+  width: 100%;
+  border-radius: var(--radius-pill);
+  background-color: var(--paper-well);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background-color: var(--accent-ink);
+}

@@ -1,10 +1,6 @@
-/**
- * Servicio para la gestión de Formularios Dinámicos, Tablas Abiertas y Resolución Write-Once.
- * @module services/formsService
- */
-
-import { apiClient } from './apiClient';
+import { apiClient, type DownloadResult } from './apiClient';
 import { storageService } from './storageService';
+import { cleanBaseUrl } from '../utils/formatters';
 import type {
   FormDefinition,
   CreateFormInput,
@@ -26,49 +22,27 @@ export interface ListEntriesResponse {
 }
 
 /**
- * Cliente de servicio para interactuar con los endpoints de formularios.
+ * Cliente HTTP sin estado para interactuar con los endpoints de Formularios Dinámicos
+ * y Resolución Write-Once en `monolith-backend`.
  */
 export class FormsService {
   /**
-   * Obtiene la lista completa de definiciones de formularios registradas.
+   * Obtiene la lista completa de definiciones de formularios registradas (`GET /api/v1/forms`).
    */
   async listForms(): Promise<FormDefinition[]> {
-    try {
-      const res = await apiClient.get<FormDefinition[] | { data: FormDefinition[]; forms?: FormDefinition[] }>(
-        '/api/v1/forms'
-      );
-      if (Array.isArray(res)) return res;
-      return res.data || res.forms || [];
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('404') || msg.toLowerCase().includes('not found')) {
-        return [];
-      }
-      throw err;
-    }
+    const res = await apiClient.get<
+      FormDefinition[] | { data?: FormDefinition[]; forms?: FormDefinition[] }
+    >('/api/v1/forms');
+    if (Array.isArray(res)) return res;
+    return res.data || res.forms || [];
   }
 
   /**
-   * Obtiene el detalle de un formulario por su UUID o slug amigable.
+   * Obtiene el detalle de un formulario por su UUID o slug amigable (`GET /api/v1/forms/:idOrSlug`).
    */
   async getForm(idOrSlug: string): Promise<FormDefinition> {
-    const res = await apiClient.get<FormDefinition | { data: FormDefinition }>(
+    const res = await apiClient.get<FormDefinition | { data: FormDefinition; form?: FormDefinition }>(
       `/api/v1/forms/${idOrSlug}`
-    );
-    return 'data' in res ? res.data : res;
-  }
-
-  /**
-   * Registra una nueva definición de formulario dinámico.
-   */
-  async createForm(input: CreateFormInput): Promise<FormDefinition> {
-    const payload = {
-      ...input,
-      allowedResolutionStates: input.allowedResolutionStates || ['VALID', 'INVALID'],
-    };
-    const res = await apiClient.post<FormDefinition | { data: FormDefinition; form?: FormDefinition }>(
-      '/api/v1/forms',
-      payload
     );
     if ('data' in res && res.data) return res.data;
     if ('form' in res && res.form) return res.form;
@@ -76,7 +50,24 @@ export class FormsService {
   }
 
   /**
-   * Obtiene la bandeja de entradas de un formulario con filtros mensuales y por estado.
+   * Registra una nueva definición de formulario dinámico (`POST /api/v1/forms`).
+   */
+  async createForm(input: CreateFormInput): Promise<FormDefinition> {
+    const payload = {
+      ...input,
+      allowedResolutionStates: input.allowedResolutionStates || ['VALID', 'INVALID'],
+    };
+    const res = await apiClient.post<
+      FormDefinition | { data?: FormDefinition; form?: FormDefinition }
+    >('/api/v1/forms', payload);
+    if ('data' in res && res.data) return res.data;
+    if ('form' in res && res.form) return res.form;
+    return res as FormDefinition;
+  }
+
+  /**
+   * Obtiene la bandeja de entradas de un formulario con filtros mensuales y por estado
+   * (`GET /api/v1/forms/:formId/entries`).
    */
   async listEntries(formId: string, options?: ListEntriesOptions): Promise<ListEntriesResponse> {
     const params = new URLSearchParams();
@@ -86,59 +77,57 @@ export class FormsService {
     if (options?.limit) params.set('limit', String(options.limit));
 
     const qs = params.toString();
-    const endpoint = qs ? `/api/v1/forms/${formId}/entries?${qs}` : `/api/v1/forms/${formId}/entries`;
+    const endpoint = qs
+      ? `/api/v1/forms/${formId}/entries?${qs}`
+      : `/api/v1/forms/${formId}/entries`;
 
-    try {
-      const res = await apiClient.get<{
-        entries?: FormEntry[];
-        data?: FormEntry[];
-        total?: number;
-        page?: number;
-        limit?: number;
-        totalPages?: number;
-      } | FormEntry[]>(endpoint);
+    const res = await apiClient.get<
+      | {
+          entries?: FormEntry[];
+          data?: FormEntry[];
+          total?: number;
+          page?: number;
+          limit?: number;
+          totalPages?: number;
+        }
+      | FormEntry[]
+    >(endpoint);
 
-      if (Array.isArray(res)) {
-        return {
-          entries: res,
-          total: res.length,
-          page: 1,
-          limit: res.length || 50,
-          totalPages: 1,
-        };
-      }
-
-      const entries = res.entries || res.data || [];
-      const total = res.total ?? entries.length;
-      const page = res.page ?? options?.page ?? 1;
-      const limit = res.limit ?? options?.limit ?? 50;
-      const totalPages = res.totalPages ?? Math.max(1, Math.ceil(total / limit));
-
-      return { entries, total, page, limit, totalPages };
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('404') || msg.toLowerCase().includes('not found')) {
-        return { entries: [], total: 0, page: 1, limit: 50, totalPages: 1 };
-      }
-      throw err;
+    if (Array.isArray(res)) {
+      return {
+        entries: res,
+        total: res.length,
+        page: 1,
+        limit: res.length || 50,
+        totalPages: 1,
+      };
     }
+
+    const entries = res.entries || res.data || [];
+    const total = res.total ?? entries.length;
+    const page = res.page ?? options?.page ?? 1;
+    const limit = res.limit ?? options?.limit ?? 50;
+    const totalPages = res.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, limit)));
+
+    return { entries, total, page, limit, totalPages };
   }
 
   /**
-   * Sella de forma inmutable una entrada asignando dictamen y payload de resolución (Write-Once).
+   * Sella de forma inmutable una entrada asignando dictamen y payload de resolución Write-Once
+   * (`PATCH /api/v1/forms/entries/:entryId/resolve`).
    */
   async resolveEntry(entryId: string, input: ResolveEntryInput): Promise<FormEntry> {
-    const res = await apiClient.patch<FormEntry | { data: FormEntry; entry?: FormEntry }>(
-      `/api/v1/forms/entries/${entryId}/resolve`,
-      input
-    );
+    const res = await apiClient.patch<
+      FormEntry | { data?: FormEntry; entry?: FormEntry }
+    >(`/api/v1/forms/entries/${entryId}/resolve`, input);
     if ('data' in res && res.data) return res.data;
     if ('entry' in res && res.entry) return res.entry;
     return res as FormEntry;
   }
 
   /**
-   * Despacha a demanda una entrada resuelta hacia el webhook configurado en `externalTargetUrl`.
+   * Despacha a demanda una entrada sellada hacia el webhook configurado en `externalTargetUrl`
+   * (`POST /api/v1/forms/entries/:entryId/dispatch`).
    */
   async dispatchEntry(entryId: string): Promise<DispatchResult> {
     const res = await apiClient.post<DispatchResult | { data: DispatchResult }>(
@@ -149,24 +138,48 @@ export class FormsService {
   }
 
   /**
-   * Construye la URL para descargar la exportación de entradas en formato Excel o CSV.
+   * Construye la ruta relativa de exportación para descarga autenticada.
+   */
+  private buildExportPath(
+    formId: string,
+    format: 'xlsx' | 'csv' = 'xlsx',
+    options?: { month?: string; status?: string }
+  ): string {
+    const params = new URLSearchParams();
+    params.set('format', format);
+    if (options?.month) params.set('month', options.month);
+    if (options?.status && options.status !== 'ALL') params.set('status', options.status);
+    return `/api/v1/forms/${formId}/export?${params.toString()}`;
+  }
+
+  /**
+   * Construye la URL absoluta de exportación de entradas en formato `.xlsx` o `.csv`.
    */
   getExportUrl(
     formId: string,
     format: 'xlsx' | 'csv' = 'xlsx',
     options?: { month?: string; status?: string }
   ): string {
-    const base = storageService.getConfig().baseUrl.replace(/\/+$/, '');
-    const params = new URLSearchParams();
-    params.set('format', format);
-    if (options?.month) params.set('month', options.month);
-    if (options?.status && options.status !== 'ALL') params.set('status', options.status);
-
-    return `${base}/api/v1/forms/${formId}/export?${params.toString()}`;
+    const base = cleanBaseUrl(storageService.getConfig().baseUrl);
+    return `${base}${this.buildExportPath(formId, format, options)}`;
   }
 
   /**
-   * Envía una entrada pública utilizando el slug del formulario sin requerir token JWT.
+   * Descarga con autenticación Bearer la exportación de entradas en formato Excel o CSV
+   * (`GET /api/v1/forms/:formId/export`).
+   */
+  async downloadExport(
+    formId: string,
+    format: 'xlsx' | 'csv' = 'xlsx',
+    options?: { month?: string; status?: string }
+  ): Promise<DownloadResult> {
+    const path = this.buildExportPath(formId, format, options);
+    return apiClient.download(path, `formulario-${formId}.${format}`);
+  }
+
+  /**
+   * Envía una entrada pública utilizando el slug del formulario sin token JWT
+   * (`POST /api/v1/public/forms/:slug/entries`).
    */
   async submitPublicEntry(
     slug: string,
@@ -177,14 +190,11 @@ export class FormsService {
       status: string;
       createdAt: string;
       data?: { id: string; status: string; createdAt: string };
-    }>(`/api/v1/public/forms/${slug}/entries`, payload);
+    }>(`/api/v1/public/forms/${slug}/entries`, payload, { skipAuth: true });
 
     return res.data || res;
   }
 }
 
-/**
- * Instancia singleton exportada para interactuar con el servicio de Formularios.
- */
+/** Instancia singleton del servicio de formularios dinámicos. */
 export const formsService = new FormsService();
-

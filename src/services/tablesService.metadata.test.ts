@@ -1,11 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { tablesService } from './tablesService';
 import { apiClient } from './apiClient';
-import { storageService } from './storageService';
 
-describe('tablesService — Module 15 (Rich Format, MetadataCard & Server Pagination)', () => {
+describe('tablesService — Rich Format, MetadataCard & Server Pagination (v2 Stateless)', () => {
   beforeEach(() => {
-    localStorage.clear();
     vi.restoreAllMocks();
   });
 
@@ -45,18 +43,7 @@ describe('tablesService — Module 15 (Rich Format, MetadataCard & Server Pagina
     expect(details.data).toHaveLength(1);
   });
 
-  it('updates table metadataCard via PATCH /api/v1/tables/:id/metadata and syncs storage', async () => {
-    storageService.addTable({
-      id: 'tab-meta-1',
-      shortCode: 'mcard01',
-      tableName: 'censo.csv',
-      rowCount: 120,
-      columns: ['estado', 'poblacion'],
-      sizeBytes: 4096,
-      url: 'http://localhost:3000/t/mcard01',
-      createdAt: '2026-10-30T10:00:00Z',
-    });
-
+  it('updates table metadataCard via PATCH /api/v1/tables/:id/metadata', async () => {
     const payload = {
       title: 'Censo Demográfico 2026',
       description: 'Población proyectada por entidad federativa',
@@ -79,10 +66,9 @@ describe('tablesService — Module 15 (Rich Format, MetadataCard & Server Pagina
 
     expect(patchSpy).toHaveBeenCalledWith('/api/v1/tables/tab-meta-1/metadata', payload);
     expect(updated.metadataCard).toEqual(payload);
-    expect(storageService.getTables()[0].metadataCard).toEqual(payload);
   });
 
-  it('fetches paginated remote tables with page, limit, and folderId query params', async () => {
+  it('listTables fetches paginated remote tables with page, limit, and folderId query params', async () => {
     const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({
       tables: [
         {
@@ -106,7 +92,7 @@ describe('tablesService — Module 15 (Rich Format, MetadataCard & Server Pagina
       totalPages: 3,
     });
 
-    const items = await tablesService.fetchRemoteTables({
+    const { items, meta } = await tablesService.listTables({
       page: 2,
       limit: 10,
       folderId: 'folder-finanzas',
@@ -118,7 +104,7 @@ describe('tablesService — Module 15 (Rich Format, MetadataCard & Server Pagina
       title: 'Indicadores Financieros',
       unit: 'USD',
     });
-    expect(tablesService.getLastPaginationMeta()).toEqual({
+    expect(meta).toEqual({
       total: 30,
       page: 2,
       limit: 10,
@@ -126,4 +112,3 @@ describe('tablesService — Module 15 (Rich Format, MetadataCard & Server Pagina
     });
   });
 });
-

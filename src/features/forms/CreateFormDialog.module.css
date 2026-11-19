@@ -1,0 +1,183 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink-secondary);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 64px;
+  padding: 8px 11px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--control-border);
+  background-color: var(--control-bg);
+  color: var(--ink-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  resize: vertical;
+}
+
+.textarea:focus {
+  outline: none;
+  background-color: var(--control-bg-focus);
+  border-color: var(--control-border-focus);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.schemaSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-surface);
+  background-color: var(--paper-well);
+  border: 1px solid var(--hairline);
+}
+
+.schemaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.schemaTitle {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-primary);
+}
+
+.schemaList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.schemaRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background-color: var(--paper-sheet);
+  border: 1px solid var(--hairline);
+}
+
+.schemaRowGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 120px auto auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.compactInput,
+.compactSelect {
+  width: 100%;
+  padding: 6px 9px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--control-border);
+  background-color: var(--control-bg);
+  color: var(--ink-primary);
+  font-size: var(--text-xs);
+}
+
+.compactInputMono {
+  font-family: var(--font-code);
+}
+
+.compactInput:focus,
+.compactSelect:focus {
+  outline: none;
+  background-color: var(--control-bg-focus);
+  border-color: var(--control-border-focus);
+}
+
+.reqToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.emptySchema {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--ink-tertiary);
+}
+
+.statesRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.stateChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background-color: var(--paper-sheet);
+  border: 1px solid var(--hairline-strong);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink-primary);
+}
+
+.chipRemoveBtn {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--ink-tertiary);
+  cursor: pointer;
+}
+
+.errorBanner {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background-color: var(--status-danger-bg);
+  border: 1px solid var(--status-danger-border);
+  color: var(--status-danger);
+  font-size: var(--text-xs);
+}
+
+.footerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+@media (max-width: 720px) {
+  .twoCol,
+  .schemaRowGrid {
+    grid-template-columns: 1fr;
+  }
+}

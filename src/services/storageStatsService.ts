@@ -6,6 +6,7 @@ import { apiClient } from './apiClient';
 export interface DatabaseStorageStats {
   images?: { count?: number; sizeBytes?: number };
   tables?: { count?: number; sizeBytes?: number };
+  pdfs?: { count?: number; sizeBytes?: number };
   totalCount?: number;
   totalSizeBytes?: number;
 }
@@ -18,6 +19,8 @@ export interface DiskStorageStats {
   imagesFilesCount?: number;
   tablesBytes?: number;
   tablesFilesCount?: number;
+  pdfsBytes?: number;
+  pdfsFilesCount?: number;
   totalBytes?: number;
   totalFilesCount?: number;
 }
@@ -41,14 +44,20 @@ export interface StorageStatsResponse {
   database: DatabaseStorageStats;
   disk?: DiskStorageStats | null;
   topFolders: FolderStorageStats[];
+  /** Bandera preventiva activada por el backend cuando el espacio físico es crítico. */
+  warning?: boolean;
+  /** Mensaje descriptivo de alerta de disco cuando `warning` es `true`. */
+  warningMessage?: string | null;
 }
 
 /**
- * Servicio para consultar el monitor de almacenamiento, cuotas y salud del disco (`GET /api/v1/stats/storage`).
+ * Servicio sin estado para consultar el monitor de almacenamiento, cuotas y salud del disco
+ * (`GET /api/v1/stats/storage`).
  */
 export class StorageStatsService {
   /**
    * Obtiene las métricas consolidadas de almacenamiento físico y lógico.
+   *
    * @returns Datos de cuotas de disco, pesos por tipo y desglose por carpetas.
    */
   async fetchStorageStats(): Promise<StorageStatsResponse> {
@@ -56,5 +65,5 @@ export class StorageStatsService {
   }
 }
 
+/** Instancia singleton del servicio de estadísticas de almacenamiento. */
 export const storageStatsService = new StorageStatsService();
-

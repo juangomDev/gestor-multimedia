@@ -1,0 +1,24 @@
+.skeleton {
+  display: block;
+  background-color: var(--paper-well);
+  border-radius: var(--radius-control);
+  animation: editorialShimmer 1.4s ease-in-out infinite;
+}
+
+.line {
+  height: 14px;
+  width: 100%;
+}
+
+.card {
+  height: 120px;
+  width: 100%;
+  border-radius: var(--radius-surface);
+  border: 1px solid var(--hairline-soft);
+}
+
+.circle {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+}

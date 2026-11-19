@@ -5,10 +5,15 @@ import type { TableItem } from '../types/media';
 import type { PaginatedTableResponse, MetadataCard, TableCellStyle } from '../types/api';
 import {
   type RawApiTable,
+  ACCEPTED_TABLE_EXTENSIONS,
+  isSupportedTableFile,
   normalizeTableColumns,
+  normalizeTableItem,
   executeTableRename,
   executeTableHotSwap,
 } from './tables/tablesMutation';
+
+export { ACCEPTED_TABLE_EXTENSIONS, isSupportedTableFile, normalizeTableColumns };
 
 /**
  * Opciones de paginación y filtrado server-side para listar datasets tabulares.
@@ -31,66 +36,71 @@ export interface TablesPaginationMeta {
 }
 
 /**
- * Servicio de gestión de datasets tabulares conectado a `monolith-backend`
- * (ingesta CSV/XLSX, formato rico `headers`/`merges`/`cellStyles`, Ficha Técnica, mutaciones y paginación).
+ * Respuesta estructurada de listado paginado de datasets tabulares.
+ */
+export interface PaginatedTablesResult {
+  items: TableItem[];
+  meta: TablesPaginationMeta;
+}
+
+/**
+ * Servicio HTTP sin estado de gestión de datasets tabulares conectado a `monolith-backend`
+ * (ingesta `.csv`, `.xlsx`, `.xls` y `.json` Fase 21, formato rico, Ficha Técnica y paginación).
  */
 export class TablesService {
   private lastPaginationMeta: TablesPaginationMeta | null = null;
 
   /**
-   * Sube una hoja de cálculo CSV o Excel (`POST /api/v1/tables`) y sincroniza el almacenamiento local.
+   * Sube un dataset `.csv`, `.xlsx`, `.xls` o `.json` (`POST /api/v1/tables`).
+   *
+   * @param file Archivo tabular soportado.
+   * @param folderId UUID de carpeta destino de tipo `TABLE`.
+   * @returns Registro tabular creado y normalizado.
    */
   async uploadTable(file: File, folderId?: string | null): Promise<TableItem> {
-    const isTable =
-      file.type === 'text/csv' ||
-      file.type.includes('spreadsheet') ||
-      file.type.includes('excel') ||
-      /\.(csv|xlsx|xls)$/i.test(file.name);
-
-    if (!isTable) {
-      throw new Error(`El archivo '${file.name}' no es una hoja de cálculo válida (.csv o .xlsx)`);
+    if (!isSupportedTableFile(file)) {
+      throw new Error(
+        `El archivo '${file.name}' no es una tabla válida (.csv, .xlsx, .xls o .json)`
+      );
     }
 
     const formData = new FormData();
-    if (folderId && !folderId.startsWith('fld-')) {
+    if (folderId) {
       formData.append('folderId', folderId);
     }
     formData.append('file', file);
 
-    const res = await apiClient.post<RawApiTable>('/api/v1/tables', formData);
-    const base = storageService.getConfig().baseUrl;
-    const normalizedCols = normalizeTableColumns(res.columns || res.columnsSchema);
-
-    const item: TableItem = {
-      id: res.id,
-      shortCode: res.shortCode,
-      tableName: res.tableName || file.name,
-      rowCount: res.rowCount ?? 0,
-      columns: normalizedCols,
-      sizeBytes: res.sizeBytes ?? file.size,
-      url: buildPublicAssetUrl(base, 't', res.shortCode),
-      urlWithVersion: res.urlWithVersion,
-      metadataCard: res.metadataCard ?? null,
-      createdAt: res.createdAt || new Date().toISOString(),
-      updatedAt: res.updatedAt,
-      folderId: res.folderId !== undefined ? res.folderId : folderId || null,
-    };
-
-    storageService.addTable(item);
-    return item;
+    const rawRes = await apiClient.post<RawApiTable & { table?: RawApiTable }>(
+      '/api/v1/tables',
+      formData
+    );
+    const res = rawRes.table || rawRes;
+    return normalizeTableItem(res, storageService.getApiBaseUrl(), {
+      tableName: file.name,
+      sizeBytes: file.size,
+      folderId: folderId ?? null,
+    });
   }
 
   /**
-   * Renombra un dataset tabular (`PATCH /api/v1/tables/:id`) y actualiza el almacenamiento local.
+   * Renombra un dataset tabular (`PATCH /api/v1/tables/:id`).
    */
   async renameTable(id: string, tableName: string): Promise<TableItem> {
     return executeTableRename(id, tableName);
   }
 
   /**
-   * Sustituye en caliente el binario de una tabla (`PUT /api/v1/tables/:id`) conservando su id, shortCode y URL pública.
+   * Sustituye en caliente el archivo de una tabla (`PUT /api/v1/tables/:id`) soportando
+   * `.csv`, `.xlsx`, `.xls` y `.json` (Fase 21).
    */
   async replaceTable(id: string, file: File): Promise<TableItem> {
+    return executeTableHotSwap(id, file);
+  }
+
+  /**
+   * Alias semántico de `replaceTable` para reemplazo Hot-Swap (`PUT /api/v1/tables/:id`).
+   */
+  async hotSwapTable(id: string, file: File): Promise<TableItem> {
     return executeTableHotSwap(id, file);
   }
 
@@ -106,13 +116,26 @@ export class TablesService {
     const safePage = Math.max(1, page);
     const safeLimit = Math.min(500, Math.max(1, limit));
 
-    const res = await apiClient.get<any>(`/t/${shortCode}?page=${safePage}&limit=${safeLimit}`, {
-      skipAuth: true,
-    });
+    const res = await apiClient.get<Record<string, unknown>>(
+      `/t/${shortCode}?page=${safePage}&limit=${safeLimit}`,
+      { skipAuth: true }
+    );
 
-    const rawRows = res.data || res.rows || (Array.isArray(res) ? res : []);
-    const total = res.meta?.total ?? res.totalRows ?? res.rowCount ?? rawRows.length;
-    const totalPages = res.meta?.totalPages ?? (Math.ceil(total / safeLimit) || 1);
+    const rawRows = Array.isArray(res.data)
+      ? (res.data as Record<string, unknown>[])
+      : Array.isArray(res.rows)
+      ? (res.rows as Record<string, unknown>[])
+      : Array.isArray(res)
+      ? (res as Record<string, unknown>[])
+      : [];
+
+    const rawMeta = res.meta as { total?: number; totalPages?: number; hasNext?: boolean } | undefined;
+    const total =
+      rawMeta?.total ??
+      (typeof res.totalRows === 'number' ? res.totalRows : undefined) ??
+      (typeof res.rowCount === 'number' ? res.rowCount : undefined) ??
+      rawRows.length;
+    const totalPages = rawMeta?.totalPages ?? (Math.ceil(total / safeLimit) || 1);
 
     const response: PaginatedTableResponse = {
       data: rawRows,
@@ -121,16 +144,16 @@ export class TablesService {
         limit: safeLimit,
         total,
         totalPages,
-        hasNext: res.meta?.hasNext ?? safePage < totalPages,
+        hasNext: rawMeta?.hasNext ?? safePage < totalPages,
       },
     };
 
-    if (res.id !== undefined) response.id = res.id;
-    if (res.shortCode !== undefined) response.shortCode = res.shortCode;
-    if (res.tableName !== undefined) response.tableName = res.tableName;
-    if (Array.isArray(res.columns)) response.columns = res.columns;
-    if (Array.isArray(res.headers)) response.headers = res.headers;
-    if (Array.isArray(res.merges)) response.merges = res.merges;
+    if (typeof res.id === 'string') response.id = res.id;
+    if (typeof res.shortCode === 'string') response.shortCode = res.shortCode;
+    if (typeof res.tableName === 'string') response.tableName = res.tableName;
+    if (Array.isArray(res.columns)) response.columns = res.columns as string[];
+    if (Array.isArray(res.headers)) response.headers = res.headers as string[][];
+    if (Array.isArray(res.merges)) response.merges = res.merges as string[];
     if (res.cellStyles && typeof res.cellStyles === 'object') {
       response.cellStyles = res.cellStyles as Record<
         string,
@@ -138,15 +161,14 @@ export class TablesService {
       >;
     }
     if (res.metadataCard !== undefined) {
-      response.metadataCard = res.metadataCard;
+      response.metadataCard = res.metadataCard as MetadataCard | null;
     }
 
     return response;
   }
 
   /**
-   * Alias enriquecido de `getTableData` que extrae y normaliza `headers` multinivel,
-   * celdas combinadas (`merges`) y estilos por celda (`cellStyles`) para el Data Studio.
+   * Alias enriquecido de `getTableData` que garantiza `headers`, `merges` y `cellStyles` definidos.
    */
   async fetchTableDetails(
     shortCode: string,
@@ -163,68 +185,34 @@ export class TablesService {
   }
 
   /**
-   * Actualiza la Ficha Técnica (`metadataCard`) de un dataset en PostgreSQL (`PATCH /api/v1/tables/:id/metadata`)
-   * y sincroniza el estado en almacenamiento local.
+   * Actualiza la Ficha Técnica (`metadataCard`) de un dataset (`PATCH /api/v1/tables/:id/metadata`).
    */
   async updateTableMetadata(id: string, metadata: MetadataCard): Promise<TableItem> {
-    const res = await apiClient.patch<{
-      id: string; shortCode?: string; metadataCard: MetadataCard;
-    }>(`/api/v1/tables/${id}/metadata`, metadata);
+    const res = await apiClient.patch<
+      Partial<RawApiTable> & { table?: Partial<RawApiTable>; metadataCard?: MetadataCard }
+    >(`/api/v1/tables/${id}/metadata`, metadata);
 
-    const current = storageService.getTables();
-    const existing = current.find((t) => t.id === id);
-    const base = storageService.getConfig().baseUrl;
-    const shortCode = res?.shortCode || existing?.shortCode || id;
-
-    const updated: TableItem = {
-      ...(existing || {
-        id, shortCode, tableName: `${shortCode}.csv`,
-        rowCount: 0, sizeBytes: 0, url: buildPublicAssetUrl(base, 't', shortCode),
-        createdAt: new Date().toISOString(),
-      }),
-      id: res?.id || id, shortCode,
-      metadataCard: res?.metadataCard || metadata,
-      updatedAt: new Date().toISOString(),
+    const payload = res?.table || res || {};
+    const normalized = normalizeTableItem(payload, storageService.getApiBaseUrl(), { id });
+    return {
+      ...normalized,
+      metadataCard: payload.metadataCard ?? metadata,
+      updatedAt: payload.updatedAt || new Date().toISOString(),
     };
-
-    if (existing) storageService.saveTables(current.map((t) => (t.id === id ? updated : t)));
-    else storageService.addTable(updated);
-
-    return updated;
   }
 
   /**
    * Genera la URL de descarga directa de alta fidelidad (`/t/:short_code?download=true`).
    */
   getDownloadUrl(shortCode: string): string {
-    const base = storageService.getConfig().baseUrl;
-    return `${buildPublicAssetUrl(base, 't', shortCode)}?download=true`;
+    return `${buildPublicAssetUrl(storageService.getApiBaseUrl(), 't', shortCode)}?download=true`;
   }
 
   /**
-   * Elimina un dataset del servidor (`DELETE /api/v1/tables/:id`) y del almacenamiento local.
+   * Elimina un dataset del servidor (`DELETE /api/v1/tables/:id`).
    */
-  async deleteTable(id: string, shortCode?: string): Promise<void> {
-    try {
-      await apiClient.delete(`/api/v1/tables/${id}`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const status = (err as { status?: number })?.status;
-      if (status !== 404 && status !== 400 && !msg.includes('404') && !msg.toLowerCase().includes('not found')) {
-        throw err;
-      }
-    }
-    storageService.removeTable(id);
-    if (shortCode) storageService.removeTable(shortCode);
-  }
-
-  /**
-   * Obtiene los datasets almacenados localmente, opcionalmente filtrados por carpeta.
-   */
-  getTables(folderId?: string | null): TableItem[] {
-    const all = storageService.getTables();
-    if (folderId === undefined) return all;
-    return all.filter((t) => (folderId ? t.folderId === folderId : !t.folderId));
+  async deleteTable(id: string): Promise<void> {
+    await apiClient.delete(`/api/v1/tables/${id}`);
   }
 
   /**
@@ -235,59 +223,45 @@ export class TablesService {
   }
 
   /**
-   * Sincroniza la lista de tablas desde el backend (`GET /api/v1/tables`),
-   * soportando paginación server-side (`page`, `limit`), búsqueda (`search`) y filtro por `folderId`.
+   * Lista datasets tabulares desde `GET /api/v1/tables` devolviendo items y metadatos de paginación.
+   */
+  async listTables(options?: FetchTablesOptions): Promise<PaginatedTablesResult> {
+    const params = new URLSearchParams();
+    if (options?.page !== undefined) params.set('page', String(options.page));
+    if (options?.limit !== undefined) params.set('limit', String(options.limit));
+    if (options?.folderId) params.set('folderId', options.folderId);
+    if (options?.search && options.search.trim()) params.set('search', options.search.trim());
+
+    const qs = params.toString();
+    const res = await apiClient.get<{
+      tables?: RawApiTable[];
+      total?: number;
+      page?: number;
+      limit?: number;
+      totalPages?: number;
+    }>(qs ? `/api/v1/tables?${qs}` : '/api/v1/tables');
+
+    const baseUrl = storageService.getApiBaseUrl();
+    const items = (res.tables || []).map((t) => normalizeTableItem(t, baseUrl));
+
+    const total = res.total ?? items.length;
+    const page = res.page ?? options?.page ?? 1;
+    const limit = res.limit ?? options?.limit ?? Math.max(items.length, 50);
+    const totalPages = res.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, limit)));
+    const meta: TablesPaginationMeta = { total, page, limit, totalPages };
+
+    this.lastPaginationMeta = meta;
+    return { items, meta };
+  }
+
+  /**
+   * Obtiene el arreglo de datasets tabulares desde `GET /api/v1/tables`.
    */
   async fetchRemoteTables(options?: FetchTablesOptions): Promise<TableItem[]> {
-    try {
-      const params = new URLSearchParams();
-      if (options?.page !== undefined) params.set('page', String(options.page));
-      if (options?.limit !== undefined) params.set('limit', String(options.limit));
-      if (options?.folderId) params.set('folderId', options.folderId);
-      if (options?.search) params.set('search', options.search.trim());
-
-      const qs = params.toString();
-      const res = await apiClient.get<{
-        tables: RawApiTable[]; total?: number; page?: number; limit?: number; totalPages?: number;
-      }>(qs ? `/api/v1/tables?${qs}` : '/api/v1/tables');
-
-      const base = storageService.getConfig().baseUrl;
-      const items: TableItem[] = (res.tables || []).map((t) => ({
-        id: t.id,
-        shortCode: t.shortCode,
-        tableName: t.tableName,
-        rowCount: t.rowCount ?? 0,
-        columns: normalizeTableColumns(t.columns || t.columnsSchema),
-        sizeBytes: t.sizeBytes,
-        url: buildPublicAssetUrl(base, 't', t.shortCode),
-        urlWithVersion: t.urlWithVersion,
-        metadataCard: t.metadataCard ?? null,
-        createdAt: t.createdAt || new Date().toISOString(),
-        updatedAt: t.updatedAt,
-        folderId: t.folderId || null,
-      }));
-
-      const total = res.total ?? items.length;
-      const page = res.page ?? options?.page ?? 1;
-      const limit = res.limit ?? options?.limit ?? Math.max(items.length, 50);
-      const totalPages = res.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, limit)));
-      this.lastPaginationMeta = { total, page, limit, totalPages };
-
-      if (options?.folderId || (options?.page && options.page > 1) || options?.search) {
-        const fetchedIds = new Set(items.map((t) => t.id));
-        const others = storageService.getTables().filter((t) => !fetchedIds.has(t.id));
-        storageService.saveTables([...items, ...others]);
-      } else {
-        storageService.saveTables(items);
-      }
-      return items;
-    } catch (err: any) {
-      if (storageService.getToken()) {
-        console.warn('No se pudo sincronizar tablas remotas:', err?.message || err);
-      }
-      return storageService.getTables();
-    }
+    const { items } = await this.listTables(options);
+    return items;
   }
 }
 
+/** Instancia singleton del servicio de datasets tabulares. */
 export const tablesService = new TablesService();

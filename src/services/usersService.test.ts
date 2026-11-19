@@ -2,15 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { usersService } from './usersService';
 import { apiClient } from './apiClient';
 import { authService } from './authService';
-import { storageService } from './storageService';
 
-describe('UsersService (RBAC PostgreSQL User Administration)', () => {
+describe('UsersService (v2 Stateless RBAC User Administration)', () => {
   beforeEach(() => {
-    localStorage.clear();
     vi.restoreAllMocks();
   });
 
-  it('listUsers() calls GET /api/v1/users, normalizes records and caches in storageService', async () => {
+  it('listUsers() calls GET /api/v1/users and normalizes records without localStorage side effects', async () => {
     const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({
       users: [
         {
@@ -45,10 +43,9 @@ describe('UsersService (RBAC PostgreSQL User Administration)', () => {
       createdAt: '2026-01-10T12:00:00.000Z',
     });
     expect(users[1].isActive).toBe(false);
-    expect(storageService.getCreatedUsers()).toHaveLength(2);
   });
 
-  it('createUser() delegates to authService.createUser and stores the normalized user', async () => {
+  it('createUser() delegates to authService.createUser and returns normalized user', async () => {
     const createSpy = vi.spyOn(authService, 'createUser').mockResolvedValue({
       user: {
         id: 'mgr-2',
@@ -72,19 +69,9 @@ describe('UsersService (RBAC PostgreSQL User Administration)', () => {
       role: 'MANAGER',
     });
     expect(result.user.role).toBe('MANAGER');
-    expect(storageService.getCreatedUsers()[0]?.username).toBe('nuevo_manager');
   });
 
-  it('updateUserStatus() calls PATCH /api/v1/users/:id/status and updates cached status', async () => {
-    storageService.saveCreatedUsers([
-      {
-        id: 'col-99',
-        username: 'usuario_activo',
-        role: 'COLLABORATOR',
-        isActive: true,
-      },
-    ]);
-
+  it('updateUserStatus() calls PATCH /api/v1/users/:id/status', async () => {
     const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValue({
       user: {
         id: 'col-99',
@@ -102,7 +89,6 @@ describe('UsersService (RBAC PostgreSQL User Administration)', () => {
       isActive: false,
     });
     expect(res.user.isActive).toBe(false);
-    expect(storageService.getCreatedUsers()[0]?.isActive).toBe(false);
   });
 
   it('resetUserPassword() calls PATCH /api/v1/users/:id/password with newPassword', async () => {
@@ -118,18 +104,12 @@ describe('UsersService (RBAC PostgreSQL User Administration)', () => {
     expect(res.message).toContain('restablecida');
   });
 
-  it('deleteUser() calls DELETE /api/v1/users/:id and removes user from local cache', async () => {
-    storageService.saveCreatedUsers([
-      { id: 'col-50', username: 'temp_user', role: 'COLLABORATOR', isActive: true },
-    ]);
-
+  it('deleteUser() calls DELETE /api/v1/users/:id', async () => {
     const deleteSpy = vi.spyOn(apiClient, 'delete').mockResolvedValue({ deleted: true });
 
     const res = await usersService.deleteUser('col-50');
 
     expect(deleteSpy).toHaveBeenCalledWith('/api/v1/users/col-50');
     expect(res.deleted).toBe(true);
-    expect(storageService.getCreatedUsers()).toHaveLength(0);
   });
 });
-

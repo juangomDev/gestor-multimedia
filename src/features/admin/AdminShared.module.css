@@ -1,0 +1,297 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.filterCluster {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.select {
+  padding: 7px 10px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--control-border);
+  background-color: var(--control-bg);
+  color: var(--ink-primary);
+  font-size: var(--text-xs);
+}
+
+.select:focus {
+  outline: none;
+  background-color: var(--control-bg-focus);
+  border-color: var(--control-border-focus);
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border-radius: var(--radius-surface);
+  border: 1px solid var(--hairline);
+  background-color: var(--paper-sheet);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-secondary);
+  background-color: var(--paper-canvas);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.row {
+  content-visibility: auto;
+  contain-intrinsic-size: 48px;
+}
+
+.row:hover td {
+  background-color: var(--paper-hover);
+}
+
+.table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--hairline-soft);
+  color: var(--ink-primary);
+  vertical-align: middle;
+}
+
+.mono {
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-secondary);
+}
+
+.monoPrimary {
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-primary);
+  font-weight: 600;
+}
+
+.paginationBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--paper-canvas);
+  border-top: 1px solid var(--hairline);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+}
+
+.paginationBtns {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: var(--space-3);
+}
+
+.metricCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-4);
+  border-radius: var(--radius-surface);
+  background-color: var(--paper-sheet);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--hairline-strong);
+}
+
+.spineImage {
+  border-left-color: var(--spine-image);
+}
+
+.spineTable {
+  border-left-color: var(--spine-table);
+}
+
+.spinePdf {
+  border-left-color: var(--spine-pdf);
+}
+
+.spineAccent {
+  border-left-color: var(--accent-ink);
+}
+
+.metricLabel {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-secondary);
+}
+
+.metricValue {
+  font-family: var(--font-code);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-primary);
+}
+
+.metricSub {
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-tertiary);
+}
+
+.sectionCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-surface);
+  background-color: var(--paper-sheet);
+  border: 1px solid var(--hairline);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.sectionDesc {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+}
+
+.warnAlert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-surface);
+  background-color: var(--status-warn-bg);
+  border: 1px solid var(--status-warn-border);
+  color: var(--status-warn);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.secretBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-surface);
+  background-color: var(--status-ok-bg);
+  border: 1px solid var(--status-ok-border);
+}
+
+.secretTitle {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--status-ok);
+}
+
+.secretCodeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background-color: var(--paper-sheet);
+  border: 1px solid var(--hairline);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  word-break: break-all;
+  color: var(--ink-primary);
+}
+
+.codePre {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background-color: var(--paper-well);
+  border: 1px solid var(--hairline);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  overflow-x: auto;
+  max-height: 300px;
+  color: var(--ink-primary);
+}
+
+.barTrack {
+  height: 7px;
+  width: 100%;
+  border-radius: var(--radius-pill);
+  background-color: var(--paper-well);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background-color: var(--accent-ink);
+}
+
+.inlineForm {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.grow {
+  flex: 1;
+  min-width: 220px;
+}
+
+.iframeBox {
+  width: 100%;
+  height: 520px;
+  border-radius: var(--radius-surface);
+  border: 1px solid var(--hairline);
+  background-color: var(--paper-well);
+}
+
+.footerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}

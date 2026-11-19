@@ -1,0 +1,191 @@
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 12px;
+  border-radius: var(--radius-surface);
+  background-color: var(--paper-sheet);
+  box-shadow: var(--elevation-card);
+  content-visibility: auto;
+  contain-intrinsic-size: 0 212px;
+  transition: box-shadow var(--duration-press) var(--ease-out-quint),
+    background-color var(--duration-press) var(--ease-out-quint),
+    transform var(--duration-press) var(--ease-out-quint);
+}
+
+.card:hover {
+  box-shadow: var(--elevation-card-hover);
+}
+
+.cardSelected {
+  box-shadow: 0 0 0 2px var(--accent-ink);
+  background-color: var(--accent-ink-soft);
+}
+
+.spineTable {
+  border-left: 3px solid var(--spine-table);
+}
+
+.spinePdf {
+  border-left: 3px solid var(--spine-pdf);
+}
+
+.spineForm {
+  border-left: 3px solid var(--spine-form);
+}
+
+.thumbWrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  background-color: var(--paper-well);
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+}
+
+.thumbWrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px var(--image-outline);
+  pointer-events: none;
+}
+
+.thumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.selectBox {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-chip);
+  border: 1px solid var(--hairline-strong);
+  background-color: var(--paper-sheet);
+  color: var(--accent-on-solid);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--duration-press) var(--ease-out-quint),
+    background-color var(--duration-press) var(--ease-out-quint),
+    border-color var(--duration-press) var(--ease-out-quint);
+}
+
+.card:hover .selectBox,
+.card:focus-within .selectBox,
+.selectBoxVisible {
+  opacity: 1;
+}
+
+.selectBoxChecked {
+  opacity: 1;
+  background-color: var(--accent-ink);
+  border-color: var(--accent-ink);
+}
+
+.selectBoxInline {
+  position: static;
+  flex-shrink: 0;
+}
+
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.titleBtn {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ink-primary);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.titleBtn:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+  border-radius: var(--radius-chip);
+}
+
+.titleText {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--ink-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menuBtn {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.menuBtn::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+}
+
+.menuBtn:hover {
+  background-color: var(--paper-hover);
+  color: var(--ink-primary);
+}
+
+.menuBtn:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 1px;
+}
+
+.footerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.metaText {
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  color: var(--ink-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.badgesRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}

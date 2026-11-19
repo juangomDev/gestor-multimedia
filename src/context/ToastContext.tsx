@@ -1,8 +1,10 @@
-import React, { useState, useCallback } from 'react';
-import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import React, { useState, useCallback, useMemo } from 'react';
+import { ToastViewport, type UiToastTone } from '../components/ui/ToastViewport';
 import { ToastContext, type ToastItem } from './toastContextDef';
-import styles from '../components/common/Toast.module.css';
 
+/**
+ * Proveedor global de toasts editoriales montado sobre `ToastViewport`.
+ */
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -11,41 +13,23 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const showToast = useCallback(
-    (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-      const id = `${Date.now()}-${Math.random()}`;
-      setToasts((prev) => [...prev, { id, type, message }]);
+    (message: string, type: UiToastTone = 'info', title?: string) => {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      setToasts((prev) => [...prev, { id, type, title, message }]);
 
       setTimeout(() => {
         removeToast(id);
-      }, 4000);
+      }, 4200);
     },
     [removeToast]
   );
 
+  const value = useMemo(() => ({ showToast }), [showToast]);
+
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={value}>
       {children}
-      <div className={styles.container} role="region" aria-live="polite">
-        {toasts.map((toast) => {
-          const Icon =
-            toast.type === 'success' ? CheckCircle2 : toast.type === 'error' ? AlertCircle : Info;
-          return (
-            <div key={toast.id} className={`${styles.toast} ${styles[toast.type]}`}>
-              <div className={styles.message}>
-                <Icon size={18} />
-                <span>{toast.message}</span>
-              </div>
-              <button
-                onClick={() => removeToast(toast.id)}
-                className={styles.closeBtn}
-                aria-label="Cerrar notificación"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          );
-        })}
-      </div>
+      <ToastViewport toasts={toasts} onDismiss={removeToast} />
     </ToastContext.Provider>
   );
 };
