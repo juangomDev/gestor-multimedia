@@ -27,6 +27,7 @@ export const DEFAULT_CONFIG: ClientConfig = {
 };
 
 const memoryCache = new Map<string, string | null>();
+const baseUrlListeners = new Set<(baseUrl: string) => void>();
 let cacheListenersAttached = false;
 
 /**
@@ -140,7 +141,23 @@ export const storageService = {
           : current.baseUrl,
     };
     writeCachedItem(STORAGE_KEYS.CONFIG, JSON.stringify(updated));
+    if (updated.baseUrl !== current.baseUrl) {
+      baseUrlListeners.forEach((listener) => listener(updated.baseUrl));
+    }
     return updated;
+  },
+
+  /**
+   * Suscribe un listener a los cambios de `apiBaseUrl` (p. ej. para reconectar SSE).
+   *
+   * @param listener Callback invocado con la nueva URL base persistida.
+   * @returns Función de desuscripción.
+   */
+  onBaseUrlChange(listener: (baseUrl: string) => void): () => void {
+    baseUrlListeners.add(listener);
+    return () => {
+      baseUrlListeners.delete(listener);
+    };
   },
 
   /**
@@ -201,19 +218,14 @@ export const storageService = {
 
   /**
    * Actualiza únicamente el access token JWT preservando los datos del usuario en sesión.
+   * No crea una sesión fantasma si el usuario cerró sesión mientras un refresco estaba en vuelo.
    *
    * @param token Nuevo access token JWT emitido por el backend.
    */
   saveToken(token: string): void {
     const current = this.getSession();
-    if (current) {
-      this.saveSession({ ...current, token });
-    } else {
-      this.saveSession({
-        token,
-        user: { id: '', username: '', role: 'COLLABORATOR' },
-      });
-    }
+    if (!current) return;
+    this.saveSession({ ...current, token });
   },
 
   /**

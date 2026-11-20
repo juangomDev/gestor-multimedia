@@ -107,4 +107,33 @@ describe('LoginPage v2 (Fase 3.2 — Auth real, /health y Popover Servidor API)'
     });
     expect(checkHealthSpy).toHaveBeenCalled();
   });
+
+  it('rechaza URLs inválidas en ServerUrlPopover y purga QueryClient al cambiar de servidor', async () => {
+    const queryClient = createAppQueryClient();
+    queryClient.setQueryData(['folders', 'tree'], [{ id: 'stale-folder' }]);
+
+    render(
+      <AppProviders queryClient={queryClient}>
+        <MemoryRouter initialEntries={['/login']}>
+          <AppRoutes />
+        </MemoryRouter>
+      </AppProviders>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Cambiar servidor API/i }));
+    const urlInput = await screen.findByLabelText(/URL base del backend/i);
+
+    fireEvent.change(urlInput, { target: { value: 'http://invalida con espacios' } });
+    fireEvent.click(screen.getByRole('button', { name: /Guardar y probar/i }));
+    expect(await screen.findByText(/Introduce una URL HTTP o HTTPS válida/i)).toBeInTheDocument();
+    expect(queryClient.getQueryData(['folders', 'tree'])).toBeDefined();
+
+    fireEvent.change(urlInput, { target: { value: 'https://server-b.example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /Guardar y probar/i }));
+
+    await waitFor(() => {
+      expect(storageService.getApiBaseUrl()).toBe('https://server-b.example.com');
+      expect(queryClient.getQueryData(['folders', 'tree'])).toBeUndefined();
+    });
+  });
 });

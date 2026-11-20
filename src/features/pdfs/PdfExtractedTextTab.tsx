@@ -41,11 +41,11 @@ export const PdfExtractedTextTab: React.FC<PdfExtractedTextTabProps> = ({
   const filteredPages = useMemo(() => {
     const q = deferredFilter.trim().toLowerCase();
     if (!q) return pages;
-    return pages.filter((p) => p.text.toLowerCase().includes(q));
+    return pages.filter((p) => (p.text ?? '').toLowerCase().includes(q));
   }, [pages, deferredFilter]);
 
   const totalExtractedChars = useMemo(
-    () => pages.reduce((sum, p) => sum + (p.charCount ?? p.text.trim().length), 0),
+    () => pages.reduce((sum, p) => sum + (p.charCount ?? (p.text ?? '').trim().length), 0),
     [pages]
   );
 
@@ -60,7 +60,7 @@ export const PdfExtractedTextTab: React.FC<PdfExtractedTextTabProps> = ({
           <AlertTriangle size={15} aria-hidden="true" />
           <span>
             Documento marcado como <strong>escaneado</strong> o sin texto seleccionable. El
-            asistente RAG usará la ficha de metadatos (<code>category</code>, <code>summary</code>,{' '}
+            asistente RAG usará la ficha de metadatos (<code>title</code>, <code>summary</code>,{' '}
             <code>keywords</code>) para indexarlo.
           </span>
         </div>
@@ -95,7 +95,7 @@ export const PdfExtractedTextTab: React.FC<PdfExtractedTextTabProps> = ({
             <article key={page.pageNumber} className={styles.pageCard}>
               <div className={styles.pageHeaderRow}>
                 <span className={styles.pageHeading}>
-                  Página {page.pageNumber} · {page.charCount ?? page.text.trim().length} caracteres
+                  Página {page.pageNumber} · {page.charCount ?? (page.text ?? '').trim().length} caracteres
                 </span>
                 <Button
                   variant="ghost"
@@ -107,7 +107,7 @@ export const PdfExtractedTextTab: React.FC<PdfExtractedTextTabProps> = ({
                 </Button>
               </div>
               <p className={styles.pageBody}>
-                {page.text?.trim() || '(Sin texto seleccionable en esta página)'}
+                {(page.text ?? '').trim() || '(Sin texto seleccionable en esta página)'}
               </p>
             </article>
           ))

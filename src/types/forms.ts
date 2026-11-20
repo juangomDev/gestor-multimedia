@@ -59,6 +59,12 @@ export interface FormDefinition {
   folderId?: string | null;
   /** Identificador de la tabla vinculada donde se acumulan las filas */
   linkedTableId?: string | null;
+  /** Metadatos resumidos de la tabla vinculada (cuando el backend los incluye) */
+  linkedTable?: {
+    id?: string;
+    shortCode?: string;
+    tableName?: string;
+  } | null;
   /** Esquema de campos para la carga pública o inicial */
   entryFieldsSchema: FormSchemaField[];
   /** Esquema de campos exclusivos para la resolución interna */
@@ -80,6 +86,16 @@ export interface FormDefinition {
 }
 
 /**
+ * Parámetros opcionales de consulta para listar definiciones de formularios (`GET /api/v1/forms`).
+ */
+export interface FetchFormsOptions {
+  folderId?: string | null;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+/**
  * Datos requeridos para la creación de un nuevo Formulario.
  */
 export interface CreateFormInput {
@@ -91,6 +107,8 @@ export interface CreateFormInput {
   resolutionFieldsSchema: FormSchemaField[];
   allowedResolutionStates?: string[];
   externalTargetUrl?: string;
+  /** Habilita resolución asistida automáticamente por IA cuando lo soporta el backend. */
+  autoResolveWithAi?: boolean;
 }
 
 /**

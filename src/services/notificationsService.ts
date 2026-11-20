@@ -28,7 +28,9 @@ export function normalizeNotification(
     id: safe.id || `ntf-${Date.now()}`,
     userId: safe.userId,
     type:
-      safe.type === 'FORM_NEW_ENTRY' || safe.type === 'FORM_ENTRY_RESOLVED'
+      safe.type === 'FORM_ENTRY_NEW' ||
+      safe.type === 'FORM_NEW_ENTRY' ||
+      safe.type === 'FORM_ENTRY_RESOLVED'
         ? safe.type
         : 'SYSTEM',
     title: safe.title || 'Notificación',

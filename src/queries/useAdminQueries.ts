@@ -130,6 +130,10 @@ export function useDeleteUserMutation() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.users.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.folders.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.images.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tables.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.pdfs.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.forms.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.storageStats.all }),
       ]);
     },

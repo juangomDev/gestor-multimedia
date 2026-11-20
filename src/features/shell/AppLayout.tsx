@@ -1,8 +1,9 @@
 import React, { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react';
-import { Outlet, useParams } from 'react-router';
+import { Outlet, useLocation, useParams } from 'react-router';
 import { useFolderTreeQuery } from '../../queries/useFoldersQueries';
 import { flattenFolderTree } from '../../services/foldersService';
 import { useToast } from '../../context/useToast';
+import { ErrorBoundary } from '../../components/ui/ErrorBoundary';
 import { ChangePasswordDialog } from '../auth/ChangePasswordDialog';
 import { useLiveNotifications } from '../notifications/useLiveNotifications';
 import { ShellContext, type ShortCodePreviewRequest } from './shellContextDef';
@@ -24,6 +25,7 @@ const LazyPdfViewerDialog = lazy(() => import('../pdfs/PdfViewerDialog'));
  */
 export const AppLayout: React.FC = () => {
   const { folderId } = useParams<{ folderId?: string }>();
+  const location = useLocation();
   const { showToast } = useToast();
   const folderTreeQuery = useFolderTreeQuery();
   useLiveNotifications();
@@ -38,10 +40,15 @@ export const AppLayout: React.FC = () => {
     [folderTreeQuery.data]
   );
 
+  const isExplorerFolderRoute =
+    Boolean(folderId) &&
+    location.pathname.startsWith('/folder/') &&
+    !location.pathname.includes('/forms/');
+
   const activeFolder = useMemo(() => {
-    if (!folderId) return null;
+    if (!folderId || !isExplorerFolderRoute) return null;
     return allFolders.find((f) => f.id === folderId) ?? null;
-  }, [allFolders, folderId]);
+  }, [allFolders, folderId, isExplorerFolderRoute]);
 
   const registerUploadHandler = useCallback((handler: () => void) => {
     uploadHandlerRef.current = handler;
@@ -94,7 +101,9 @@ export const AppLayout: React.FC = () => {
         <div className={styles.contentColumn}>
           <MobileDrawer />
           <main className={styles.main} id="main-content">
-            <Outlet />
+            <ErrorBoundary resetKey={location.pathname}>
+              <Outlet />
+            </ErrorBoundary>
           </main>
         </div>
 

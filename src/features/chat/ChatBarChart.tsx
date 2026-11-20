@@ -21,18 +21,23 @@ export const ChatBarChart: React.FC<ChatBarChartProps> = ({ chartData }) => {
   const values = chartData.values ?? [];
   const percentages = chartData.percentages ?? [];
 
-  if (labels.length === 0) return null;
+  const validEntries = labels
+    .map((label, idx) => ({
+      label,
+      val: Number(values[idx] ?? 0),
+      pct: percentages[idx],
+    }))
+    .filter((entry) => Number.isFinite(entry.val));
 
-  const numericValues = labels.map((_, idx) => Number(values[idx] ?? 0));
-  const maxVal = Math.max(...numericValues.map((v) => Math.abs(v)), 1);
+  if (validEntries.length === 0) return null;
+
+  const maxVal = Math.max(...validEntries.map((e) => Math.abs(e.val)), 1);
 
   return (
     <figure className={styles.figure} data-testid="chat-bar-chart" aria-label="Gráfico de datos">
       <figcaption className={styles.caption}>Distribución numérica</figcaption>
       <div className={styles.bars}>
-        {labels.map((label, idx) => {
-          const val = numericValues[idx] ?? 0;
-          const pct = percentages[idx];
+        {validEntries.map(({ label, val, pct }, idx) => {
           const barWidth = Math.max(4, Math.min(100, Math.round((Math.abs(val) / maxVal) * 100)));
 
           return (

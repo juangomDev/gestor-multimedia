@@ -19,16 +19,16 @@ export const NotificationBell: React.FC = () => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <span className={styles.triggerWrap}>
-          <Button
-            variant="ghost"
-            size="icon"
-            icon={<Bell size={17} />}
-            aria-label={
-              unreadCount > 0 ? `Notificaciones (${unreadCount} sin leer)` : 'Notificaciones'
-            }
-            data-testid="notification-bell-trigger"
-          />
+        <Button
+          variant="ghost"
+          size="icon"
+          className={styles.triggerWrap}
+          icon={<Bell size={17} />}
+          aria-label={
+            unreadCount > 0 ? `Notificaciones (${unreadCount} sin leer)` : 'Notificaciones'
+          }
+          data-testid="notification-bell-trigger"
+        >
           {unreadCount > 0 ? (
             <span
               className={styles.badgeCount}
@@ -38,7 +38,7 @@ export const NotificationBell: React.FC = () => {
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           ) : null}
-        </span>
+        </Button>
       </PopoverTrigger>
 
       <PopoverContent align="end" sideOffset={8} className={styles.popover}>

@@ -48,7 +48,11 @@ export const TeamPage: React.FC = () => {
             <StorageStatsPanel enabled={activeTab === 'activity'} />
             <section>
               <h2 className={styles.subSectionTitle}>Actividad reciente del equipo</h2>
-              <AuditLogsPanel enabled={activeTab === 'activity'} pageSize={20} />
+              <AuditLogsPanel
+                enabled={activeTab === 'activity'}
+                pageSize={20}
+                hideAdminFilters={!isAdmin}
+              />
             </section>
           </div>
         </TabsContent>

@@ -168,4 +168,72 @@ describe('notificationsStream (v2 — fetch + ReadableStream SSE con Authorizati
     handle.disconnect();
     expect(capturedSignal?.aborted).toBe(true);
   });
+
+  it('envía Last-Event-ID al reconectar y procesa bloque residual sin \\n\\n al cerrar el stream', async () => {
+    const received: NotificationItem[] = [];
+    const firstStream = createChunkedStream([
+      'id: evt-42\r\nevent: notification\r\ndata: {"id":"n-42","type":"FORM_ENTRY_NEW","title":"Uno","message":"M1"}',
+    ]);
+    const secondStream = createChunkedStream([
+      'id: evt-43\nevent: notification\ndata: {"id":"n-43","type":"SYSTEM","title":"Dos","message":"M2"}\n\n',
+    ]);
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(firstStream, { status: 200 }))
+      .mockResolvedValueOnce(new Response(secondStream, { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const handle = connectNotificationsStream({
+      onNotification: (item) => received.push(item),
+      initialRetryMs: 15,
+    });
+
+    await vi.waitFor(() => {
+      expect(received).toHaveLength(2);
+    });
+    handle.disconnect();
+
+    expect(received[0].type).toBe('FORM_ENTRY_NEW');
+    const [, secondInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect((secondInit.headers as Record<string, string>)['Last-Event-ID']).toBe('evt-42');
+  });
+
+  it('reintenta cuando expira connectTimeoutMs en un handshake colgado', async () => {
+    const onError = vi.fn();
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(
+        (_url: string, init?: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => {
+              const err = new Error('Aborted');
+              err.name = 'AbortError';
+              reject(err);
+            });
+          })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          createChunkedStream(['event: notification\ndata: {"id":"n-ok","title":"Recuperado"}\n\n']),
+          { status: 200 }
+        )
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const received: NotificationItem[] = [];
+    const handle = connectNotificationsStream({
+      onNotification: (item) => received.push(item),
+      onError,
+      connectTimeoutMs: 25,
+      initialRetryMs: 15,
+    });
+
+    await vi.waitFor(() => {
+      expect(received).toHaveLength(1);
+    });
+    handle.disconnect();
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(received[0].title).toBe('Recuperado');
+  });
 });

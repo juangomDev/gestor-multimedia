@@ -17,6 +17,7 @@ export interface FormEntriesTableProps {
   totalPages: number;
   totalEntries: number;
   isDispatching: boolean;
+  canResolve?: boolean;
   onSelectEntry: (entry: FormEntry) => void;
   onQuickDispatch: (entryId: string) => void;
   onPageChange: (nextPage: number) => void;
@@ -33,6 +34,7 @@ export const FormEntriesTable: React.FC<FormEntriesTableProps> = ({
   totalPages,
   totalEntries,
   isDispatching,
+  canResolve = true,
   onSelectEntry,
   onQuickDispatch,
   onPageChange,
@@ -100,21 +102,25 @@ export const FormEntriesTable: React.FC<FormEntriesTableProps> = ({
               <td>
                 <div className={styles.rowActions}>
                   {entry.status === 'NEW' ? (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      icon={<Lock size={13} />}
-                      onClick={() => onSelectEntry(entry)}
-                      data-testid={`resolve-btn-${entry.id}`}
-                    >
-                      Dictaminar
-                    </Button>
+                    canResolve ? (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        icon={<Lock size={13} />}
+                        onClick={() => onSelectEntry(entry)}
+                        data-testid={`resolve-btn-${entry.id}`}
+                      >
+                        Dictaminar
+                      </Button>
+                    ) : (
+                      <Badge tone="neutral">Solo lectura</Badge>
+                    )
                   ) : (
                     <>
                       <Button variant="secondary" size="sm" onClick={() => onSelectEntry(entry)}>
                         Ver dictamen
                       </Button>
-                      {form?.externalTargetUrl ? (
+                      {form?.externalTargetUrl && canResolve ? (
                         <Button
                           variant="ghost"
                           size="sm"

@@ -9,7 +9,7 @@ import {
   FormSchemaFieldEditor,
   type EditableSchemaField,
 } from './FormSchemaFieldEditor';
-import { slugifyTitle } from './formHelpers';
+import { slugifyTitle, validateFormSchemaFields } from './formHelpers';
 import type { FormDefinition, FormSchemaField } from '../../types/forms';
 import styles from './CreateFormDialog.module.css';
 
@@ -122,6 +122,11 @@ export const CreateFormDialog: React.FC<CreateFormDialogProps> = ({
       setErrorMsg('Define al menos un campo de entrada con etiqueta y clave JSON.');
       return;
     }
+    const schemaError = validateFormSchemaFields(cleanEntryFields, cleanResolutionFields);
+    if (schemaError) {
+      setErrorMsg(schemaError);
+      return;
+    }
     if (allowedStates.length === 0) {
       setErrorMsg('Debe existir al menos un estado permitido para el dictamen.');
       return;
@@ -215,7 +220,7 @@ export const CreateFormDialog: React.FC<CreateFormDialogProps> = ({
         </div>
 
         <FormSchemaFieldEditor
-          title="Campos de entrada pública (`entryFieldsSchema`)"
+          title="Campos de entrada pública"
           fields={entryFields}
           onChange={setEntryFields}
           addLabel="Añadir campo"
@@ -224,7 +229,7 @@ export const CreateFormDialog: React.FC<CreateFormDialogProps> = ({
         />
 
         <FormSchemaFieldEditor
-          title="Campos de dictamen interno (`resolutionFieldsSchema`)"
+          title="Campos de dictamen interno"
           fields={resolutionFields}
           onChange={setResolutionFields}
           addLabel="Añadir campo"
@@ -234,7 +239,7 @@ export const CreateFormDialog: React.FC<CreateFormDialogProps> = ({
 
         <div className={styles.twoCol}>
           <div className={styles.fieldGroup}>
-            <span className={styles.label}>Estados permitidos (`allowedResolutionStates`)</span>
+            <span className={styles.label}>Estados permitidos</span>
             <div className={styles.statesRow}>
               {allowedStates.map((st) => (
                 <span key={st} className={styles.stateChip}>
@@ -270,7 +275,7 @@ export const CreateFormDialog: React.FC<CreateFormDialogProps> = ({
           </div>
 
           <Input
-            label="Webhook externo al sellar (`externalTargetUrl`, opcional)"
+            label="Webhook externo al sellar (opcional)"
             type="url"
             mono
             value={externalTargetUrl}

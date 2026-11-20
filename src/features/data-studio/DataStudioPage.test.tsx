@@ -87,7 +87,7 @@ describe('DataStudioPage, DataGrid y TableMetadataDialog (Fase 5.2)', () => {
     const styledCell = screen.getByText('1500').closest('td');
     expect(styledCell).toHaveStyle({ fontWeight: '700', textAlign: 'right' });
 
-    // Filtro local con useDeferredValue
+    // Filtro local con useDeferredValue: la fila 'Sur' (índice original 1) NO debe heredar cellStyles de la fila 0
     fireEvent.change(screen.getByLabelText('Filtrar filas del dataset'), {
       target: { value: 'Sur' },
     });
@@ -95,6 +95,8 @@ describe('DataStudioPage, DataGrid y TableMetadataDialog (Fase 5.2)', () => {
       expect(screen.queryByText('Norte')).not.toBeInTheDocument();
       expect(screen.getByText('Sur')).toBeInTheDocument();
     });
+    const surAmountCell = screen.getByText('980').closest('td');
+    expect(surAmountCell?.style.fontWeight).not.toBe('700');
 
     // Limpiar y avanzar a página 2 (server-side)
     fireEvent.change(screen.getByLabelText('Filtrar filas del dataset'), { target: { value: '' } });

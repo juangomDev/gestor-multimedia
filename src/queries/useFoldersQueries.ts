@@ -80,6 +80,8 @@ export function useDeleteFolderMutation() {
         queryClient.invalidateQueries({ queryKey: queryKeys.images.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tables.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.pdfs.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.forms.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.chat.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.storageStats.all }),
       ]);
     },
@@ -103,6 +105,7 @@ export function useShareFolderMutation(folderId: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.folders.shares(folderId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.folders.tree() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.chat.all }),
       ]);
     },
   });
@@ -133,6 +136,7 @@ export function useRevokeShareMutation(folderId: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.folders.shares(folderId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.folders.tree() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.chat.all }),
       ]);
     },
   });

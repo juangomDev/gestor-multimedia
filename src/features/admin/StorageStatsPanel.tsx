@@ -35,6 +35,16 @@ export const StorageStatsPanel: React.FC<StorageStatsPanelProps> = ({ enabled = 
         icon={<HardDrive size={22} />}
         title="No se pudieron cargar las métricas de almacenamiento"
         description="Verifica la conectividad con /api/v1/stats/storage."
+        action={
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<RefreshCw size={14} />}
+            onClick={() => void statsQuery.refetch()}
+          >
+            Reintentar
+          </Button>
+        }
       />
     );
   }

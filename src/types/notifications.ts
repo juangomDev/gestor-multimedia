@@ -1,7 +1,7 @@
 /**
  * Tipo de evento de notificación generado por `monolith-backend`.
  */
-export type NotificationType = 'FORM_NEW_ENTRY' | 'FORM_ENTRY_RESOLVED' | 'SYSTEM';
+export type NotificationType = 'FORM_ENTRY_NEW' | 'FORM_NEW_ENTRY' | 'FORM_ENTRY_RESOLVED' | 'SYSTEM';
 
 /**
  * Representación de una notificación in-app en la bandeja del usuario.

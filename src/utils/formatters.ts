@@ -31,6 +31,26 @@ export function cleanBaseUrl(url: string): string {
 }
 
 /**
+ * Valida y normaliza una URL base HTTP/HTTPS sin espacios internos ni barras finales.
+ *
+ * @param raw Dirección ingresada por el usuario.
+ * @returns URL base normalizada o `null` si el formato o protocolo es inválido.
+ */
+export function validateHttpBaseUrl(raw: string): string | null {
+  const cleaned = cleanBaseUrl(raw);
+  if (!cleaned || /\s/.test(cleaned)) return null;
+  try {
+    const parsed = new URL(cleaned);
+    if ((parsed.protocol !== 'http:' && parsed.protocol !== 'https:') || !parsed.hostname) {
+      return null;
+    }
+    return cleaned;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Construye la URL pública canónica de un recurso multimedia (`/i/`, `/t/` o `/p/`).
  *
  * @param baseUrl URL base configurada de `monolith-backend`.
@@ -44,7 +64,7 @@ export function buildPublicAssetUrl(
   shortCode: string
 ): string {
   const clean = cleanBaseUrl(baseUrl);
-  return `${clean}/${type}/${shortCode}`;
+  return `${clean}/${type}/${encodeURIComponent(shortCode)}`;
 }
 
 /**

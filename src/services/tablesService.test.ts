@@ -107,6 +107,25 @@ describe('tablesService (v2 — .csv/.xlsx/.json, Formato Rico, MetadataCard y M
     expect(meta).toEqual({ total: 30, page: 2, limit: 10, totalPages: 3 });
   });
 
+  it('listTables() lee paginación OpenAPI anidada en res.meta', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValueOnce({
+      tables: [
+        {
+          id: 'tab-m1',
+          shortCode: 'tm01',
+          tableName: 'datos.csv',
+          rowCount: 15,
+          sizeBytes: 300,
+        },
+      ],
+      meta: { total: 64, page: 2, limit: 25, totalPages: 3 },
+    });
+
+    const { items, meta } = await tablesService.listTables({ page: 2, limit: 25 });
+    expect(items).toHaveLength(1);
+    expect(meta).toEqual({ total: 64, page: 2, limit: 25, totalPages: 3 });
+  });
+
   it('fetchTableDetails() extrae paginación, headers multinivel, merges, cellStyles y genera downloadUrl', async () => {
     storageService.setApiBaseUrl('http://localhost:3000');
     expect(tablesService.getDownloadUrl('tab111')).toBe('http://localhost:3000/t/tab111?download=true');

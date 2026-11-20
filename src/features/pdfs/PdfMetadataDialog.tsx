@@ -1,5 +1,5 @@
 import React, { useId, useState } from 'react';
-import { Check, Plus, Trash2, X } from 'lucide-react';
+import { Check, Plus, X } from 'lucide-react';
 import { Dialog } from '../../components/ui/Dialog';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -7,12 +7,6 @@ import { useToast } from '../../context/useToast';
 import { useUpdatePdfMetadataMutation } from '../../queries/useMediaQueries';
 import type { PdfItem, PdfMetadataCard } from '../../types/media';
 import styles from './PdfMetadataDialog.module.css';
-
-interface CustomPair {
-  id: string;
-  key: string;
-  value: string;
-}
 
 /**
  * Propiedades del editor de metadatos semánticos de un documento PDF (`PdfMetadataDialog`).
@@ -32,18 +26,9 @@ export interface PdfMetadataDialogProps {
   onSaved?: (updated: PdfItem) => void;
 }
 
-function toCustomPairs(custom: Record<string, unknown> | undefined): CustomPair[] {
-  if (!custom || typeof custom !== 'object') return [];
-  return Object.entries(custom).map(([key, val], idx) => ({
-    id: `kv-${idx}-${key}`,
-    key,
-    value: val === null || val === undefined ? '' : String(val),
-  }));
-}
-
 /**
- * Editor de ficha técnica documental para PDFs (`category`, `summary`, `keywords` y campos
- * personalizados `custom`) conectado a `PATCH /api/v1/pdfs/:id/metadata`.
+ * Editor de ficha técnica documental para PDFs (`title`, `description`, `summary`, `tags`
+ * y `keywords`) alineado al contrato OpenAPI de `PATCH /api/v1/pdfs/:id/metadata`.
  */
 export const PdfMetadataDialog: React.FC<PdfMetadataDialogProps> = ({
   open,
@@ -54,28 +39,38 @@ export const PdfMetadataDialog: React.FC<PdfMetadataDialogProps> = ({
   onSaved,
 }) => {
   const formId = useId();
+  const descriptionId = useId();
   const summaryId = useId();
   const { showToast } = useToast();
   const updateMetadata = useUpdatePdfMetadataMutation();
 
   const snapshotKey = `${pdfId}:${JSON.stringify(initialMetadata ?? null)}`;
   const [trackedKey, setTrackedKey] = useState(snapshotKey);
-  const [category, setCategory] = useState(initialMetadata?.category || '');
+  const [title, setTitle] = useState(initialMetadata?.title || '');
+  const [description, setDescription] = useState(initialMetadata?.description || '');
   const [summary, setSummary] = useState(initialMetadata?.summary || '');
+  const [tags, setTags] = useState<string[]>(initialMetadata?.tags || []);
+  const [tagInput, setTagInput] = useState('');
   const [keywords, setKeywords] = useState<string[]>(initialMetadata?.keywords || []);
   const [keywordInput, setKeywordInput] = useState('');
-  const [customPairs, setCustomPairs] = useState<CustomPair[]>(() =>
-    toCustomPairs(initialMetadata?.custom)
-  );
 
   if (snapshotKey !== trackedKey) {
     setTrackedKey(snapshotKey);
-    setCategory(initialMetadata?.category || '');
+    setTitle(initialMetadata?.title || '');
+    setDescription(initialMetadata?.description || '');
     setSummary(initialMetadata?.summary || '');
+    setTags(initialMetadata?.tags || []);
+    setTagInput('');
     setKeywords(initialMetadata?.keywords || []);
     setKeywordInput('');
-    setCustomPairs(toCustomPairs(initialMetadata?.custom));
   }
+
+  const handleAddTag = () => {
+    const clean = tagInput.trim();
+    if (!clean) return;
+    if (!tags.includes(clean)) setTags((prev) => [...prev, clean]);
+    setTagInput('');
+  };
 
   const handleAddKeyword = () => {
     const clean = keywordInput.trim();
@@ -84,24 +79,19 @@ export const PdfMetadataDialog: React.FC<PdfMetadataDialogProps> = ({
     setKeywordInput('');
   };
 
-  const handleAddCustomRow = () => {
-    setCustomPairs((prev) => [...prev, { id: `kv-${Date.now()}-${prev.length}`, key: '', value: '' }]);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const customObj: Record<string, unknown> = {};
-    for (const pair of customPairs) {
-      const k = pair.key.trim();
-      if (k) customObj[k] = pair.value.trim();
-    }
+    const trimmedTitle = title.trim();
+    const trimmedDesc = description.trim();
+    const trimmedSummary = summary.trim();
 
     const payload: PdfMetadataCard = {
-      category: category.trim() || undefined,
-      summary: summary.trim() || undefined,
+      title: trimmedTitle || (initialMetadata?.title ? '' : undefined),
+      description: trimmedDesc || (initialMetadata?.description ? '' : undefined),
+      summary: trimmedSummary || (initialMetadata?.summary ? '' : undefined),
+      tags,
       keywords,
-      custom: Object.keys(customObj).length > 0 ? customObj : undefined,
     };
 
     try {
@@ -142,11 +132,24 @@ export const PdfMetadataDialog: React.FC<PdfMetadataDialogProps> = ({
     >
       <form id={formId} className={styles.form} onSubmit={(e) => void handleSubmit(e)}>
         <Input
-          label="Categoría documental"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          placeholder="Ej. Contrato, Normativa, Manual Técnico, Informe"
+          label="Título documental"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Ej. Contrato Marco de Servicios 2026"
         />
+
+        <div className={styles.fieldGroup}>
+          <label htmlFor={descriptionId} className={styles.label}>
+            Descripción
+          </label>
+          <textarea
+            id={descriptionId}
+            className={styles.textarea}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe el origen, área responsable o propósito del documento..."
+          />
+        </div>
 
         <div className={styles.fieldGroup}>
           <label htmlFor={summaryId} className={styles.label}>
@@ -162,7 +165,48 @@ export const PdfMetadataDialog: React.FC<PdfMetadataDialogProps> = ({
         </div>
 
         <div className={styles.fieldGroup}>
-          <span className={styles.label}>Palabras clave (`keywords`)</span>
+          <span className={styles.label}>Etiquetas temáticas</span>
+          <div className={styles.addRow}>
+            <div className={styles.grow}>
+              <Input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
+                placeholder="Añadir etiqueta y pulsar Enter..."
+                aria-label="Nueva etiqueta"
+              />
+            </div>
+            <Button type="button" variant="secondary" size="sm" icon={<Plus size={14} />} onClick={handleAddTag}>
+              Añadir
+            </Button>
+          </div>
+
+          {tags.length > 0 ? (
+            <div className={styles.chipsWrap}>
+              {tags.map((tag) => (
+                <span key={tag} className={styles.chip}>
+                  {tag}
+                  <button
+                    type="button"
+                    className={styles.chipRemove}
+                    aria-label={`Quitar etiqueta ${tag}`}
+                    onClick={() => setTags((prev) => prev.filter((item) => item !== tag))}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <div className={styles.fieldGroup}>
+          <span className={styles.label}>Palabras clave</span>
           <div className={styles.addRow}>
             <div className={styles.grow}>
               <Input
@@ -200,57 +244,6 @@ export const PdfMetadataDialog: React.FC<PdfMetadataDialogProps> = ({
               ))}
             </div>
           ) : null}
-        </div>
-
-        <div className={styles.fieldGroup}>
-          <div className={styles.customHeader}>
-            <span className={styles.label}>Campos personalizados (`custom`)</span>
-            <Button type="button" variant="ghost" size="sm" icon={<Plus size={13} />} onClick={handleAddCustomRow}>
-              Añadir campo
-            </Button>
-          </div>
-          <div className={styles.customList}>
-            {customPairs.length === 0 ? (
-              <p className={styles.emptyCustom}>Sin campos personalizados. Añade claves como autor, versión o departamento.</p>
-            ) : (
-              customPairs.map((pair) => (
-                <div key={pair.id} className={styles.customRow}>
-                  <input
-                    type="text"
-                    className={styles.customInput}
-                    value={pair.key}
-                    onChange={(e) =>
-                      setCustomPairs((prev) =>
-                        prev.map((p) => (p.id === pair.id ? { ...p, key: e.target.value } : p))
-                      )
-                    }
-                    placeholder="Clave (ej. departamento)"
-                    aria-label="Clave personalizada"
-                  />
-                  <input
-                    type="text"
-                    className={styles.customInput}
-                    value={pair.value}
-                    onChange={(e) =>
-                      setCustomPairs((prev) =>
-                        prev.map((p) => (p.id === pair.id ? { ...p, value: e.target.value } : p))
-                      )
-                    }
-                    placeholder="Valor (ej. Legal)"
-                    aria-label="Valor personalizado"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    icon={<Trash2 size={13} />}
-                    aria-label="Eliminar campo personalizado"
-                    onClick={() => setCustomPairs((prev) => prev.filter((p) => p.id !== pair.id))}
-                  />
-                </div>
-              ))
-            )}
-          </div>
         </div>
       </form>
     </Dialog>

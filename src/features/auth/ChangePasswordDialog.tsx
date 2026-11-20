@@ -30,6 +30,7 @@ export const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [trackedOpen, setTrackedOpen] = useState(open);
 
   const resetForm = () => {
     setCurrentPassword('');
@@ -38,8 +39,13 @@ export const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({
     setError(null);
   };
 
+  if (trackedOpen !== open) {
+    setTrackedOpen(open);
+    resetForm();
+  }
+
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) resetForm();
+    resetForm();
     onOpenChange(nextOpen);
   };
 

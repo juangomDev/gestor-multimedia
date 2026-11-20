@@ -195,4 +195,46 @@ describe('apiClient (v2 — Bearer, RFC 7807, FormData y Descargas)', () => {
       'Dataset no encontrado en el sistema'
     );
   });
+
+  it('tolera respuestas JSON 200 vacías y elimina opciones internas antes de llamar a fetch()', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      text: async () => '',
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await apiClient.post('/api/v1/auth/logout', undefined, {
+      skipAuth: true,
+      timeoutMs: 8000,
+    });
+    expect(res).toBeUndefined();
+    const [, init] = fetchMock.mock.calls[0] as [string, Record<string, unknown>];
+    expect(init.skipAuth).toBeUndefined();
+    expect(init.timeoutMs).toBeUndefined();
+    expect(init.responseType).toBeUndefined();
+  });
+
+  it('clasifica cancelación externa vía AbortSignal como ABORTED (no 408 TIMEOUT)', async () => {
+    const external = new AbortController();
+    const fetchMock = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          const err = new Error('The operation was aborted.');
+          err.name = 'AbortError';
+          reject(err);
+        });
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const pending = apiClient.get('/api/v1/images', { signal: external.signal, timeoutMs: 30_000 });
+    external.abort();
+
+    await expect(pending).rejects.toMatchObject({
+      status: 0,
+      code: 'ABORTED',
+    });
+  });
 });

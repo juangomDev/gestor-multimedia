@@ -2,7 +2,7 @@ import type { FolderCategory, MediaCategory } from '../types/media';
 import type { FetchImagesOptions } from '../services/imagesService';
 import type { FetchTablesOptions } from '../services/tablesService';
 import type { FetchPdfsOptions } from '../services/pdfsService';
-import type { ListEntriesOptions } from '../types/forms';
+import type { FetchFormsOptions, ListEntriesOptions } from '../types/forms';
 import type { FetchNotificationsParams } from '../services/notificationsService';
 import type { FetchAuditLogsOptions } from '../services/auditService';
 
@@ -47,7 +47,7 @@ export const queryKeys = {
   },
   forms: {
     all: ['forms'] as const,
-    list: () => ['forms', 'list'] as const,
+    list: (options: FetchFormsOptions = {}) => ['forms', 'list', options] as const,
     detail: (idOrSlug: string) => ['forms', 'detail', idOrSlug] as const,
     entries: (formId: string, options: ListEntriesOptions = {}) =>
       ['forms', 'entries', formId, options] as const,

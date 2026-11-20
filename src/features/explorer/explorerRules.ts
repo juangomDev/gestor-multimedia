@@ -48,7 +48,7 @@ export function isGeneralFolder(folder: Pick<FolderItem, 'name'> | null | undefi
 }
 
 /**
- * Determina si el usuario actual posee permisos de escritura (`EDIT` o `ADMIN`) sobre una carpeta.
+ * Determina si el usuario actual posee permisos de escritura (`EDIT` o `ADMIN`) sobre el contenido de una carpeta.
  */
 export function canWriteFolder(
   folder: FolderItem | null | undefined,
@@ -58,7 +58,28 @@ export function canWriteFolder(
   if (!folder || folder.isSystem) return false;
   if (userRole === 'ADMIN') return true;
   if (folder.myPermission === 'ADMIN' || folder.myPermission === 'EDIT') return true;
-  if (folder.myPermission === undefined && userId && folder.userId === userId) return true;
+  if (folder.myPermission === 'READ') return false;
+  if (userId && (folder.userId === userId || folder.owner?.id === userId)) return true;
+  return false;
+}
+
+/**
+ * Determina si el usuario puede administrar la entidad carpeta en sí (renombrar, editar metadatos,
+ * compartir o eliminar en cascada): exclusivo de `ADMIN` o del propietario (`myPermission === 'ADMIN'`).
+ * Un `COLLABORATOR` invitado con `EDIT` puede operar archivos dentro, pero no eliminar ni renombrar la carpeta.
+ */
+export function canManageFolderEntity(
+  folder: FolderItem | null | undefined,
+  userRole: Role | undefined,
+  userId: string | undefined
+): boolean {
+  if (!folder || folder.isSystem) return false;
+  if (userRole === 'ADMIN') return true;
+  if (folder.myPermission === 'ADMIN') return true;
+  if (userId && (folder.userId === userId || folder.owner?.id === userId)) return true;
+  if (userRole === 'MANAGER' && !folder.isShared && !folder.userId && folder.myPermission === 'EDIT') {
+    return true;
+  }
   return false;
 }
 
@@ -70,10 +91,7 @@ export function canManageFolderShares(
   userRole: Role | undefined,
   userId: string | undefined
 ): boolean {
-  if (!folder || folder.isSystem) return false;
-  if (userRole === 'ADMIN') return true;
-  if (folder.myPermission === 'ADMIN') return true;
-  return Boolean(userId && folder.userId === userId);
+  return canManageFolderEntity(folder, userRole, userId);
 }
 
 /**
@@ -125,13 +143,22 @@ export function canCreateChildFolder(
 
 /**
  * Devuelve los tipos de carpeta permitidos para crear bajo `parentFolder`:
- * - Raíz o `CONTAINER`: los 4 tipos (`container`, `image`, `table`, `pdf`).
+ * - Raíz o `CONTAINER` de Nivel 1: los 4 tipos (`container`, `image`, `table`, `pdf`).
+ * - `CONTAINER` de Nivel 2 (creando hijo hoja en Nivel 3): solo tipos finales (`image`, `table`, `pdf`).
  * - Carpeta tipada (`image`, `table`, `pdf`): hereda y bloquea obligatoriamente el tipo del padre.
  */
 export function getAllowedChildFolderTypes(
-  parentFolder: FolderItem | null
+  parentFolder: FolderItem | null,
+  allFolders: FolderItem[] = []
 ): FolderCategory[] {
-  if (!parentFolder || parentFolder.type === 'container') {
+  if (!parentFolder) {
+    return ['container', 'image', 'table', 'pdf'];
+  }
+  if (parentFolder.type === 'container') {
+    const parentDepth = allFolders.length > 0 ? getFolderDepth(parentFolder.id, allFolders) : 1;
+    if (parentDepth >= 2) {
+      return ['image', 'table', 'pdf'];
+    }
     return ['container', 'image', 'table', 'pdf'];
   }
   return [parentFolder.type];

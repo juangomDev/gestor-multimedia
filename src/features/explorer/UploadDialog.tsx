@@ -85,6 +85,12 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
     initialFiles?.length ? buildQueueEntries(initialFiles, mediaType) : []
   );
   const [isUploading, setIsUploading] = useState(false);
+  const [trackedOpen, setTrackedOpen] = useState(open);
+
+  if (trackedOpen !== open) {
+    setTrackedOpen(open);
+    setQueue(open && initialFiles?.length ? buildQueueEntries(initialFiles, mediaType) : []);
+  }
 
   const appendFiles = (fileList: FileList | File[]) => {
     const incoming = Array.from(fileList);
@@ -192,6 +198,17 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
           type="button"
           className={styles.dropBox}
           onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!isUploading && e.dataTransfer?.files?.length) {
+              appendFiles(e.dataTransfer.files);
+            }
+          }}
           disabled={isUploading}
         >
           <Upload size={20} aria-hidden="true" />
@@ -229,9 +246,19 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
                       <CheckCircle2 size={12} aria-hidden="true" /> Listo
                     </Badge>
                   ) : entry.status === 'error' ? (
-                    <Badge tone="danger">
-                      <AlertCircle size={12} aria-hidden="true" /> Rechazado
-                    </Badge>
+                    <div className={styles.actions}>
+                      <Badge tone="danger">
+                        <AlertCircle size={12} aria-hidden="true" /> Rechazado
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        icon={<Trash2 size={14} />}
+                        aria-label={`Quitar ${entry.file.name}`}
+                        onClick={() => removeEntry(entry.id)}
+                        disabled={isUploading}
+                      />
+                    </div>
                   ) : entry.status === 'uploading' ? (
                     <Badge tone="accent">Subiendo...</Badge>
                   ) : (

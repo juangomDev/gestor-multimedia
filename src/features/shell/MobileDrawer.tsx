@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import * as RadixDialog from '@radix-ui/react-dialog';
+import { useLocation } from 'react-router';
 import { Menu, Search, X } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Sidebar } from './Sidebar';
@@ -12,7 +13,26 @@ import styles from './MobileDrawer.module.css';
  */
 export const MobileDrawer: React.FC = () => {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
+  const [trackedPath, setTrackedPath] = useState(location.pathname);
   const { openCommandPalette } = useShell();
+
+  if (trackedPath !== location.pathname) {
+    setTrackedPath(location.pathname);
+    if (open) setOpen(false);
+  }
+
+  useEffect(() => {
+    if (!open || typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return undefined;
+    }
+    const mql = window.matchMedia('(min-width: 900px)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (e.matches) setOpen(false);
+    };
+    mql.addEventListener('change', handleChange);
+    return () => mql.removeEventListener('change', handleChange);
+  }, [open]);
 
   return (
     <>

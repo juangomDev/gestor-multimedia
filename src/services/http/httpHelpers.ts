@@ -62,6 +62,10 @@ export async function parseSuccessResponse<T>(
     contentType.includes('application/json') ||
     contentType.includes('application/problem+json')
   ) {
+    if (typeof response.text === 'function') {
+      const rawText = await response.text();
+      return (rawText.trim() ? JSON.parse(rawText) : undefined) as T;
+    }
     return (await response.json()) as T;
   }
 
@@ -69,20 +73,25 @@ export async function parseSuccessResponse<T>(
 }
 
 /**
- * Normaliza errores de red o timeout capturados durante `fetch` hacia `ApiError`.
+ * Normaliza errores de red, cancelación externa o timeout capturados durante `fetch` hacia `ApiError`.
  *
  * @param err Excepción capturada.
- * @param timeoutMessage Mensaje descriptivo si la operación expiró por `AbortError`.
+ * @param timeoutMessage Mensaje descriptivo si la operación expiró por timeout interno.
  * @param networkFallback Mensaje de respaldo ante fallo de conexión.
+ * @param wasExternalAbort Indica si la cancelación provino de una `AbortSignal` externa.
  */
 export function normalizeTransportError(
   err: unknown,
   timeoutMessage: string,
-  networkFallback: string
+  networkFallback: string,
+  wasExternalAbort: boolean = false
 ): ApiError {
   if (err instanceof ApiError) return err;
   const errorObj = err as { name?: string; message?: string };
   if (errorObj?.name === 'AbortError') {
+    if (wasExternalAbort) {
+      return new ApiError(0, 'ABORTED', 'Solicitud cancelada');
+    }
     return new ApiError(408, 'TIMEOUT', timeoutMessage);
   }
   return new ApiError(0, 'NETWORK_ERROR', errorObj?.message || networkFallback);

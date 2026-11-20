@@ -9,6 +9,11 @@ import { DeleteFolderDialog } from './DeleteFolderDialog';
 import { ShareFolderDialog } from './ShareFolderDialog';
 import { MoveResourceDialog } from './MoveResourceDialog';
 import { UploadDialog } from './UploadDialog';
+import {
+  canManageFolderEntity,
+  canWriteFolder,
+  getAllowedChildFolderTypes,
+} from './explorerRules';
 import { foldersService } from '../../services/foldersService';
 import { usersService } from '../../services/usersService';
 import { tablesService } from '../../services/tablesService';
@@ -153,5 +158,60 @@ describe('Explorer Dialogs v2 (Fase 4.3 & 4.4 — Jerarquía 3 niveles, ai_manag
     await waitFor(() => {
       expect(uploadSpy).toHaveBeenCalledWith(jsonFile, 'f-tbl-1');
     });
+  });
+
+  it('impide crear CONTAINER hoja en Nivel 3, distingue canWriteFolder de canManageFolderEntity y captura errores en MoveResourceDialog', async () => {
+    const l2Container: FolderItem = {
+      id: 'f-l2-cont',
+      name: 'Subcontenedor Nivel 2',
+      type: 'container',
+      parentId: 'f-root',
+      myPermission: 'ADMIN',
+      createdAt: '',
+    };
+    const foldersWithL2 = [...ALL_FOLDERS, l2Container];
+
+    // En Nivel 2 CONTAINER, el hijo será Nivel 3 (hoja) -> no puede ser 'container'
+    expect(getAllowedChildFolderTypes(l2Container, foldersWithL2)).toEqual([
+      'image',
+      'table',
+      'pdf',
+    ]);
+
+    // Colaborador con EDIT en carpeta compartida puede escribir archivos, pero NO eliminar/renombrar la carpeta
+    const sharedWithEdit: FolderItem = {
+      id: 'f-sh-edit',
+      name: 'Compartida Edit',
+      type: 'image',
+      userId: 'owner-99',
+      isShared: true,
+      myPermission: 'EDIT',
+      createdAt: '',
+    };
+    expect(canWriteFolder(sharedWithEdit, 'COLLABORATOR', 'u-col')).toBe(true);
+    expect(canManageFolderEntity(sharedWithEdit, 'COLLABORATOR', 'u-col')).toBe(false);
+    expect(canManageFolderEntity(sharedWithEdit, 'ADMIN', 'u-admin')).toBe(true);
+
+    // MoveResourceDialog captura errores sin cerrar el modal ni dejar promesa rechazada sin manejar
+    const onOpenChange = vi.fn();
+    const failingMove = vi.fn().mockRejectedValue(new Error('Fallo al mover recurso'));
+    wrap(
+      <MoveResourceDialog
+        open={true}
+        onOpenChange={onOpenChange}
+        resourceKind="table"
+        resourceLabel="ventas.json"
+        currentFolderId="f-tbl-1"
+        allFolders={ALL_FOLDERS}
+        onConfirmMove={failingMove}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Mover aquí/i }));
+    await waitFor(() => {
+      expect(failingMove).toHaveBeenCalledWith('f-tbl-2');
+    });
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+    expect(await screen.findByText(/Fallo al mover recurso/i)).toBeInTheDocument();
   });
 });

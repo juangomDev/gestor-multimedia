@@ -154,7 +154,7 @@ describe('TeamPage y UsersDirectoryPanel (Fase 7.1 — RBAC, Colaboradores, Acti
         {
           id: 'log-1',
           actorUsername: 'ana.colab',
-          action: 'UPLOAD_IMAGE',
+          action: 'IMAGE_UPLOAD',
           resourceType: 'IMAGE',
           resourceId: 'img-12345678',
           createdAt: '2026-11-19T14:00:00Z',
@@ -192,6 +192,41 @@ describe('TeamPage y UsersDirectoryPanel (Fase 7.1 — RBAC, Colaboradores, Acti
     });
     expect(await screen.findByText('Campaña Q4')).toBeInTheDocument();
     const auditTable = await screen.findByTestId('audit-logs-table');
-    expect(within(auditTable).getByText('UPLOAD_IMAGE')).toBeInTheDocument();
+    expect(within(auditTable).getByText('IMAGE_UPLOAD')).toBeInTheDocument();
+  });
+
+  it('oculta filtros exclusivos de ADMIN (API_KEY) en auditoría cuando accede un MANAGER', async () => {
+    vi.spyOn(usersService, 'listUsers').mockResolvedValue(USERS_FIXTURE);
+    vi.spyOn(storageStatsService, 'fetchStorageStats').mockResolvedValue({
+      isAdmin: false,
+      database: {
+        images: { count: 0, sizeBytes: 0 },
+        tables: { count: 0, sizeBytes: 0 },
+        pdfs: { count: 0, sizeBytes: 0 },
+        totalCount: 0,
+        totalSizeBytes: 0,
+      },
+      disk: null,
+      topFolders: [],
+    });
+    vi.spyOn(auditService, 'fetchAuditLogs').mockResolvedValue({
+      logs: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    });
+
+    renderTeamPage('MANAGER');
+    await screen.findByTestId('users-table');
+
+    const activityTab = screen.getByRole('tab', { name: 'Actividad y cuota' });
+    fireEvent.mouseDown(activityTab);
+    fireEvent.click(activityTab);
+
+    const actionFilter = await screen.findByTestId('audit-action-filter');
+    const resourceFilter = screen.getByTestId('audit-resource-filter');
+    expect(actionFilter.textContent).not.toContain('API_KEY_CREATE');
+    expect(resourceFilter.textContent).not.toContain('API_KEY');
   });
 });

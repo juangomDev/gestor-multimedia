@@ -34,13 +34,16 @@ export const EditFolderDialog: React.FC<EditFolderDialogProps> = ({
   const [name, setName] = useState(folder?.name ?? '');
   const [isPrivate, setIsPrivate] = useState(Boolean(folder?.isPrivate));
   const [error, setError] = useState<string | null>(null);
-  const [lastFolderId, setLastFolderId] = useState<string | null>(folder?.id ?? null);
+  const snapshotKey = `${open}:${folder?.id ?? ''}:${folder?.name ?? ''}:${Boolean(folder?.isPrivate)}`;
+  const [trackedKey, setTrackedKey] = useState(snapshotKey);
 
-  if (folder && folder.id !== lastFolderId) {
-    setLastFolderId(folder.id);
-    setName(folder.name);
-    setIsPrivate(Boolean(folder.isPrivate));
-    setError(null);
+  if (snapshotKey !== trackedKey) {
+    setTrackedKey(snapshotKey);
+    if (folder) {
+      setName(folder.name);
+      setIsPrivate(Boolean(folder.isPrivate));
+      setError(null);
+    }
   }
 
   const systemLocked = isSystemFolder(folder);

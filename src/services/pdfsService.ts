@@ -57,6 +57,7 @@ interface RawApiPdf {
   folderId?: string | null;
   userId?: string | null;
   metadataCard?: PdfMetadataCard | null;
+  urlWithVersion?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -77,6 +78,10 @@ export function isSupportedPdfFile(file: File): boolean {
 function normalizePdf(raw: RawApiPdf, baseUrl: string): PdfItem {
   const shortCode = raw.shortCode || raw.id;
   const canonicalUrl = buildPublicAssetUrl(baseUrl, 'p', shortCode);
+  const updatedMs = raw.updatedAt ? Date.parse(raw.updatedAt) : Number.NaN;
+  const stableVersionedUrl =
+    raw.urlWithVersion || (Number.isFinite(updatedMs) ? `${canonicalUrl}?v=${updatedMs}` : canonicalUrl);
+
   return {
     id: raw.id,
     shortCode,
@@ -90,7 +95,7 @@ function normalizePdf(raw: RawApiPdf, baseUrl: string): PdfItem {
     createdAt: raw.createdAt || new Date().toISOString(),
     updatedAt: raw.updatedAt,
     url: canonicalUrl,
-    urlWithVersion: `${canonicalUrl}?v=${raw.updatedAt ? new Date(raw.updatedAt).getTime() : Date.now()}`,
+    urlWithVersion: stableVersionedUrl,
   };
 }
 
@@ -145,8 +150,8 @@ export class PdfsService {
     }
 
     const formData = new FormData();
-    formData.append('file', file);
     if (folderId) formData.append('folderId', folderId);
+    formData.append('file', file);
 
     const res = await apiClient.post<RawApiPdf | { pdf: RawApiPdf }>('/api/v1/pdfs', formData);
     const raw = 'pdf' in res ? res.pdf : res;
@@ -206,11 +211,18 @@ export class PdfsService {
 
   /**
    * Reasigna un PDF a otra carpeta verificando que sea de tipo `PDF` (`PATCH /api/v1/pdfs/:id/folder`).
+   *
+   * @param id UUID del documento PDF.
+   * @param folderId UUID obligatorio de la carpeta `PDF` de destino.
+   * @returns Documento PDF actualizado.
    */
-  async movePdfToFolder(id: string, targetFolderId: string | null): Promise<PdfItem> {
+  async movePdfToFolder(id: string, folderId: string): Promise<PdfItem> {
+    if (!folderId || !folderId.trim()) {
+      throw new Error('Debe especificar una carpeta PDF de destino válida');
+    }
     const res = await apiClient.patch<RawApiPdf | { pdf: RawApiPdf }>(
       `/api/v1/pdfs/${id}/folder`,
-      { targetFolderId }
+      { folderId }
     );
     const raw = 'pdf' in res ? res.pdf : res;
     return normalizePdf(raw, storageService.getApiBaseUrl());
@@ -237,7 +249,8 @@ export class PdfsService {
     shortCode: string,
     page?: number
   ): Promise<PdfExtractedTextResponse> {
-    const path = page ? `/p/${shortCode}?format=text&page=${page}` : `/p/${shortCode}?format=text`;
+    const encoded = encodeURIComponent(shortCode);
+    const path = page ? `/p/${encoded}?format=text&page=${page}` : `/p/${encoded}?format=text`;
     return apiClient.get<PdfExtractedTextResponse>(path, { skipAuth: true });
   }
 }

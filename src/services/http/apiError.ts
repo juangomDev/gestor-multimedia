@@ -118,18 +118,15 @@ export async function buildApiErrorFromResponse(
     ? (errData.invalidParams as InvalidParam[])
     : undefined;
 
-  return new ApiError(
-    response.status,
-    code,
-    detail,
-    errData.details ?? invalidParams,
-    {
-      title: typeof errData.title === 'string' ? errData.title : undefined,
-      type: typeof errData.type === 'string' ? errData.type : undefined,
-      instance: typeof errData.instance === 'string' ? errData.instance : undefined,
-      invalidParams,
-    }
-  );
+  const detailsPayload =
+    errData.details ?? invalidParams ?? (Object.keys(errData).length > 0 ? errData : undefined);
+
+  return new ApiError(response.status, code, detail, detailsPayload, {
+    title: typeof errData.title === 'string' ? errData.title : undefined,
+    type: typeof errData.type === 'string' ? errData.type : undefined,
+    instance: typeof errData.instance === 'string' ? errData.instance : undefined,
+    invalidParams,
+  });
 }
 
 /**

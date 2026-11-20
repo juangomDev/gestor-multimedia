@@ -2,6 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { apiClient, ApiError } from './apiClient';
 import { storageService } from './storageService';
 
+function jsonRes(status: number, body: unknown) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    statusText: status === 401 ? 'Unauthorized' : 'OK',
+    headers: new Headers({ 'content-type': 'application/json' }),
+    json: async () => body,
+  };
+}
+
 describe('apiClient — Cola 401 y rotación de tokens JWT', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -197,5 +207,87 @@ describe('apiClient — Cola 401 y rotación de tokens JWT', () => {
     expect(res.blob).toBe(mockBlob);
     expect(storageService.getToken()).toBe('new.fresh.token');
     expect(fetchMock.mock.calls[0][1].credentials).toBe('include');
+  });
+
+  it('NO intenta refrescar ni expulsa al usuario ante 401 en PATCH /api/v1/auth/password', async () => {
+    storageService.saveSession({
+      token: 'valid.session.jwt',
+      user: { id: 'u1', username: 'admin', role: 'ADMIN' },
+    });
+    const unauthorizedListener = vi.fn();
+    const unsubscribe = apiClient.onUnauthorized(unauthorizedListener);
+
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonRes(401, { code: 'INVALID_PASSWORD', detail: 'Contraseña actual incorrecta' })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      apiClient.patch('/api/v1/auth/password', { currentPassword: 'wrong', newPassword: 'New123!' })
+    ).rejects.toMatchObject({ status: 401, code: 'INVALID_PASSWORD' });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(unauthorizedListener).not.toHaveBeenCalled();
+    expect(storageService.getToken()).toBe('valid.session.jwt');
+    unsubscribe();
+  });
+
+  it('evita un segundo /auth/refresh cuando un 401 rezagado llega tras haberse rotado ya el token', async () => {
+    storageService.saveSession({
+      token: 'old.jwt',
+      user: { id: 'u1', username: 'admin', role: 'ADMIN' },
+    });
+    let refreshCount = 0;
+    let slowAttempts = 0;
+
+    const fetchMock = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url.includes('/api/v1/auth/refresh')) {
+        refreshCount += 1;
+        return jsonRes(200, { token: 'rotated.jwt' });
+      }
+      if (url.includes('/api/v1/slow')) {
+        slowAttempts += 1;
+        if (slowAttempts === 1) {
+          await new Promise((r) => setTimeout(r, 25));
+          return jsonRes(401, { code: 'UNAUTHORIZED' });
+        }
+        return jsonRes(200, {
+          ok: 'slow',
+          auth: (init?.headers as Headers | undefined)?.get('Authorization'),
+        });
+      }
+      const auth = (init?.headers as Headers | undefined)?.get('Authorization');
+      return auth === 'Bearer rotated.jwt'
+        ? jsonRes(200, { ok: 'fast' })
+        : jsonRes(401, { code: 'UNAUTHORIZED' });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const [fastRes, slowRes] = await Promise.all([
+      apiClient.get('/api/v1/fast'),
+      apiClient.get('/api/v1/slow'),
+    ]);
+    expect(fastRes).toEqual({ ok: 'fast' });
+    expect(slowRes).toEqual({ ok: 'slow', auth: 'Bearer rotated.jwt' });
+    expect(refreshCount).toBe(1);
+  });
+
+  it('no resucita una sesión fantasma si se cierra sesión mientras /auth/refresh está en vuelo', async () => {
+    storageService.saveSession({
+      token: 'expiring.jwt',
+      user: { id: 'u1', username: 'admin', role: 'ADMIN' },
+    });
+
+    const fetchMock = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/api/v1/auth/refresh')) {
+        storageService.saveSession(null);
+        return jsonRes(200, { token: 'zombie.jwt' });
+      }
+      return jsonRes(401, { code: 'UNAUTHORIZED' });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(apiClient.get('/api/v1/images')).rejects.toThrow(ApiError);
+    expect(storageService.getSession()).toBeNull();
   });
 });

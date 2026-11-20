@@ -75,17 +75,11 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
   };
 
   const handleBulkMove = async (targetFolderId: string) => {
-    try {
-      const res =
-        resourceKind === 'image'
-          ? await bulkMoveImages.mutateAsync({ ids: selectedIds, targetFolderId })
-          : await bulkMoveTables.mutateAsync({ ids: selectedIds, targetFolderId });
-      handleBulkResult('traslado en lote', res);
-    } catch (err: unknown) {
-      const detail = (err as { detail?: string })?.detail;
-      const message = err instanceof Error ? err.message : undefined;
-      showToast(detail || message || 'No se pudo completar el traslado en lote.', 'error');
-    }
+    const res =
+      resourceKind === 'image'
+        ? await bulkMoveImages.mutateAsync({ ids: selectedIds, targetFolderId })
+        : await bulkMoveTables.mutateAsync({ ids: selectedIds, targetFolderId });
+    handleBulkResult('traslado en lote', res);
   };
 
   const handleBulkDelete = async () => {

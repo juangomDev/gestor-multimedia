@@ -30,6 +30,8 @@ export interface NotificationsStreamOptions {
   initialRetryMs?: number;
   /** Retraso máximo de reconexión con backoff exponencial en milisegundos (por defecto `30000`). */
   maxRetryMs?: number;
+  /** Tiempo máximo en milisegundos para recibir cabeceras HTTP iniciales del stream (por defecto `15000`). */
+  connectTimeoutMs?: number;
 }
 
 /**
@@ -91,12 +93,14 @@ export function connectNotificationsStream(
 ): NotificationsStreamHandle {
   const initialRetryMs = options.initialRetryMs ?? 1000;
   const maxRetryMs = options.maxRetryMs ?? 30000;
+  const connectTimeoutMs = options.connectTimeoutMs ?? 15000;
 
   let disposed = false;
   let retryDelayMs = initialRetryMs;
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
   let activeController: AbortController | null = null;
   let hasAttemptedRefresh = false;
+  let lastEventId: string | null = null;
 
   const scheduleReconnect = () => {
     if (disposed) return;
@@ -110,6 +114,9 @@ export function connectNotificationsStream(
   };
 
   const dispatchFrame = (frame: ParsedSseEvent) => {
+    if (frame.id !== undefined) {
+      lastEventId = frame.id;
+    }
     options.onEvent?.(frame);
     if (frame.event !== 'notification' && frame.event !== 'message') return;
     try {
@@ -134,7 +141,7 @@ export function connectNotificationsStream(
       while (!disposed) {
         const { done, value } = await reader.read();
         if (done) break;
-        buffer = (buffer + decoder.decode(value, { stream: true })).replace(/\r\n/g, '\n');
+        buffer = (buffer + decoder.decode(value, { stream: true })).replace(/\r\n?/g, '\n');
 
         let boundaryIdx = buffer.indexOf('\n\n');
         while (boundaryIdx !== -1) {
@@ -143,6 +150,14 @@ export function connectNotificationsStream(
           const frame = parseSseBlock(rawBlock);
           if (frame) dispatchFrame(frame);
           boundaryIdx = buffer.indexOf('\n\n');
+        }
+      }
+
+      if (!disposed) {
+        const tail = (buffer + decoder.decode()).replace(/\r\n?/g, '\n').trim();
+        if (tail) {
+          const frame = parseSseBlock(tail);
+          if (frame) dispatchFrame(frame);
         }
       }
     } finally {
@@ -162,18 +177,29 @@ export function connectNotificationsStream(
     const controller = new AbortController();
     activeController = controller;
     const url = apiClient.resolveUrl('/api/v1/notifications/stream');
+    let connectTimedOut = false;
+    const connectTimer = setTimeout(() => {
+      connectTimedOut = true;
+      controller.abort();
+    }, connectTimeoutMs);
 
     try {
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${token}`,
+        Accept: 'text/event-stream',
+        'Cache-Control': 'no-cache',
+      };
+      if (lastEventId) {
+        headers['Last-Event-ID'] = lastEventId;
+      }
+
       const response = await fetch(url, {
         method: 'GET',
         credentials: 'include',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'text/event-stream',
-          'Cache-Control': 'no-cache',
-        },
+        headers,
         signal: controller.signal,
       });
+      clearTimeout(connectTimer);
 
       if (response.status === 401) {
         if (!hasAttemptedRefresh) {
@@ -209,14 +235,19 @@ export function connectNotificationsStream(
         scheduleReconnect();
       }
     } catch (err: unknown) {
+      clearTimeout(connectTimer);
       if (disposed) return;
       const isAbort = (err as { name?: string })?.name === 'AbortError';
-      if (!isAbort) {
-        options.onError?.(err);
+      if (!isAbort || connectTimedOut) {
+        const reportedErr = connectTimedOut
+          ? new Error(`SSE connection handshake timed out after ${connectTimeoutMs}ms`)
+          : err;
+        options.onError?.(reportedErr);
         options.onDisconnected?.();
         scheduleReconnect();
       }
     } finally {
+      clearTimeout(connectTimer);
       if (activeController === controller) {
         activeController = null;
       }

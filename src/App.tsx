@@ -5,6 +5,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { TooltipProvider } from './components/ui/Tooltip';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { AppRouter } from './router';
 
 /**
@@ -29,7 +30,11 @@ export const AppProviders: React.FC<AppProvidersProps> = ({
     <ThemeProvider>
       <TooltipProvider delayDuration={240}>
         <AuthProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            <ErrorBoundary fallbackTitle="Ocurrió un problema inesperado en la aplicación">
+              {children}
+            </ErrorBoundary>
+          </ToastProvider>
         </AuthProvider>
       </TooltipProvider>
     </ThemeProvider>

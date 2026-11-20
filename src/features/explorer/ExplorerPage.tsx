@@ -8,6 +8,7 @@ import { useShell } from '../shell/useShell';
 import { resolveContextualUploadState } from '../shell/uploadContextRules';
 import {
   canCreateChildFolder,
+  canManageFolderEntity,
   canManageFolderShares,
   canWriteFolder,
   getUploadConstraints,
@@ -40,6 +41,7 @@ export const ExplorerPage: React.FC = () => {
   const { showToast } = useToast();
   const { openCommandPalette, openShortCodePreview, registerUploadHandler } = useShell();
 
+  const [trackedFolderId, setTrackedFolderId] = useState(folderId);
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearch = useDeferredValue(searchQuery);
   const [viewMode, setViewMode] = useState<ExplorerViewMode>(() => storageService.getViewMode());
@@ -49,6 +51,11 @@ export const ExplorerPage: React.FC = () => {
   const [folderModal, setFolderModal] = useState<FolderModalState>(null);
   const [assetModal, setAssetModal] = useState<ExplorerAssetModalState | null>(null);
   const [uploadModal, setUploadModal] = useState<{ open: boolean; files?: File[] }>({ open: false });
+
+  if (trackedFolderId !== folderId) {
+    setTrackedFolderId(folderId);
+    setSearchQuery('');
+  }
 
   const content = useExplorerFolderContent(folderId, deferredSearch);
   const bulk = useBulkSelection();
@@ -141,13 +148,14 @@ export const ExplorerPage: React.FC = () => {
   const isEmptyAll =
     !content.isLoadingFolders &&
     !content.isLoadingAssets &&
-    content.visibleFolders.length === 0 &&
-    content.visibleAssets.length === 0;
+    (content.isError ||
+      content.isFolderNotFound ||
+      (content.visibleFolders.length === 0 && content.visibleAssets.length === 0));
 
   const sharedListProps = {
     folders: content.visibleFolders,
     assets: content.visibleAssets,
-    canEditFolder: (f: FolderItem) => canWriteFolder(f, user?.role, user?.id),
+    canEditFolder: (f: FolderItem) => canManageFolderEntity(f, user?.role, user?.id),
     canShareFolder: (f: FolderItem) => canManageFolderShares(f, user?.role, user?.id),
     canEditAssets: canEditCurrentFolder,
     isAssetSelected: bulk.isSelected,
@@ -192,11 +200,15 @@ export const ExplorerPage: React.FC = () => {
       ) : isEmptyAll ? (
         <ExplorerEmptyState
           isInsideFolder={Boolean(folderId)}
+          isFolderNotFound={content.isFolderNotFound}
+          isError={content.isError}
           searchQuery={deferredSearch}
           uploadGuard={uploadGuard}
           createFolderGuard={createFolderGuard}
           onOpenUpload={() => setUploadModal({ open: true })}
           onOpenCreateFolder={() => setCreateOpen(true)}
+          onRetry={content.refetchAll}
+          onReturnHome={() => navigate('/', { replace: true })}
         />
       ) : viewMode === 'list' ? (
         <ExplorerListTable {...sharedListProps} selectableAssets={supportsBulk} />

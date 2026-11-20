@@ -52,6 +52,27 @@ describe('notificationsService (Módulo 24 — Bandeja In-App, SSE y Suscripcion
     expect(result.meta.total).toBe(1);
   });
 
+  it('reconoce el tipo canónico OpenAPI FORM_ENTRY_NEW sin degradarlo a SYSTEM', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      data: [
+        {
+          id: 'notif-openapi-1',
+          type: 'FORM_ENTRY_NEW',
+          title: 'Nueva respuesta OpenAPI',
+          message: 'Registro recibido',
+          resourceId: 'form-55',
+          read: false,
+          createdAt: '2026-11-20T00:00:00Z',
+        },
+      ],
+      meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+    });
+
+    const result = await notificationsService.fetchNotifications();
+    expect(result.data[0].type).toBe('FORM_ENTRY_NEW');
+    expect(result.data[0].resourceId).toBe('form-55');
+  });
+
   it('debe consultar el contador de no leídas (GET /api/v1/notifications/unread-count)', async () => {
     vi.mocked(apiClient.get).mockResolvedValueOnce({
       data: { unreadCount: 7 },

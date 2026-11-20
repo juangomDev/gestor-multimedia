@@ -57,16 +57,14 @@ export const ImageInspectorDialog: React.FC<ImageInspectorDialogProps> = ({
   const [zoomMode, setZoomMode] = useState<ZoomMode>('fit');
   const [loadFailed, setLoadFailed] = useState(false);
   const [measuredDims, setMeasuredDims] = useState<{ w: number; h: number } | null>(null);
+  const identityKey = `${open}:${shortCode}:${image?.id ?? ''}:${image?.urlWithVersion ?? ''}`;
   const [localImage, setLocalImage] = useState<ImageItem | undefined>(image);
-  const [trackedCode, setTrackedCode] = useState(
-    `${shortCode}:${image?.id ?? ''}:${image?.urlWithVersion ?? ''}`
-  );
+  const [trackedCode, setTrackedCode] = useState(identityKey);
 
   const [renameOpen, setRenameOpen] = useState(false);
   const [hotSwapOpen, setHotSwapOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
 
-  const identityKey = `${shortCode}:${image?.id ?? ''}:${image?.urlWithVersion ?? ''}`;
   if (identityKey !== trackedCode) {
     setTrackedCode(identityKey);
     setLocalImage(image);

@@ -3,20 +3,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/useAuth';
 import { useToast } from '../../context/useToast';
 import { connectNotificationsStream } from '../../services/notificationsStream';
+import { storageService } from '../../services/storageService';
 import { queryKeys } from '../../queries/queryKeys';
 import type {
   NotificationItem,
   NotificationsPaginatedResponse,
 } from '../../types/notifications';
 import type { FetchNotificationsParams } from '../../services/notificationsService';
-
-/**
- * Resultado expuesto por el hook de suscripción SSE de notificaciones en vivo.
- */
-export interface LiveNotificationsState {
-  /** Indica si el canal SSE autenticado (`Authorization: Bearer`) está conectado actualmente. */
-  isConnected: boolean;
-}
 
 /**
  * Inserta una notificación recibida por SSE en la caché paginada de TanStack Query
@@ -46,31 +39,49 @@ function prependNotificationToCache(
  * con `fetch` + `ReadableStream` y cabecera `Authorization: Bearer`).
  *
  * Al recibir `event: notification`, actualiza optimísticamente `unreadCount` y las listas en caché
- * de TanStack Query y muestra un Toast no intrusivo. Debe montarse una única vez en el App Shell.
+ * de TanStack Query y muestra un Toast no intrusivo. Reconecta automáticamente si cambia `apiBaseUrl`
+ * y reconcilia la bandeja tras recuperarse de una desconexión. Debe montarse una única vez en el App Shell.
  */
-export function useLiveNotifications(): LiveNotificationsState {
+export function useLiveNotifications(): void {
   const { isAuthenticated, token } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
-  const [streamConnected, setStreamConnected] = useState(false);
+  const [serverVersion, setServerVersion] = useState(0);
   const seenIdsRef = useRef<Set<string>>(new Set());
+  const hadDisconnectRef = useRef(false);
   const showToastRef = useRef(showToast);
 
   useEffect(() => {
     showToastRef.current = showToast;
   }, [showToast]);
 
+  useEffect(() => {
+    return storageService.onBaseUrlChange(() => {
+      setServerVersion((prev) => prev + 1);
+    });
+  }, []);
+
   const shouldConnect = Boolean(isAuthenticated && token);
 
   useEffect(() => {
+    seenIdsRef.current.clear();
+    hadDisconnectRef.current = false;
+
     if (!shouldConnect) {
       return undefined;
     }
 
     const handle = connectNotificationsStream({
-      onConnected: () => setStreamConnected(true),
-      onDisconnected: () => setStreamConnected(false),
+      onConnected: () => {
+        if (hadDisconnectRef.current) {
+          hadDisconnectRef.current = false;
+          void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+        }
+      },
+      onDisconnected: () => {
+        hadDisconnectRef.current = true;
+      },
       onNotification: (notification) => {
         if (seenIdsRef.current.has(notification.id)) return;
         seenIdsRef.current.add(notification.id);
@@ -103,7 +114,5 @@ export function useLiveNotifications(): LiveNotificationsState {
     return () => {
       handle.disconnect();
     };
-  }, [shouldConnect, token, queryClient]);
-
-  return { isConnected: shouldConnect && streamConnected };
+  }, [shouldConnect, token, serverVersion, queryClient]);
 }

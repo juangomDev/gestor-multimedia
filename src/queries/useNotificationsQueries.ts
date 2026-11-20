@@ -53,12 +53,25 @@ export function useMarkNotificationReadMutation() {
       let wasUnread = false;
       previousLists.forEach(([key, data]) => {
         if (!data) return;
+        const params = Array.isArray(key) ? (key[2] as FetchNotificationsParams | undefined) : undefined;
         const target = data.data.find((n) => n.id === id);
         if (target && !target.read) wasUnread = true;
-        queryClient.setQueryData<NotificationsPaginatedResponse>(key, {
-          ...data,
-          data: data.data.map((n) => (n.id === id ? { ...n, read: true } : n)),
-        });
+        queryClient.setQueryData<NotificationsPaginatedResponse>(
+          key,
+          params?.unreadOnly
+            ? {
+                ...data,
+                data: data.data.filter((n) => n.id !== id),
+                meta: {
+                  ...data.meta,
+                  total: Math.max(0, data.meta.total - (target && !target.read ? 1 : 0)),
+                },
+              }
+            : {
+                ...data,
+                data: data.data.map((n) => (n.id === id ? { ...n, read: true } : n)),
+              }
+        );
       });
 
       if (wasUnread && typeof previousUnread === 'number') {
@@ -105,10 +118,13 @@ export function useMarkAllNotificationsReadMutation() {
 
       previousLists.forEach(([key, data]) => {
         if (!data) return;
-        queryClient.setQueryData<NotificationsPaginatedResponse>(key, {
-          ...data,
-          data: data.data.map((n) => ({ ...n, read: true })),
-        });
+        const params = Array.isArray(key) ? (key[2] as FetchNotificationsParams | undefined) : undefined;
+        queryClient.setQueryData<NotificationsPaginatedResponse>(
+          key,
+          params?.unreadOnly
+            ? { ...data, data: [], meta: { ...data.meta, total: 0, totalPages: 1 } }
+            : { ...data, data: data.data.map((n) => ({ ...n, read: true })) }
+        );
       });
 
       queryClient.setQueryData<number>(queryKeys.notifications.unreadCount(), 0);

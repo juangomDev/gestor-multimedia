@@ -3,6 +3,7 @@ import { Folder, FolderInput } from 'lucide-react';
 import { Dialog } from '../../components/ui/Dialog';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../context/useAuth';
+import { useToast } from '../../context/useToast';
 import { getFolderPathLabel } from '../../services/foldersService';
 import { canWriteFolder } from './explorerRules';
 import type { FolderItem, MediaCategory } from '../../types/media';
@@ -37,7 +38,17 @@ export const MoveResourceDialog: React.FC<MoveResourceDialogProps> = ({
   onConfirmMove,
 }) => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [selectedFolderId, setSelectedFolderId] = useState<string>('');
+  const [trackedContext, setTrackedContext] = useState(
+    `${open}:${resourceKind}:${currentFolderId ?? 'root'}`
+  );
+
+  const currentContext = `${open}:${resourceKind}:${currentFolderId ?? 'root'}`;
+  if (currentContext !== trackedContext) {
+    setTrackedContext(currentContext);
+    setSelectedFolderId('');
+  }
 
   const compatibleFolders = allFolders.filter(
     (f) =>
@@ -53,8 +64,14 @@ export const MoveResourceDialog: React.FC<MoveResourceDialogProps> = ({
 
   const handleConfirm = async () => {
     if (!effectiveSelected) return;
-    await onConfirmMove(effectiveSelected);
-    onOpenChange(false);
+    try {
+      await onConfirmMove(effectiveSelected);
+      onOpenChange(false);
+    } catch (err: unknown) {
+      const detail = (err as { detail?: string })?.detail;
+      const message = err instanceof Error ? err.message : undefined;
+      showToast(detail || message || 'No se pudo mover el recurso a la carpeta seleccionada.', 'error');
+    }
   };
 
   return (

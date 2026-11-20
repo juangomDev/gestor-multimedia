@@ -113,7 +113,49 @@ export function triggerBlobDownload(blob: Blob, filename: string): void {
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  URL.revokeObjectURL(url);
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
+
+/**
+ * Valida la integridad de los esquemas de campos de entrada y dictamen antes de crear un formulario:
+ * - Impide claves JSON duplicadas (`name`).
+ * - Exige al menos una opción válida en campos de tipo `select`.
+ *
+ * @param entryFields Campos de entrada pública saneados.
+ * @param resolutionFields Campos de dictamen interno saneados.
+ * @returns Mensaje de error de validación o `null` si el esquema es válido.
+ */
+export function validateFormSchemaFields(
+  entryFields: FormSchemaField[],
+  resolutionFields: FormSchemaField[]
+): string | null {
+  const seenEntry = new Set<string>();
+  for (const field of entryFields) {
+    const key = field.name.toLowerCase();
+    if (seenEntry.has(key)) {
+      return `El campo de entrada "${field.name}" está duplicado.`;
+    }
+    seenEntry.add(key);
+    if (field.type === 'select' && (!field.options || field.options.filter((o) => o.trim()).length === 0)) {
+      return `El campo "${field.label}" (tipo selector) requiere al menos una opción.`;
+    }
+  }
+
+  const seenResolution = new Set<string>();
+  for (const field of resolutionFields) {
+    const key = field.name.toLowerCase();
+    if (seenResolution.has(key)) {
+      return `El campo de dictamen "${field.name}" está duplicado.`;
+    }
+    seenResolution.add(key);
+    if (field.type === 'select' && (!field.options || field.options.filter((o) => o.trim()).length === 0)) {
+      return `El campo de dictamen "${field.label}" (tipo selector) requiere al menos una opción.`;
+    }
+  }
+
+  return null;
 }
 
 /**

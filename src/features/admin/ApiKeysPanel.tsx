@@ -198,7 +198,14 @@ export const ApiKeysPanel: React.FC = () => {
 
       <Dialog
         open={createOpen}
-        onOpenChange={setCreateOpen}
+        onOpenChange={(nextOpen) => {
+          setCreateOpen(nextOpen);
+          if (!nextOpen) {
+            setName('');
+            setDescription('');
+            setRateLimit('120');
+          }
+        }}
         title="Emitir nueva API Key"
         description="El secreto criptográfico solo podrá visualizarse inmediatamente tras su creación."
         size="sm"

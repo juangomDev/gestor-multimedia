@@ -75,6 +75,25 @@ describe('imagesService (v2 — Subida, Listado, Variantes WebP, Rename, Hot-Swa
     expect(meta).toEqual({ total: 45, page: 2, limit: 12, totalPages: 4 });
   });
 
+  it('listImages() lee paginación OpenAPI anidada en res.meta', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValueOnce({
+      images: [
+        {
+          id: 'img-m1',
+          shortCode: 'm001',
+          originalName: 'foto.png',
+          mimeType: 'image/png',
+          sizeBytes: 512,
+        },
+      ],
+      meta: { total: 88, page: 3, limit: 20, totalPages: 5 },
+    });
+
+    const { items, meta } = await imagesService.listImages({ page: 3, limit: 20 });
+    expect(items).toHaveLength(1);
+    expect(meta).toEqual({ total: 88, page: 3, limit: 20, totalPages: 5 });
+  });
+
   it('getImageVariantUrl() construye variantes thumb y original conservando ?v=', () => {
     storageService.setApiBaseUrl('http://localhost:3000');
 

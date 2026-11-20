@@ -54,13 +54,13 @@ export const PdfViewerDialog: React.FC<PdfViewerDialogProps> = ({
   const [activePage, setActivePage] = useState<number>(initialPage || 1);
   const [pageDraft, setPageDraft] = useState<string>(String(initialPage || 1));
 
+  const identityKey = `${open}:${shortCode}:${pdf?.id ?? ''}:${initialPage ?? 1}`;
   const [localPdf, setLocalPdf] = useState<PdfItem | undefined>(pdf);
-  const [trackedKey, setTrackedKey] = useState(`${shortCode}:${pdf?.id ?? ''}:${initialPage ?? 1}`);
+  const [trackedKey, setTrackedKey] = useState(identityKey);
   const [metadataOpen, setMetadataOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [hotSwapOpen, setHotSwapOpen] = useState(false);
 
-  const identityKey = `${shortCode}:${pdf?.id ?? ''}:${initialPage ?? 1}`;
   if (identityKey !== trackedKey) {
     setTrackedKey(identityKey);
     setLocalPdf(pdf);
@@ -111,8 +111,10 @@ export const PdfViewerDialog: React.FC<PdfViewerDialogProps> = ({
               </Badge>
             ) : null}
             {localPdf?.isScanned ? <Badge tone="warn">Escaneado</Badge> : null}
-            {localPdf?.metadataCard?.category ? (
-              <Badge tone="accent">{localPdf.metadataCard.category}</Badge>
+            {localPdf?.metadataCard?.tags?.[0] ? (
+              <Badge tone="accent">{localPdf.metadataCard.tags[0]}</Badge>
+            ) : localPdf?.metadataCard?.title ? (
+              <Badge tone="accent">{localPdf.metadataCard.title}</Badge>
             ) : null}
             {localPdf ? <span className={styles.metaText}>{formatBytes(localPdf.sizeBytes)}</span> : null}
           </div>

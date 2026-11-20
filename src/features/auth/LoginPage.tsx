@@ -18,6 +18,7 @@ import { useTheme } from '../../context/useTheme';
 import { useToast } from '../../context/useToast';
 import { useHealthQuery } from '../../queries/useAdminQueries';
 import { ApiError } from '../../services/apiClient';
+import { RouteSkeleton } from '../shell/RouteSkeleton';
 import { ServerUrlPopover } from './ServerUrlPopover';
 import styles from './LoginPage.module.css';
 
@@ -76,7 +77,7 @@ export const LoginPage: React.FC = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const healthQuery = useHealthQuery();
+  const healthQuery = useHealthQuery(!isAuthenticated && !isCheckingSession);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -84,11 +85,17 @@ export const LoginPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [errorState, setErrorState] = useState<LoginErrorState | null>(null);
 
-  const fromPath =
-    (location.state as { from?: { pathname?: string; search?: string } } | null)?.from?.pathname ||
-    '/';
+  const from = (location.state as { from?: { pathname?: string; search?: string; hash?: string } } | null)
+    ?.from;
+  const fromPath = from?.pathname
+    ? `${from.pathname}${from.search ?? ''}${from.hash ?? ''}`
+    : '/';
 
-  if (isAuthenticated && !isCheckingSession) {
+  if (isCheckingSession) {
+    return <RouteSkeleton variant="fullscreen" label="Verificando sesión..." />;
+  }
+
+  if (isAuthenticated) {
     return <Navigate to={fromPath} replace />;
   }
 

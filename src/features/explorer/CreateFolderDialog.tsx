@@ -59,7 +59,7 @@ export const CreateFolderDialog: React.FC<CreateFolderDialogProps> = ({
   const { showToast } = useToast();
   const createMutation = useCreateFolderMutation();
 
-  const allowedTypes = getAllowedChildFolderTypes(parentFolder);
+  const allowedTypes = getAllowedChildFolderTypes(parentFolder, allFolders);
   const isTypeLocked = allowedTypes.length === 1;
   const guard = canCreateChildFolder(parentFolder, allFolders, user?.role, user?.id);
 
@@ -67,16 +67,22 @@ export const CreateFolderDialog: React.FC<CreateFolderDialogProps> = ({
   const [selectedType, setSelectedType] = useState<FolderCategory>(allowedTypes[0]);
   const [isPrivate, setIsPrivate] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [trackedContext, setTrackedContext] = useState(`${open}:${parentFolder?.id ?? 'root'}`);
 
-  const effectiveType = isTypeLocked ? allowedTypes[0] : selectedType;
-
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (nextOpen) {
+  const currentContext = `${open}:${parentFolder?.id ?? 'root'}`;
+  if (currentContext !== trackedContext) {
+    setTrackedContext(currentContext);
+    if (open) {
       setName('');
       setSelectedType(allowedTypes[0]);
       setIsPrivate(false);
       setError(null);
     }
+  }
+
+  const effectiveType = allowedTypes.includes(selectedType) ? selectedType : allowedTypes[0];
+
+  const handleOpenChange = (nextOpen: boolean) => {
     onOpenChange(nextOpen);
   };
 

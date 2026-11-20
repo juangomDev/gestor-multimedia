@@ -86,13 +86,14 @@ export interface BulkActionReport {
 }
 
 /**
- * Ficha técnica enriquecida para documentos PDF.
+ * Ficha técnica semántica para documentos PDF (`PATCH /api/v1/pdfs/:id/metadata`).
  */
 export interface PdfMetadataCard {
-  category?: string;
-  summary?: string;
+  title?: string;
+  description?: string;
+  tags?: string[];
   keywords?: string[];
-  custom?: Record<string, unknown>;
+  summary?: string;
 }
 
 /**

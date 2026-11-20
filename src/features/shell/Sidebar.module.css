@@ -24,6 +24,10 @@
   padding: var(--space-1) var(--space-1) var(--space-2);
 }
 
+.inDrawer .brandRow {
+  padding-right: 42px;
+}
+
 .brandLink {
   display: inline-flex;
   align-items: center;

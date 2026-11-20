@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
 import styles from './ToastViewport.module.css';
 
@@ -39,9 +40,7 @@ const ICONS: Record<UiToastTone, React.FC<{ size?: number }>> = {
  * cromático semántico y entrada GPU sin saltos de layout.
  */
 export const ToastViewport: React.FC<ToastViewportProps> = ({ toasts, onDismiss }) => {
-  if (toasts.length === 0) return null;
-
-  return (
+  const viewport = (
     <div
       className={styles.viewport}
       role="region"
@@ -76,4 +75,9 @@ export const ToastViewport: React.FC<ToastViewportProps> = ({ toasts, onDismiss 
       })}
     </div>
   );
+
+  if (typeof document !== 'undefined' && document.body) {
+    return createPortal(viewport, document.body);
+  }
+  return viewport;
 };

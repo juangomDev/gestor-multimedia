@@ -17,10 +17,11 @@ const PDF_FIXTURE: PdfItem = {
   isScanned: false,
   folderId: 'fld-pdfs',
   metadataCard: {
-    category: 'Normativa',
+    title: 'Manual Operativo 2026',
+    description: 'Procedimientos internos vigentes',
     summary: 'Lineamientos operativos anuales',
+    tags: ['Normativa'],
     keywords: ['compliance'],
-    custom: { version: '2.0' },
   },
   createdAt: '2026-11-19T09:00:00Z',
   url: 'http://localhost:3000/p/pdf01',
@@ -99,11 +100,11 @@ describe('PdfViewerDialog y PdfMetadataDialog (Fase 5.3)', () => {
     });
   });
 
-  it('advierte explícitamente cuando el documento PDF es escaneado (isScanned: true)', async () => {
+  it('advierte explícitamente cuando el documento PDF es escaneado (isScanned: true) y tolera páginas con text nulo', async () => {
     vi.spyOn(pdfsService, 'fetchPdfExtractedText').mockResolvedValue({
       shortCode: 'pdf01',
       totalPages: 2,
-      pages: [{ pageNumber: 1, text: '', charCount: 0 }],
+      pages: [{ pageNumber: 1, text: undefined as unknown as string, charCount: 0 }],
     });
 
     renderPdfViewer({
@@ -117,45 +118,51 @@ describe('PdfViewerDialog y PdfMetadataDialog (Fase 5.3)', () => {
     expect(await screen.findByTestId('pdf-scanned-warning')).toHaveTextContent(/escaneado/i);
   });
 
-  it('actualiza metadatos del PDF (category, summary, keywords, custom) vía PATCH /api/v1/pdfs/:id/metadata', async () => {
+  it('actualiza metadatos del PDF según OpenAPI (title, description, summary, tags, keywords) vía PATCH /api/v1/pdfs/:id/metadata', async () => {
     const updateMetaSpy = vi.spyOn(pdfsService, 'updatePdfMetadata').mockResolvedValue({
       ...PDF_FIXTURE,
       metadataCard: {
-        category: 'Legal',
+        title: 'Contrato Legal 2026',
+        description: '',
         summary: 'Resumen actualizado',
+        tags: ['Normativa', 'Legal'],
         keywords: ['compliance', 'auditoria'],
-        custom: { version: '2.0', area: 'Finanzas' },
       },
     });
 
     renderPdfViewer();
-    fireEvent.click(await screen.findByTestId('pdf-open-metadata-btn'));
+    expect(await screen.findByText('Normativa')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('pdf-open-metadata-btn'));
 
-    fireEvent.change(await screen.findByLabelText('Categoría documental'), {
-      target: { value: 'Legal' },
+    fireEvent.change(await screen.findByLabelText('Título documental'), {
+      target: { value: 'Contrato Legal 2026' },
+    });
+    // Vaciar un campo previamente poblado debe enviar "" explícito para permitir limpiarlo
+    fireEvent.change(screen.getByLabelText('Descripción'), {
+      target: { value: '' },
     });
     fireEvent.change(screen.getByLabelText('Resumen ejecutivo'), {
       target: { value: 'Resumen actualizado' },
     });
+    fireEvent.change(screen.getByLabelText('Nueva etiqueta'), {
+      target: { value: 'Legal' },
+    });
+    fireEvent.keyDown(screen.getByLabelText('Nueva etiqueta'), { key: 'Enter' });
+
     fireEvent.change(screen.getByLabelText('Nueva palabra clave'), {
       target: { value: 'auditoria' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Añadir' }));
-
-    fireEvent.click(screen.getByRole('button', { name: /Añadir campo/i }));
-    const keyInputs = screen.getAllByLabelText('Clave personalizada');
-    const valInputs = screen.getAllByLabelText('Valor personalizado');
-    fireEvent.change(keyInputs[1], { target: { value: 'area' } });
-    fireEvent.change(valInputs[1], { target: { value: 'Finanzas' } });
+    fireEvent.keyDown(screen.getByLabelText('Nueva palabra clave'), { key: 'Enter' });
 
     fireEvent.click(screen.getByTestId('pdf-metadata-save-btn'));
 
     await waitFor(() => {
       expect(updateMetaSpy).toHaveBeenCalledWith('pdf-uuid-1', {
-        category: 'Legal',
+        title: 'Contrato Legal 2026',
+        description: '',
         summary: 'Resumen actualizado',
+        tags: ['Normativa', 'Legal'],
         keywords: ['compliance', 'auditoria'],
-        custom: { version: '2.0', area: 'Finanzas' },
       });
     });
   });

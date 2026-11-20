@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Combine } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -18,6 +18,8 @@ export interface DataGridProps {
   columns: string[];
   /** Filas visibles (ya filtradas y ordenadas). */
   rows: Record<string, unknown>[];
+  /** Filas originales sin filtrar de la página activa para preservar índices de `cellStyles`. */
+  rawRows?: Record<string, unknown>[];
   /** Cabeceras multinivel opcionales provistas por el backend (`string[][]`). */
   headers?: string[][];
   /** Rangos de celdas combinadas detectados en hojas Excel (ej. `B1:C1`). */
@@ -54,6 +56,7 @@ const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
 export const DataGrid: React.FC<DataGridProps> = ({
   columns,
   rows,
+  rawRows,
   headers,
   merges,
   cellStyles,
@@ -70,6 +73,10 @@ export const DataGrid: React.FC<DataGridProps> = ({
   const extraHeaderRows =
     headers && headers.length > 1 ? headers.slice(0, headers.length - 1) : [];
   const startRowNumber = (meta.page - 1) * meta.limit + 1;
+  const originalIndexMap = useMemo(
+    () => (rawRows ? new Map(rawRows.map((row, idx) => [row, idx])) : null),
+    [rawRows]
+  );
 
   return (
     <div className={styles.wrapper} data-testid="data-studio-grid">
@@ -143,34 +150,37 @@ export const DataGrid: React.FC<DataGridProps> = ({
             </thead>
 
             <tbody>
-              {rows.map((row, rowIdx) => (
-                <tr key={`row-${startRowNumber + rowIdx}`} className={styles.bodyRow}>
-                  <td className={styles.tdIndex}>{startRowNumber + rowIdx}</td>
-                  {columns.map((col, colIdx) => {
-                    const value = row[col];
-                    const cellStyle = resolveCellInlineStyle(cellStyles, rowIdx, col, colIdx);
-                    const tone = classifySemanticStatus(value);
-                    return (
-                      <td
-                        key={`${rowIdx}-${col}`}
-                        className={styles.td}
-                        style={cellStyle}
-                        title={value !== null && value !== undefined ? String(value) : undefined}
-                      >
-                        {value === null || value === undefined || value === '' ? (
-                          <span className={styles.nullValue}>—</span>
-                        ) : tone ? (
-                          <Badge tone={tone} mono>
-                            {String(value)}
-                          </Badge>
-                        ) : (
-                          String(value)
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+              {rows.map((row, rowIdx) => {
+                const originalIdx = originalIndexMap?.get(row) ?? rowIdx;
+                return (
+                  <tr key={`row-${startRowNumber + originalIdx}`} className={styles.bodyRow}>
+                    <td className={styles.tdIndex}>{startRowNumber + originalIdx}</td>
+                    {columns.map((col, colIdx) => {
+                      const value = row[col];
+                      const cellStyle = resolveCellInlineStyle(cellStyles, originalIdx, col, colIdx);
+                      const tone = classifySemanticStatus(value);
+                      return (
+                        <td
+                          key={`${originalIdx}-${col}`}
+                          className={styles.td}
+                          style={cellStyle}
+                          title={value !== null && value !== undefined ? String(value) : undefined}
+                        >
+                          {value === null || value === undefined || value === '' ? (
+                            <span className={styles.nullValue}>—</span>
+                          ) : tone ? (
+                            <Badge tone={tone} mono>
+                              {String(value)}
+                            </Badge>
+                          ) : (
+                            String(value)
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

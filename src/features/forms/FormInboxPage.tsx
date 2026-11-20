@@ -12,6 +12,7 @@ import {
   useFormEntriesQuery,
 } from '../../queries/useFormsQueries';
 import { formsService } from '../../services/formsService';
+import { useFolderWriteAccess } from '../explorer/useFolderWriteAccess';
 import { FormSubscriptionControl } from './FormSubscriptionControl';
 import { FormEmbedDialog } from './FormEmbedDialog';
 import { ResolveEntryDialog } from './ResolveEntryDialog';
@@ -32,14 +33,12 @@ const STATUS_TABS: Array<{ value: StatusFilter; label: string }> = [
 /**
  * Bandeja mensual y resolución **Write-Once** de Formularios Dinámicos
  * (`/folder/:folderId/forms/:formId`), cargada con `React.lazy`.
- * Incluye suscripción en vivo (`FormSubscriptionControl`), desglose `NEW / VALID / INVALID`,
- * filtro mensual (`?month=YYYY-MM`) y por estado, exportación `.xlsx`/`.csv` autenticada,
- * modal **Integrar en web** y dictamen/webhook por entrada.
  */
 export const FormInboxPage: React.FC = () => {
   const { folderId, formId = '' } = useParams<{ folderId: string; formId: string }>();
   const { showToast } = useToast();
 
+  const [trackedFormId, setTrackedFormId] = useState(formId);
   const [month, setMonth] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [page, setPage] = useState<number>(1);
@@ -47,26 +46,38 @@ export const FormInboxPage: React.FC = () => {
   const [activeEntry, setActiveEntry] = useState<FormEntry | null>(null);
   const [exportingFormat, setExportingFormat] = useState<'xlsx' | 'csv' | null>(null);
 
+  if (trackedFormId !== formId) {
+    setTrackedFormId(formId);
+    setMonth('');
+    setStatusFilter('ALL');
+    setPage(1);
+    setEmbedOpen(false);
+    setActiveEntry(null);
+  }
+
   const formQuery = useFormDetailQuery(formId);
+  const form = formQuery.data;
+  const resolvedFormId = form?.id || formId;
+
   const entriesQuery = useFormEntriesQuery(formId, {
     month: month || undefined,
     status: statusFilter,
     page,
     limit: 50,
   });
-  const summaryQuery = useFormEntriesQuery(formId, {
-    month: month || undefined,
-    status: 'ALL',
-    page: 1,
-    limit: 200,
-  });
-  const dispatchMutation = useDispatchFormEntryMutation(formId);
+  const needsSummaryFetch = statusFilter !== 'ALL' || page > 1;
+  const summaryQuery = useFormEntriesQuery(
+    formId,
+    { month: month || undefined, status: 'ALL', page: 1, limit: 200 },
+    needsSummaryFetch
+  );
+  const dispatchMutation = useDispatchFormEntryMutation(resolvedFormId);
+  const canResolve = useFolderWriteAccess(folderId || form?.folderId || null);
 
-  const form = formQuery.data;
   const entries = useMemo(() => entriesQuery.data?.entries ?? [], [entriesQuery.data?.entries]);
   const breakdown = useMemo(
-    () => countEntryStatuses(summaryQuery.data?.entries ?? entries),
-    [summaryQuery.data?.entries, entries]
+    () => countEntryStatuses(needsSummaryFetch ? (summaryQuery.data?.entries ?? entries) : entries),
+    [needsSummaryFetch, summaryQuery.data?.entries, entries]
   );
 
   const handleExport = async (format: 'xlsx' | 'csv') => {
@@ -90,6 +101,9 @@ export const FormInboxPage: React.FC = () => {
   const handleQuickDispatch = async (entryId: string) => {
     try {
       const result = await dispatchMutation.mutateAsync(entryId);
+      setActiveEntry((prev) =>
+        prev && prev.id === entryId ? { ...prev, dispatchedAt: result.dispatchedAt } : prev
+      );
       showToast(`Webhook enviado hacia ${result.targetUrl}.`, 'success');
     } catch (err: unknown) {
       const detail = (err as { detail?: string })?.detail;
@@ -255,15 +269,14 @@ export const FormInboxPage: React.FC = () => {
           totalPages={entriesQuery.data?.totalPages ?? 1}
           totalEntries={entriesQuery.data?.total ?? entries.length}
           isDispatching={dispatchMutation.isPending}
+          canResolve={canResolve}
           onSelectEntry={setActiveEntry}
           onQuickDispatch={(entryId) => void handleQuickDispatch(entryId)}
           onPageChange={setPage}
         />
       )}
 
-      {form && embedOpen ? (
-        <FormEmbedDialog open={embedOpen} onOpenChange={setEmbedOpen} form={form} />
-      ) : null}
+      {form && embedOpen ? <FormEmbedDialog open={embedOpen} onOpenChange={setEmbedOpen} form={form} /> : null}
 
       {form && activeEntry ? (
         <ResolveEntryDialog
@@ -273,9 +286,10 @@ export const FormInboxPage: React.FC = () => {
           }}
           form={form}
           entry={activeEntry}
+          canResolve={canResolve}
           onConflictRefresh={() => {
             void entriesQuery.refetch();
-            void summaryQuery.refetch();
+            if (needsSummaryFetch) void summaryQuery.refetch();
           }}
         />
       ) : null}

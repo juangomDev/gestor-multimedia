@@ -1,5 +1,5 @@
 import React from 'react';
-import { FolderOpen, Info, Upload } from 'lucide-react';
+import { AlertCircle, ArrowLeft, FolderOpen, Info, RotateCcw, Upload } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import type { FolderItem } from '../../types/media';
@@ -29,54 +29,98 @@ export const ExplorerContainerBanner: React.FC<ExplorerContainerBannerProps> = (
 );
 
 /**
- * Propiedades del estado vacío contextual del Explorador (`ExplorerEmptyState`).
+ * Propiedades del estado vacío o de error contextual del Explorador (`ExplorerEmptyState`).
  */
 export interface ExplorerEmptyStateProps {
   isInsideFolder: boolean;
+  isFolderNotFound?: boolean;
+  isError?: boolean;
   searchQuery: string;
   uploadGuard: UploadButtonState;
   createFolderGuard: CreateFolderGuardResult;
   onOpenUpload: () => void;
   onOpenCreateFolder: () => void;
+  onRetry?: () => void;
+  onReturnHome?: () => void;
 }
 
 /**
- * Estado vacío contextual para el Explorador (búsqueda sin resultados, raíz vacía o carpeta vacía).
+ * Estado vacío, carpeta inexistente o fallo de red para el Explorador.
  */
 export const ExplorerEmptyState: React.FC<ExplorerEmptyStateProps> = ({
   isInsideFolder,
+  isFolderNotFound = false,
+  isError = false,
   searchQuery,
   uploadGuard,
   createFolderGuard,
   onOpenUpload,
   onOpenCreateFolder,
-}) => (
-  <EmptyState
-    icon={<FolderOpen size={22} />}
-    title={
-      searchQuery
-        ? 'Sin resultados para tu filtro'
-        : isInsideFolder
-        ? 'Esta carpeta está vacía'
-        : 'Aún no hay carpetas raíz'
-    }
-    description={
-      searchQuery
-        ? `No se encontraron elementos que coincidan con "${searchQuery}".`
-        : uploadGuard.enabled
-        ? `Arrastra archivos o pulsa "${uploadGuard.label}" para empezar.`
-        : 'Crea una carpeta para organizar tus imágenes, tablas o documentos PDF.'
-    }
-    action={
-      uploadGuard.enabled ? (
-        <Button variant="primary" size="sm" icon={<Upload size={14} />} onClick={onOpenUpload}>
-          {uploadGuard.label}
-        </Button>
-      ) : createFolderGuard.allowed ? (
-        <Button variant="primary" size="sm" onClick={onOpenCreateFolder}>
-          Crear primera carpeta
-        </Button>
-      ) : undefined
-    }
-  />
-);
+  onRetry,
+  onReturnHome,
+}) => {
+  if (isError) {
+    return (
+      <EmptyState
+        icon={<AlertCircle size={22} />}
+        title="No se pudo cargar el contenido"
+        description="Ocurrió un error al consultar las carpetas o archivos en el servidor."
+        action={
+          onRetry ? (
+            <Button variant="secondary" size="sm" icon={<RotateCcw size={14} />} onClick={onRetry}>
+              Reintentar
+            </Button>
+          ) : undefined
+        }
+      />
+    );
+  }
+
+  if (isFolderNotFound) {
+    return (
+      <EmptyState
+        icon={<FolderOpen size={22} />}
+        title="Carpeta no encontrada o sin acceso"
+        description="La carpeta solicitada no existe, fue eliminada o no tienes permiso para verla."
+        action={
+          onReturnHome ? (
+            <Button variant="secondary" size="sm" icon={<ArrowLeft size={14} />} onClick={onReturnHome}>
+              Volver al explorador
+            </Button>
+          ) : undefined
+        }
+      />
+    );
+  }
+
+  return (
+    <EmptyState
+      icon={<FolderOpen size={22} />}
+      title={
+        searchQuery
+          ? 'Sin resultados para tu filtro'
+          : isInsideFolder
+          ? 'Esta carpeta está vacía'
+          : 'Aún no hay carpetas raíz'
+      }
+      description={
+        searchQuery
+          ? `No se encontraron elementos que coincidan con "${searchQuery}".`
+          : uploadGuard.enabled
+          ? `Arrastra archivos o pulsa "${uploadGuard.label}" para empezar.`
+          : 'Crea una carpeta para organizar tus imágenes, tablas o documentos PDF.'
+      }
+      action={
+        uploadGuard.enabled ? (
+          <Button variant="primary" size="sm" icon={<Upload size={14} />} onClick={onOpenUpload}>
+            {uploadGuard.label}
+          </Button>
+        ) : createFolderGuard.allowed ? (
+          <Button variant="primary" size="sm" onClick={onOpenCreateFolder}>
+            Crear primera carpeta
+          </Button>
+        ) : undefined
+      }
+    />
+  );
+};

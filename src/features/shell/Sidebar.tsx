@@ -77,10 +77,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, inDrawer = false }
 
   const initials = (user?.username || 'U').slice(0, 2).toUpperCase();
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     onNavigate?.();
-    await logout();
-    navigate('/login', { replace: true });
+    const logoutPromise = logout();
+    navigate('/login', { replace: true, state: null });
+    void logoutPromise;
   };
 
   const handleUploadClick = () => {

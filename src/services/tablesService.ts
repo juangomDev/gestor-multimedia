@@ -108,7 +108,7 @@ export class TablesService {
     const safeLimit = Math.min(500, Math.max(1, limit));
 
     const res = await apiClient.get<Record<string, unknown>>(
-      `/t/${shortCode}?page=${safePage}&limit=${safeLimit}`,
+      `/t/${encodeURIComponent(shortCode)}?page=${safePage}&limit=${safeLimit}`,
       { skipAuth: true }
     );
 
@@ -219,6 +219,7 @@ export class TablesService {
     const qs = params.toString();
     const res = await apiClient.get<{
       tables?: RawApiTable[];
+      meta?: Partial<TablesPaginationMeta>;
       total?: number;
       page?: number;
       limit?: number;
@@ -228,10 +229,11 @@ export class TablesService {
     const baseUrl = storageService.getApiBaseUrl();
     const items = (res.tables || []).map((t) => normalizeTableItem(t, baseUrl));
 
-    const total = res.total ?? items.length;
-    const page = res.page ?? options?.page ?? 1;
-    const limit = res.limit ?? options?.limit ?? Math.max(items.length, 50);
-    const totalPages = res.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, limit)));
+    const total = res.meta?.total ?? res.total ?? items.length;
+    const page = res.meta?.page ?? res.page ?? options?.page ?? 1;
+    const limit = res.meta?.limit ?? res.limit ?? options?.limit ?? Math.max(items.length, 50);
+    const totalPages =
+      res.meta?.totalPages ?? res.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, limit)));
     const meta: TablesPaginationMeta = { total, page, limit, totalPages };
 
     return { items, meta };

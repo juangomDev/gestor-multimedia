@@ -249,4 +249,49 @@ describe('Formularios Dinámicos y Resolución Write-Once (Fase 5.4)', () => {
       expect(dispatchSpy).toHaveBeenCalledWith('ent-valid');
     });
   });
+
+  it('oculta acciones de dictamen y reenvío webhook cuando el usuario solo tiene permiso READ en la carpeta', async () => {
+    const reader = { id: 'u-col', username: 'lector', role: 'COLLABORATOR' as const, isActive: true };
+    storageService.saveSession({ token: 'jwt-col', user: reader });
+    vi.spyOn(authService, 'getMe').mockResolvedValue({ user: reader });
+    vi.spyOn(formsService, 'getForm').mockResolvedValue(FORM_FIXTURE);
+    vi.spyOn(formsService, 'listEntries').mockResolvedValue({
+      entries: ENTRIES_FIXTURE,
+      total: 3,
+      page: 1,
+      limit: 50,
+      totalPages: 1,
+    });
+    vi.spyOn(notificationsService, 'getFormSubscription').mockResolvedValue({
+      subscribed: false,
+      subscription: null,
+    });
+
+    const queryClient = createAppQueryClient();
+    queryClient.setQueryData(['folders', 'tree'], [
+      {
+        id: 'fld-tbls',
+        name: 'Finanzas',
+        type: 'table',
+        parentId: null,
+        myPermission: 'READ',
+        createdAt: '',
+      },
+    ]);
+
+    render(
+      <AppProviders queryClient={queryClient}>
+        <MemoryRouter initialEntries={['/folder/fld-tbls/forms/form-1']}>
+          <Routes>
+            <Route path="/folder/:folderId/forms/:formId" element={<FormInboxPage />} />
+          </Routes>
+        </MemoryRouter>
+      </AppProviders>
+    );
+
+    expect(await screen.findByText('Registro de Proveedores')).toBeInTheDocument();
+    expect(screen.getByText('Solo lectura')).toBeInTheDocument();
+    expect(screen.queryByTestId('resolve-btn-ent-new')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('dispatch-btn-ent-valid')).not.toBeInTheDocument();
+  });
 });

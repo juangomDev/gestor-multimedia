@@ -25,6 +25,41 @@ export {
 };
 
 /**
+ * Crea un `AbortController` combinado que respeta tanto el timeout interno como una
+ * `AbortSignal` externa opcional, distinguiendo qué fuente disparó la cancelación.
+ */
+function createLinkedAbortController(timeoutMs: number, externalSignal?: AbortSignal | null) {
+  const controller = new AbortController();
+  let externalAborted = false;
+
+  const onExternalAbort = () => {
+    externalAborted = true;
+    controller.abort();
+  };
+
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      onExternalAbort();
+    } else {
+      externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+    }
+  }
+
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  return {
+    signal: controller.signal,
+    wasExternalAbort: () => externalAborted,
+    cleanup: () => {
+      clearTimeout(timeoutId);
+      if (externalSignal) {
+        externalSignal.removeEventListener('abort', onExternalAbort);
+      }
+    },
+  };
+}
+
+/**
  * Cliente HTTP centralizado y sin estado para comunicación con `monolith-backend`.
  * Envía estrictamente `Authorization: Bearer <token>` con `credentials: 'include'`,
  * decodifica errores RFC 7807 y gestiona rotación única de tokens JWT ante `401`.
@@ -32,16 +67,17 @@ export {
 export class ApiClient {
   private refreshQueue = new TokenRefreshQueue();
 
-  /**
-   * Suscribe un listener para ser notificado cuando la sesión expira definitivamente.
-   */
+  /** Suscribe un listener notificado cuando la sesión expira definitivamente. */
   public onUnauthorized(listener: () => void): () => void {
     return this.refreshQueue.onUnauthorized(listener);
   }
 
-  /**
-   * Resuelve una ruta relativa contra el `baseUrl` configurado en `storageService`.
-   */
+  /** Suscribe un listener notificado cuando un refresco `401` rota el access token JWT. */
+  public onTokenRefreshed(listener: (token: string) => void): () => void {
+    return this.refreshQueue.onTokenRefreshed(listener);
+  }
+
+  /** Resuelve una ruta relativa contra el `baseUrl` configurado en `storageService`. */
   public resolveUrl(path: string): string {
     if (/^https?:\/\//i.test(path)) {
       return path;
@@ -51,43 +87,53 @@ export class ApiClient {
     return `${base}${cleanPath}`;
   }
 
-  /**
-   * Solicita la renovación del access token JWT compartiendo la cola única de refresco.
-   */
+  /** Solicita la renovación del access token JWT compartiendo la cola única de refresco. */
   public async refreshAccessToken(): Promise<string> {
     return this.refreshQueue.refreshToken(this.resolveUrl('/api/v1/auth/refresh'));
   }
 
   /**
-   * Verifica si la ruta corresponde a un endpoint de autenticación excluido del reintento 401.
+   * Verifica si la ruta corresponde a un endpoint de autenticación excluido del reintento 401
+   * (incluyendo cambio de contraseña actual incorrecta).
    */
   private isAuthRoute(path: string): boolean {
     return (
       path.includes('/api/v1/auth/login') ||
       path.includes('/api/v1/auth/refresh') ||
-      path.includes('/api/v1/auth/logout')
+      path.includes('/api/v1/auth/logout') ||
+      path.includes('/api/v1/auth/password')
     );
   }
 
   /**
-   * Ejecuta una petición HTTP genérica con timeout, decodificación RFC 7807 y cola de refresh 401.
+   * Ejecuta una petición HTTP genérica con timeout, señal enlazada, RFC 7807 y cola de refresh 401.
    */
   async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     const url = this.resolveUrl(path);
     const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
     const headers = buildRequestHeaders(options, isFormData);
+    const requestToken = storageService.getToken();
 
-    const controller = new AbortController();
-    const defaultTimeoutMs = path.includes('/chat/ask') ? 60000 : 15000;
-    const timeoutMs = options.timeoutMs || defaultTimeoutMs;
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const {
+      skipAuth: _skipAuth,
+      timeoutMs: customTimeoutMs,
+      responseType: _responseType,
+      _retry,
+      signal: externalSignal,
+      credentials,
+      ...fetchInit
+    } = options;
+
+    const defaultTimeoutMs = path.includes('/chat/ask') || isFormData ? 60_000 : 15_000;
+    const timeoutMs = customTimeoutMs || defaultTimeoutMs;
+    const abortCtrl = createLinkedAbortController(timeoutMs, externalSignal);
 
     try {
       const response = await fetch(url, {
-        credentials: options.credentials || 'include',
-        ...options,
+        ...fetchInit,
+        credentials: credentials ?? 'include',
         headers,
-        signal: options.signal ?? controller.signal,
+        signal: abortCtrl.signal,
       });
 
       if (!response.ok) {
@@ -100,9 +146,13 @@ export class ApiClient {
         if (
           response.status === 401 &&
           !options.skipAuth &&
-          !options._retry &&
+          !_retry &&
           !this.isAuthRoute(path)
         ) {
+          const latestToken = storageService.getToken();
+          if (latestToken && requestToken && latestToken !== requestToken) {
+            return this.request<T>(path, { ...options, _retry: true });
+          }
           return this.refreshQueue.handleTokenRefresh<T>(
             this.resolveUrl('/api/v1/auth/refresh'),
             () => this.request<T>(path, { ...options, _retry: true }),
@@ -118,10 +168,11 @@ export class ApiClient {
       throw normalizeTransportError(
         err,
         `La solicitud al servidor excedió el tiempo límite (${Math.round(timeoutMs / 1000)}s)`,
-        'Error de conexión con el backend'
+        'Error de conexión con el backend',
+        abortCtrl.wasExternalAbort()
       );
     } finally {
-      clearTimeout(timeoutId);
+      abortCtrl.cleanup();
     }
   }
 
@@ -167,16 +218,27 @@ export class ApiClient {
   ): Promise<DownloadResult> {
     const url = this.resolveUrl(path);
     const headers = buildRequestHeaders(options);
+    const requestToken = storageService.getToken();
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs || 30000);
+    const {
+      skipAuth: _skipAuth,
+      timeoutMs: customTimeoutMs,
+      responseType: _responseType,
+      _retry,
+      signal: externalSignal,
+      credentials,
+      ...fetchInit
+    } = options;
+
+    const timeoutMs = customTimeoutMs || 30_000;
+    const abortCtrl = createLinkedAbortController(timeoutMs, externalSignal);
 
     try {
       const response = await fetch(url, {
-        credentials: options.credentials || 'include',
-        ...options,
+        ...fetchInit,
+        credentials: credentials ?? 'include',
         headers,
-        signal: options.signal ?? controller.signal,
+        signal: abortCtrl.signal,
       });
 
       if (!response.ok) {
@@ -189,9 +251,13 @@ export class ApiClient {
         if (
           response.status === 401 &&
           !options.skipAuth &&
-          !options._retry &&
+          !_retry &&
           !this.isAuthRoute(path)
         ) {
+          const latestToken = storageService.getToken();
+          if (latestToken && requestToken && latestToken !== requestToken) {
+            return this.download(path, defaultFilename, { ...options, _retry: true });
+          }
           return this.refreshQueue.handleTokenRefresh<DownloadResult>(
             this.resolveUrl('/api/v1/auth/refresh'),
             () => this.download(path, defaultFilename, { ...options, _retry: true }),
@@ -211,11 +277,12 @@ export class ApiClient {
     } catch (err: unknown) {
       throw normalizeTransportError(
         err,
-        'La descarga excedió el tiempo límite (30s)',
-        'Error al conectar para descargar el archivo'
+        `La descarga excedió el tiempo límite (${Math.round(timeoutMs / 1000)}s)`,
+        'Error al conectar para descargar el archivo',
+        abortCtrl.wasExternalAbort()
       );
     } finally {
-      clearTimeout(timeoutId);
+      abortCtrl.cleanup();
     }
   }
 }

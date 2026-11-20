@@ -3,6 +3,7 @@ import { formsService } from '../services/formsService';
 import { notificationsService } from '../services/notificationsService';
 import type {
   CreateFormInput,
+  FetchFormsOptions,
   ListEntriesOptions,
   ResolveEntryInput,
 } from '../types/forms';
@@ -13,13 +14,16 @@ import type {
 import { queryKeys } from './queryKeys';
 
 /**
- * Lista todas las definiciones de formularios accesibles (`GET /api/v1/forms`).
- * Incluye `_count.entries` sin generar consultas N+1.
+ * Lista las definiciones de formularios accesibles (`GET /api/v1/forms`) con soporte de filtro
+ * server-side (`folderId`, `search`, `page`, `limit`). Incluye `_count.entries` sin N+1.
  */
-export function useFormsListQuery(enabled: boolean = true) {
+export function useFormsListQuery(
+  options: FetchFormsOptions = {},
+  enabled: boolean = true
+) {
   return useQuery({
-    queryKey: queryKeys.forms.list(),
-    queryFn: () => formsService.listForms(),
+    queryKey: queryKeys.forms.list(options),
+    queryFn: () => formsService.listForms(options),
     enabled,
   });
 }
@@ -41,12 +45,13 @@ export function useFormDetailQuery(idOrSlug: string | null | undefined) {
  */
 export function useFormEntriesQuery(
   formId: string | null | undefined,
-  options: ListEntriesOptions = {}
+  options: ListEntriesOptions = {},
+  enabled: boolean = true
 ) {
   return useQuery({
     queryKey: queryKeys.forms.entries(formId || '', options),
     queryFn: () => formsService.listEntries(formId!, options),
-    enabled: Boolean(formId),
+    enabled: Boolean(formId) && enabled,
   });
 }
 
@@ -92,7 +97,7 @@ export function useResolveFormEntryMutation(formId: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['forms', 'entries', formId] }),
         queryClient.invalidateQueries({ queryKey: queryKeys.forms.detail(formId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.forms.list() }),
+        queryClient.invalidateQueries({ queryKey: ['forms', 'list'] }),
       ]);
     },
   });

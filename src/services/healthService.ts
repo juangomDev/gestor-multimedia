@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient';
+import { apiClient, ApiError } from './apiClient';
 import { storageService } from './storageService';
 import { cleanBaseUrl } from '../utils/formatters';
 import type { HealthResponse } from '../types/api';
@@ -10,8 +10,10 @@ import type { HealthResponse } from '../types/api';
 export class HealthService {
   /**
    * Consulta `GET /health` midiendo la latencia de ida y vuelta.
-   * Normaliza el alias `database` hacia `db` y conserva `uptime` si el backend lo expone.
-   * @returns Estado de salud; si la petición falla devuelve un estado `degraded`.
+   * Normaliza el alias `database` hacia `db`, preserva `uptime` y recupera el cuerpo JSON
+   * real cuando el backend responde `503 Service Unavailable` con diagnóstico parcial.
+   *
+   * @returns Estado de salud; si la red falla devuelve un estado `degraded`.
    */
   async checkHealth(): Promise<HealthResponse> {
     const start = performance.now();
@@ -26,7 +28,19 @@ export class HealthService {
         db: res.database ?? res.db,
         latencyMs,
       };
-    } catch {
+    } catch (err: unknown) {
+      const latencyMs = Math.round(performance.now() - start);
+      if (err instanceof ApiError && err.status === 503 && err.details && typeof err.details === 'object') {
+        const raw = err.details as Partial<HealthResponse>;
+        return {
+          status: raw.status === 'ok' ? 'ok' : 'degraded',
+          db: raw.database ?? raw.db ?? 'down',
+          storage: raw.storage ?? 'unwritable',
+          timestamp: raw.timestamp || new Date().toISOString(),
+          uptime: typeof raw.uptime === 'number' ? raw.uptime : undefined,
+          latencyMs,
+        };
+      }
       return {
         status: 'degraded',
         db: 'down',

@@ -8,6 +8,7 @@ import { storageService, DEFAULT_CONFIG } from '../../services/storageService';
 import { healthService } from '../../services/healthService';
 import { queryKeys } from '../../queries/queryKeys';
 import { useToast } from '../../context/useToast';
+import { validateHttpBaseUrl } from '../../utils/formatters';
 import styles from './ServerUrlPopover.module.css';
 
 /**
@@ -37,13 +38,9 @@ export const ServerUrlPopover: React.FC = () => {
 
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
-    const cleaned = urlValue.trim().replace(/\/+$/, '');
+    const cleaned = validateHttpBaseUrl(urlValue);
     if (!cleaned) {
-      setError('Introduce una URL válida para el servidor API.');
-      return;
-    }
-    if (!/^https?:\/\/.+/i.test(cleaned)) {
-      setError('La dirección debe comenzar con http:// o https://');
+      setError('Introduce una URL HTTP o HTTPS válida (ej. https://api.ejemplo.com).');
       return;
     }
 
@@ -51,8 +48,11 @@ export const ServerUrlPopover: React.FC = () => {
     setTesting(true);
     try {
       const savedUrl = storageService.setApiBaseUrl(cleaned);
-      const health = await healthService.checkHealth();
-      queryClient.setQueryData(queryKeys.health.status(), health);
+      queryClient.clear();
+      const health = await queryClient.fetchQuery({
+        queryKey: queryKeys.health.status(),
+        queryFn: () => healthService.checkHealth(),
+      });
 
       if (health.status === 'ok') {
         showToast(`Conectado a ${savedUrl} (${health.latencyMs ?? 0} ms)`, 'success');

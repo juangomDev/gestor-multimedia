@@ -32,6 +32,8 @@ export interface ResolveEntryDialogProps {
   form: FormDefinition;
   /** Entrada seleccionada para dictaminar o auditar/reenviar. */
   entry: FormEntry;
+  /** Permite dictaminar o reenviar cuando el usuario tiene permiso `EDIT`/`ADMIN`. */
+  canResolve?: boolean;
   /** Callback opcional al detectar conflicto `409` para forzar refresco de bandeja. */
   onConflictRefresh?: () => void;
 }
@@ -54,6 +56,7 @@ export const ResolveEntryDialog: React.FC<ResolveEntryDialogProps> = ({
   onOpenChange,
   form,
   entry,
+  canResolve = true,
   onConflictRefresh,
 }) => {
   const formHtmlId = useId();
@@ -63,7 +66,7 @@ export const ResolveEntryDialog: React.FC<ResolveEntryDialogProps> = ({
 
   const states =
     form.allowedResolutionStates.length > 0 ? form.allowedResolutionStates : ['VALID', 'INVALID'];
-  const [trackedEntryId, setTrackedEntryId] = useState(entry.id);
+  const [trackedEntryId, setTrackedEntryId] = useState(`${open}:${entry.id}`);
   const [status, setStatus] = useState<string>(states[0] || 'VALID');
   const [values, setValues] = useState<Record<string, unknown>>(() =>
     buildInitialResolutionValues(form.resolutionFieldsSchema)
@@ -71,8 +74,9 @@ export const ResolveEntryDialog: React.FC<ResolveEntryDialogProps> = ({
   const [conflictMsg, setConflictMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  if (entry.id !== trackedEntryId) {
-    setTrackedEntryId(entry.id);
+  const currentKey = `${open}:${entry.id}`;
+  if (currentKey !== trackedEntryId) {
+    setTrackedEntryId(currentKey);
     setStatus(states[0] || 'VALID');
     setValues(buildInitialResolutionValues(form.resolutionFieldsSchema));
     setConflictMsg(null);
@@ -83,18 +87,29 @@ export const ResolveEntryDialog: React.FC<ResolveEntryDialogProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canResolve) return;
     setConflictMsg(null);
     setErrorMsg(null);
 
     const payload: Record<string, unknown> = {};
     for (const field of form.resolutionFieldsSchema) {
       const raw = values[field.name];
-      if (field.required && field.type !== 'boolean' && String(raw ?? '').trim() === '') {
+      const strVal = String(raw ?? '').trim();
+      if (field.required && field.type !== 'boolean' && strVal === '') {
         setErrorMsg(`El campo "${field.label}" es obligatorio para sellar el dictamen.`);
         return;
       }
       if (field.type === 'number') {
-        payload[field.name] = raw === '' ? null : Number(raw);
+        if (strVal === '') {
+          payload[field.name] = null;
+        } else {
+          const parsedNum = Number(strVal);
+          if (Number.isNaN(parsedNum)) {
+            setErrorMsg(`El campo "${field.label}" debe ser un número válido.`);
+            return;
+          }
+          payload[field.name] = parsedNum;
+        }
       } else if (field.type === 'boolean') {
         payload[field.name] = Boolean(raw);
       } else {
@@ -145,7 +160,7 @@ export const ResolveEntryDialog: React.FC<ResolveEntryDialogProps> = ({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cerrar
           </Button>
-          {!isSealed && !conflictMsg ? (
+          {!isSealed && !conflictMsg && canResolve ? (
             <Button
               type="submit"
               form={formHtmlId}

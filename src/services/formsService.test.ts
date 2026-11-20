@@ -60,6 +60,21 @@ describe('formsService (v2 Stateless)', () => {
 
       await expect(formsService.listForms()).rejects.toThrow('404 Not Found');
     });
+
+    it('envía parámetros folderId, search, page y limit en la query string cuando se proporcionan', async () => {
+      vi.mocked(apiClient.get).mockResolvedValueOnce({ data: [] });
+
+      await formsService.listForms({
+        folderId: 'fld-tbl-9',
+        search: 'denuncia',
+        page: 2,
+        limit: 25,
+      });
+
+      expect(apiClient.get).toHaveBeenCalledWith(
+        '/api/v1/forms?folderId=fld-tbl-9&search=denuncia&page=2&limit=25'
+      );
+    });
   });
 
   describe('getForm', () => {

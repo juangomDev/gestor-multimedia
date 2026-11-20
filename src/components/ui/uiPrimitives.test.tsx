@@ -21,9 +21,15 @@ import { Input } from './Input';
 import { Badge } from './Badge';
 import { ShortCodeChip } from './ShortCodeChip';
 import { EmptyState } from './EmptyState';
+import { ErrorBoundary } from './ErrorBoundary';
 import { Skeleton } from './Skeleton';
 import { ToastViewport } from './ToastViewport';
 import * as clipboardUtils from '../../utils/clipboard';
+
+const CrashTrigger: React.FC<{ shouldCrash: boolean }> = ({ shouldCrash }) => {
+  if (shouldCrash) throw new Error('Fallo de módulo lazy');
+  return <div>Contenido recuperado</div>;
+};
 
 const DialogHarness: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -222,5 +228,24 @@ describe('Primitivas UI — Sistema "Archivo Editorial" (Fase 1.2)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar notificación' }));
     expect(onDismiss).toHaveBeenCalledWith('t1');
+  });
+
+  it('ErrorBoundary captura errores de renderizado y se recupera al pulsar Reintentar o cambiar resetKey', () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { rerender } = render(
+      <ErrorBoundary resetKey="/ruta-a">
+        <CrashTrigger shouldCrash={true} />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByTestId('error-boundary-fallback')).toHaveTextContent('Fallo de módulo lazy');
+
+    rerender(
+      <ErrorBoundary resetKey="/ruta-b">
+        <CrashTrigger shouldCrash={false} />
+      </ErrorBoundary>
+    );
+    expect(screen.getByText('Contenido recuperado')).toBeInTheDocument();
+    consoleSpy.mockRestore();
   });
 });

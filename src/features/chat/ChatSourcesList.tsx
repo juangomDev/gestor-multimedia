@@ -3,11 +3,18 @@ import { useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { FileText, Table2 } from 'lucide-react';
 import { queryKeys } from '../../queries/queryKeys';
+import { usePdfsQuery } from '../../queries/useMediaQueries';
+import { storageService } from '../../services/storageService';
 import { ShellContext } from '../shell/shellContextDef';
 import { getSourceDisplayName, isPdfSource } from './chatHelpers';
 import type { PaginatedPdfsResult } from '../../services/pdfsService';
 import type { ChatSource } from '../../types/chat';
 import styles from './ChatSourcesList.module.css';
+
+function isExplicitTableName(source: ChatSource): boolean {
+  const name = (source.tableName || source.title || '').trim();
+  return /\.(csv|xlsx?|json)$/i.test(name);
+}
 
 /**
  * Propiedades del listado de citas clicables de Data Chat (`ChatSourcesList`).
@@ -32,18 +39,29 @@ export const ChatSourcesList: React.FC<ChatSourcesListProps> = ({
   const queryClient = useQueryClient();
   const shell = useContext(ShellContext);
 
-  if (!sources || sources.length === 0) return null;
-
-  const knownPdfShortCodes = new Set<string>();
   const cachedPdfLists = queryClient.getQueriesData<PaginatedPdfsResult>({
     queryKey: queryKeys.pdfs.all,
   });
+  const hasAmbiguousSource = Boolean(
+    sources?.some((s) => !isPdfSource(s) && !isExplicitTableName(s))
+  );
+  const fallbackPdfsQuery = usePdfsQuery(
+    { page: 1, limit: 50 },
+    hasAmbiguousSource && cachedPdfLists.length === 0 && Boolean(storageService.getToken())
+  );
+
+  if (!sources || sources.length === 0) return null;
+
+  const knownPdfShortCodes = new Set<string>();
   for (const [, data] of cachedPdfLists) {
     if (data && Array.isArray(data.items)) {
       for (const item of data.items) {
         if (item.shortCode) knownPdfShortCodes.add(item.shortCode);
       }
     }
+  }
+  for (const item of fallbackPdfsQuery.data?.items ?? []) {
+    if (item.shortCode) knownPdfShortCodes.add(item.shortCode);
   }
 
   const handleOpenSource = (source: ChatSource) => {

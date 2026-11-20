@@ -65,7 +65,7 @@ describe('AdminPage — Auditoría, API Keys, Almacenamiento y Sistema/API (Fase
         {
           id: 'aud-1',
           actorUsername: 'admin',
-          action: 'UPLOAD_TABLE',
+          action: 'TABLE_UPLOAD',
           resourceType: 'TABLE',
           resourceId: 'tbl-99887766',
           ipAddress: '10.0.0.5',
@@ -82,10 +82,10 @@ describe('AdminPage — Auditoría, API Keys, Almacenamiento y Sistema/API (Fase
     renderAdmin('/admin/audit');
 
     const auditTable = await screen.findByTestId('audit-logs-table');
-    expect(within(auditTable).getByText('UPLOAD_TABLE')).toBeInTheDocument();
+    expect(within(auditTable).getByText('TABLE_UPLOAD')).toBeInTheDocument();
 
     fireEvent.change(screen.getByTestId('audit-action-filter'), {
-      target: { value: 'UPLOAD_TABLE' },
+      target: { value: 'TABLE_UPLOAD' },
     });
     fireEvent.change(screen.getByTestId('audit-resource-filter'), {
       target: { value: 'TABLE' },
@@ -93,7 +93,7 @@ describe('AdminPage — Auditoría, API Keys, Almacenamiento y Sistema/API (Fase
 
     await waitFor(() => {
       expect(auditSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'UPLOAD_TABLE', resourceType: 'TABLE', page: 1 })
+        expect.objectContaining({ action: 'TABLE_UPLOAD', resourceType: 'TABLE', page: 1 })
       );
     });
 

@@ -124,6 +124,10 @@ export function buildWidgetHtmlSnippet(baseUrl: string, folderId?: string | null
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question${folderProp} }),
     });
+    if (!res.ok) {
+      document.getElementById('boveda-chat-output').textContent = 'Error al consultar el asistente.';
+      return;
+    }
     const data = await res.json();
     const badge = data.usedAi ? '[Generado con IA]' : '[Respuesta del sistema]';
     document.getElementById('boveda-chat-output').textContent = badge + ' ' + data.answer;
@@ -138,7 +142,7 @@ export function buildWidgetReactSnippet(baseUrl: string, folderId?: string | nul
   const endpoint = buildPublicChatEndpoint(baseUrl);
   const folderLine = folderId ? `\n        folderId: '${folderId}',` : '';
 
-  return `import { useState } from 'react';
+  return `import React, { useState } from 'react';
 
 export function PublicDataChatWidget() {
   const [question, setQuestion] = useState('');
@@ -155,6 +159,7 @@ export function PublicDataChatWidget() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question,${folderLine} }),
       });
+      if (!res.ok) throw new Error('Error al consultar el asistente');
       const data = await res.json();
       setReply({ answer: data.answer, usedAi: Boolean(data.usedAi) });
     } finally {

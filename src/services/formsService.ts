@@ -2,6 +2,7 @@ import { apiClient, type DownloadResult } from './apiClient';
 import type {
   FormDefinition,
   CreateFormInput,
+  FetchFormsOptions,
   FormEntry,
   ListEntriesOptions,
   ResolveEntryInput,
@@ -25,12 +26,25 @@ export interface ListEntriesResponse {
  */
 export class FormsService {
   /**
-   * Obtiene la lista completa de definiciones de formularios registradas (`GET /api/v1/forms`).
+   * Obtiene la lista de definiciones de formularios registradas (`GET /api/v1/forms`),
+   * soportando filtrado opcional por carpeta, búsqueda y paginación.
+   *
+   * @param options Parámetros opcionales de consulta (`folderId`, `search`, `page`, `limit`).
+   * @returns Definiciones de formularios accesibles.
    */
-  async listForms(): Promise<FormDefinition[]> {
+  async listForms(options?: FetchFormsOptions): Promise<FormDefinition[]> {
+    const params = new URLSearchParams();
+    if (options?.folderId) params.set('folderId', options.folderId);
+    if (options?.search && options.search.trim()) params.set('search', options.search.trim());
+    if (options?.page !== undefined) params.set('page', String(options.page));
+    if (options?.limit !== undefined) params.set('limit', String(options.limit));
+
+    const qs = params.toString();
+    const endpoint = qs ? `/api/v1/forms?${qs}` : '/api/v1/forms';
+
     const res = await apiClient.get<
       FormDefinition[] | { data?: FormDefinition[]; forms?: FormDefinition[] }
-    >('/api/v1/forms');
+    >(endpoint);
     if (Array.isArray(res)) return res;
     return res.data || res.forms || [];
   }
@@ -40,7 +54,7 @@ export class FormsService {
    */
   async getForm(idOrSlug: string): Promise<FormDefinition> {
     const res = await apiClient.get<FormDefinition | { data: FormDefinition; form?: FormDefinition }>(
-      `/api/v1/forms/${idOrSlug}`
+      `/api/v1/forms/${encodeURIComponent(idOrSlug)}`
     );
     if ('data' in res && res.data) return res.data;
     if ('form' in res && res.form) return res.form;

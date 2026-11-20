@@ -15,11 +15,11 @@ import { Badge } from '../../components/ui/Badge';
 import { ShortCodeChip } from '../../components/ui/ShortCodeChip';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { useAuth } from '../../context/useAuth';
 import { useTableDataQuery, useTablesQuery } from '../../queries/useMediaQueries';
 import { tablesService } from '../../services/tablesService';
 import { storageService } from '../../services/storageService';
 import { buildPublicAssetUrl } from '../../utils/formatters';
+import { useFolderWriteAccess } from '../explorer/useFolderWriteAccess';
 import { RenameAssetDialog } from '../images/RenameAssetDialog';
 import { HotSwapAssetDialog } from '../images/HotSwapAssetDialog';
 import { DataGrid } from './DataGrid';
@@ -44,8 +44,8 @@ export const DataStudioPage: React.FC = () => {
   const { shortCode = '' } = useParams<{ shortCode: string }>();
   const location = useLocation();
   const routeState = (location.state as DataStudioRouteState | null) ?? null;
-  const { user } = useAuth();
 
+  const [trackedCode, setTrackedCode] = useState(shortCode);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(50);
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,8 +57,19 @@ export const DataStudioPage: React.FC = () => {
   const [hotSwapOpen, setHotSwapOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
 
+  if (trackedCode !== shortCode) {
+    setTrackedCode(shortCode);
+    setPage(1);
+    setSearchQuery('');
+    setSortCol(null);
+    setSortDir('asc');
+    setMetadataOpen(false);
+    setHotSwapOpen(false);
+    setRenameOpen(false);
+  }
+
   const dataQuery = useTableDataQuery(shortCode, page, limit);
-  const needsCatalogLookup = Boolean(shortCode && !routeState?.tableId && !dataQuery.data?.id);
+  const needsCatalogLookup = Boolean(shortCode && (!routeState?.tableId || routeState?.canEdit === undefined));
   const lookupQuery = useTablesQuery({ search: shortCode, limit: 20 }, needsCatalogLookup);
 
   const matchedCatalogItem = useMemo(
@@ -70,11 +81,7 @@ export const DataStudioPage: React.FC = () => {
   const resolvedFolderId = routeState?.folderId || matchedCatalogItem?.folderId || null;
   const backPath = resolvedFolderId ? `/folder/${resolvedFolderId}` : '/';
   const backLabel = routeState?.folderName || (resolvedFolderId ? 'Volver a carpeta' : 'Explorador');
-
-  const canEdit =
-    routeState?.canEdit !== undefined
-      ? routeState.canEdit
-      : user?.role === 'ADMIN' || user?.role === 'MANAGER';
+  const canEdit = useFolderWriteAccess(resolvedFolderId, routeState?.canEdit);
 
   const tableName = dataQuery.data?.tableName || matchedCatalogItem?.tableName || `Tabla ${shortCode}`;
   const rawRows = useMemo(() => dataQuery.data?.data ?? [], [dataQuery.data?.data]);
@@ -221,6 +228,7 @@ export const DataStudioPage: React.FC = () => {
         <DataGrid
           columns={columns}
           rows={visibleRows}
+          rawRows={rawRows}
           headers={dataQuery.data?.headers}
           merges={dataQuery.data?.merges}
           cellStyles={dataQuery.data?.cellStyles}
@@ -239,7 +247,7 @@ export const DataStudioPage: React.FC = () => {
           sortCol={sortCol}
           sortDir={sortDir}
           onSort={handleSort}
-          onPageChange={(nextPage) => setPage(nextPage)}
+          onPageChange={setPage}
           onLimitChange={(nextLimit) => {
             setLimit(nextLimit);
             setPage(1);
@@ -260,27 +268,11 @@ export const DataStudioPage: React.FC = () => {
       ) : null}
 
       {resolvedTableId && hotSwapOpen ? (
-        <HotSwapAssetDialog
-          open={hotSwapOpen}
-          onOpenChange={setHotSwapOpen}
-          kind="table"
-          assetId={resolvedTableId}
-          shortCode={shortCode}
-          currentName={tableName}
-          onReplaced={() => void dataQuery.refetch()}
-        />
+        <HotSwapAssetDialog open={hotSwapOpen} onOpenChange={setHotSwapOpen} kind="table" assetId={resolvedTableId} shortCode={shortCode} currentName={tableName} onReplaced={() => void dataQuery.refetch()} />
       ) : null}
 
       {resolvedTableId && renameOpen ? (
-        <RenameAssetDialog
-          open={renameOpen}
-          onOpenChange={setRenameOpen}
-          kind="table"
-          assetId={resolvedTableId}
-          shortCode={shortCode}
-          currentName={tableName}
-          onRenamed={() => void dataQuery.refetch()}
-        />
+        <RenameAssetDialog open={renameOpen} onOpenChange={setRenameOpen} kind="table" assetId={resolvedTableId} shortCode={shortCode} currentName={tableName} onRenamed={() => void dataQuery.refetch()} />
       ) : null}
     </div>
   );

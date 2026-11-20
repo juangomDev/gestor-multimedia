@@ -197,4 +197,77 @@ describe('Notificaciones en Vivo SSE, Bell y NotificationsPopover (Fase 6.1)', (
       expect(screen.getByTestId('form-target-route')).toBeInTheDocument();
     });
   });
+
+  it('navega con tipo OpenAPI FORM_ENTRY_NEW, reconecta al cambiar apiBaseUrl e invalida tras reconexión', async () => {
+    const capturedCalls: notificationsStream.NotificationsStreamOptions[] = [];
+    const disconnectSpies: ReturnType<typeof vi.fn>[] = [];
+
+    vi.spyOn(notificationsStream, 'connectNotificationsStream').mockImplementation((opts) => {
+      capturedCalls.push(opts);
+      const disconnect = vi.fn();
+      disconnectSpies.push(disconnect);
+      return { disconnect };
+    });
+    const unreadSpy = vi.spyOn(notificationsService, 'fetchUnreadCount').mockResolvedValue(1);
+    vi.spyOn(notificationsService, 'fetchNotifications').mockResolvedValue({
+      data: [
+        {
+          id: 'ntf-openapi',
+          type: 'FORM_ENTRY_NEW',
+          title: 'Nueva denuncia OpenAPI',
+          message: 'Registro #9',
+          resourceId: 'form-99',
+          read: false,
+          createdAt: '2026-11-20T01:00:00Z',
+        },
+      ],
+      meta: { page: 1, limit: 25, total: 1, totalPages: 1 },
+    });
+    vi.spyOn(notificationsService, 'markNotificationAsRead').mockResolvedValue({
+      id: 'ntf-openapi',
+      type: 'FORM_ENTRY_NEW',
+      title: 'Nueva denuncia OpenAPI',
+      message: 'Registro #9',
+      resourceId: 'form-99',
+      read: true,
+      createdAt: '2026-11-20T01:00:00Z',
+    });
+    vi.spyOn(formsService, 'getForm').mockResolvedValue({
+      id: 'form-99',
+      slug: 'denuncias',
+      title: 'Denuncias',
+      folderId: 'fld-99',
+      entryFieldsSchema: [],
+      resolutionFieldsSchema: [],
+      allowedResolutionStates: ['VALID', 'INVALID'],
+      createdAt: '2026-11-01T00:00:00Z',
+    });
+
+    renderBellHarness();
+    await screen.findByTestId('notification-bell-count');
+    expect(capturedCalls).toHaveLength(1);
+
+    // Simular desconexión y reconexión -> debe invalidar y reconsultar unreadCount
+    act(() => {
+      capturedCalls[0].onDisconnected?.();
+      capturedCalls[0].onConnected?.();
+    });
+    await waitFor(() => {
+      expect(unreadSpy).toHaveBeenCalledTimes(2);
+    });
+
+    // Cambiar apiBaseUrl debe desconectar el stream anterior y reconectar al nuevo servidor
+    act(() => {
+      storageService.setApiBaseUrl('https://nuevo-servidor.example.com');
+    });
+    await waitFor(() => {
+      expect(disconnectSpies[0]).toHaveBeenCalledTimes(1);
+      expect(capturedCalls).toHaveLength(2);
+    });
+
+    // Click en notificación FORM_ENTRY_NEW navega al formulario
+    fireEvent.click(screen.getByTestId('notification-bell-trigger'));
+    fireEvent.click(await screen.findByText('Nueva denuncia OpenAPI'));
+    expect(await screen.findByTestId('form-target-route')).toBeInTheDocument();
+  });
 });

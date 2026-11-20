@@ -226,6 +226,13 @@ export const ShareFolderDialog: React.FC<ShareFolderDialogProps> = ({
           <span className={styles.label}>Miembros activos ({shares.length})</span>
           {sharesQuery.isLoading ? (
             <Skeleton variant="card" height={72} />
+          ) : sharesQuery.isError ? (
+            <div className={styles.emptyMembers}>
+              <span>No se pudo cargar la lista de miembros compartidos. </span>
+              <Button variant="ghost" size="sm" onClick={() => void sharesQuery.refetch()}>
+                Reintentar
+              </Button>
+            </div>
           ) : shares.length === 0 ? (
             <div className={styles.emptyMembers}>
               Esta carpeta todavía no está compartida con ningún usuario.

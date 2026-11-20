@@ -102,11 +102,15 @@ export const TableMetadataDialog: React.FC<TableMetadataDialogProps> = ({
       if (val.trim()) cleanedCols[key] = val.trim();
     }
 
+    const trimmedTitle = title.trim();
+    const trimmedDesc = description.trim();
+    const trimmedUnit = unit.trim();
+
     const payload: MetadataCard = {
-      title: title.trim() || undefined,
-      description: description.trim() || undefined,
+      title: trimmedTitle || (initial.title ? '' : undefined),
+      description: trimmedDesc || (initial.description ? '' : undefined),
       tags,
-      unit: unit.trim() || undefined,
+      unit: trimmedUnit || (initial.unit ? '' : undefined),
       columnsMeta: cleanedCols,
       hasSummaryRows,
     };
@@ -220,7 +224,7 @@ export const TableMetadataDialog: React.FC<TableMetadataDialogProps> = ({
         <div className={styles.switchRow}>
           <div className={styles.switchCopy}>
             <label htmlFor={summarySwitchId} className={styles.switchTitle}>
-              Incluye filas de totales o subtotales (`hasSummaryRows`)
+              Incluye filas de totales o subtotales
             </label>
             <span className={styles.switchDesc}>
               Evita doble conteo automático al analizar sumatorias en el asistente de datos.

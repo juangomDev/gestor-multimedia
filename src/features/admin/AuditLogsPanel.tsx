@@ -18,23 +18,28 @@ export interface AuditLogsPanelProps {
   enabled?: boolean;
   /** Límite de registros por página (por defecto `25`). */
   pageSize?: number;
+  /** Oculta filtros exclusivos de `ADMIN` (ej. `API_KEY`) cuando lo usa un `MANAGER`. */
+  hideAdminFilters?: boolean;
 }
 
 const ACTION_OPTIONS = [
   { value: '', label: 'Todas las acciones' },
   { value: 'LOGIN', label: 'LOGIN' },
-  { value: 'CREATE_USER', label: 'CREATE_USER' },
-  { value: 'UPDATE_USER_STATUS', label: 'UPDATE_USER_STATUS' },
-  { value: 'RESET_PASSWORD', label: 'RESET_PASSWORD' },
-  { value: 'DELETE_USER', label: 'DELETE_USER' },
-  { value: 'CREATE_FOLDER', label: 'CREATE_FOLDER' },
-  { value: 'SHARE_FOLDER', label: 'SHARE_FOLDER' },
-  { value: 'DELETE_FOLDER', label: 'DELETE_FOLDER' },
-  { value: 'UPLOAD_IMAGE', label: 'UPLOAD_IMAGE' },
-  { value: 'UPLOAD_TABLE', label: 'UPLOAD_TABLE' },
-  { value: 'UPLOAD_PDF', label: 'UPLOAD_PDF' },
-  { value: 'CREATE_API_KEY', label: 'CREATE_API_KEY' },
-  { value: 'REVOKE_API_KEY', label: 'REVOKE_API_KEY' },
+  { value: 'USER_CREATE', label: 'USER_CREATE' },
+  { value: 'USER_UPDATE_STATUS', label: 'USER_UPDATE_STATUS' },
+  { value: 'USER_RESET_PASSWORD', label: 'USER_RESET_PASSWORD' },
+  { value: 'USER_DELETE', label: 'USER_DELETE' },
+  { value: 'FOLDER_CREATE', label: 'FOLDER_CREATE' },
+  { value: 'FOLDER_SHARE', label: 'FOLDER_SHARE' },
+  { value: 'FOLDER_DELETE', label: 'FOLDER_DELETE' },
+  { value: 'IMAGE_UPLOAD', label: 'IMAGE_UPLOAD' },
+  { value: 'TABLE_UPLOAD', label: 'TABLE_UPLOAD' },
+  { value: 'PDF_UPLOAD', label: 'PDF_UPLOAD' },
+  { value: 'FORM_CREATE', label: 'FORM_CREATE' },
+  { value: 'BULK_DELETE', label: 'BULK_DELETE' },
+  { value: 'BULK_MOVE', label: 'BULK_MOVE' },
+  { value: 'API_KEY_CREATE', label: 'API_KEY_CREATE', adminOnly: true },
+  { value: 'API_KEY_REVOKE', label: 'API_KEY_REVOKE', adminOnly: true },
 ];
 
 const RESOURCE_OPTIONS = [
@@ -45,7 +50,7 @@ const RESOURCE_OPTIONS = [
   { value: 'TABLE', label: 'Tabla (TABLE)' },
   { value: 'PDF', label: 'PDF (PDF)' },
   { value: 'FORM', label: 'Formulario (FORM)' },
-  { value: 'API_KEY', label: 'API Key (API_KEY)' },
+  { value: 'API_KEY', label: 'API Key (API_KEY)', adminOnly: true },
 ];
 
 /**
@@ -56,11 +61,19 @@ const RESOURCE_OPTIONS = [
 export const AuditLogsPanel: React.FC<AuditLogsPanelProps> = ({
   enabled = true,
   pageSize = 25,
+  hideAdminFilters = false,
 }) => {
   const [page, setPage] = useState(1);
   const [action, setAction] = useState('');
   const [resourceType, setResourceType] = useState('');
   const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
+
+  const visibleActions = hideAdminFilters
+    ? ACTION_OPTIONS.filter((opt) => !opt.adminOnly)
+    : ACTION_OPTIONS;
+  const visibleResources = hideAdminFilters
+    ? RESOURCE_OPTIONS.filter((opt) => !opt.adminOnly)
+    : RESOURCE_OPTIONS;
 
   const logsQuery = useAuditLogsQuery(
     {
@@ -90,7 +103,7 @@ export const AuditLogsPanel: React.FC<AuditLogsPanelProps> = ({
             }}
             data-testid="audit-action-filter"
           >
-            {ACTION_OPTIONS.map((opt) => (
+            {visibleActions.map((opt) => (
               <option key={opt.value || 'all-act'} value={opt.value}>
                 {opt.label}
               </option>
@@ -107,7 +120,7 @@ export const AuditLogsPanel: React.FC<AuditLogsPanelProps> = ({
             }}
             data-testid="audit-resource-filter"
           >
-            {RESOURCE_OPTIONS.map((opt) => (
+            {visibleResources.map((opt) => (
               <option key={opt.value || 'all-res'} value={opt.value}>
                 {opt.label}
               </option>

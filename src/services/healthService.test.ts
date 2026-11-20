@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { healthService } from './healthService';
 import { apiClient } from './apiClient';
 import { storageService } from './storageService';
@@ -8,6 +8,10 @@ describe('healthService (diagnóstico /health y documentación OpenAPI)', () => 
     localStorage.clear();
     storageService.resetCache();
     vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('devuelve salud OK, normaliza alias `database` en `db` y conserva `uptime`', async () => {
@@ -35,6 +39,32 @@ describe('healthService (diagnóstico /health y documentación OpenAPI)', () => 
     expect(res.status).toBe('degraded');
     expect(res.db).toBe('down');
     expect(res.storage).toBe('unwritable');
+  });
+
+  it('recupera diagnóstico real de db, storage y uptime desde respuestas HTTP 503', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        statusText: 'Service Unavailable',
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({
+          status: 'degraded',
+          db: 'up',
+          storage: 'unwritable',
+          uptime: 945,
+          timestamp: '2026-11-20T01:00:00Z',
+        }),
+      })
+    );
+
+    const res = await healthService.checkHealth();
+    expect(res.status).toBe('degraded');
+    expect(res.db).toBe('up');
+    expect(res.storage).toBe('unwritable');
+    expect(res.uptime).toBe(945);
+    expect(res.timestamp).toBe('2026-11-20T01:00:00Z');
   });
 
   it('construye URLs de /docs y /openapi.json y consulta /openapi.json con skipAuth', async () => {

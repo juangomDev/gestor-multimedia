@@ -29,6 +29,9 @@ export interface ExplorerFolderContentResult {
   selectableAssetIds: string[];
   isLoadingFolders: boolean;
   isLoadingAssets: boolean;
+  isError: boolean;
+  isFolderNotFound: boolean;
+  refetchAll: () => void;
   moveAsset: (asset: ExplorerAsset, targetFolderId: string) => Promise<void>;
   deleteAsset: (asset: ExplorerAsset) => Promise<void>;
   isMutatingAsset: boolean;
@@ -67,7 +70,7 @@ export function useExplorerFolderContent(
 
   const imagesQuery = useImagesQuery({ folderId, limit: 100 }, isImageFolder);
   const tablesQuery = useTablesQuery({ folderId, limit: 100 }, isTableFolder);
-  const formsQuery = useFormsListQuery(isTableFolder);
+  const formsQuery = useFormsListQuery({ folderId }, isTableFolder);
   const pdfsQuery = usePdfsQuery({ folderId, limit: 100 }, isPdfFolder);
 
   const moveImage = useMoveImageMutation();
@@ -174,6 +177,26 @@ export function useExplorerFolderContent(
     (isTableFolder && (tablesQuery.isLoading || formsQuery.isLoading)) ||
     (isPdfFolder && pdfsQuery.isLoading);
 
+  const isError =
+    folderTreeQuery.isError ||
+    (isImageFolder && imagesQuery.isError) ||
+    (isTableFolder && (tablesQuery.isError || formsQuery.isError)) ||
+    (isPdfFolder && pdfsQuery.isError);
+
+  const isFolderNotFound = Boolean(
+    folderId && !folderTreeQuery.isLoading && !folderTreeQuery.isError && !activeFolder
+  );
+
+  const refetchAll = () => {
+    void folderTreeQuery.refetch();
+    if (isImageFolder) void imagesQuery.refetch();
+    if (isTableFolder) {
+      void tablesQuery.refetch();
+      void formsQuery.refetch();
+    }
+    if (isPdfFolder) void pdfsQuery.refetch();
+  };
+
   const isMutatingAsset =
     moveImage.isPending ||
     moveTable.isPending ||
@@ -191,6 +214,9 @@ export function useExplorerFolderContent(
     selectableAssetIds,
     isLoadingFolders: folderTreeQuery.isLoading,
     isLoadingAssets,
+    isError,
+    isFolderNotFound,
+    refetchAll,
     moveAsset,
     deleteAsset,
     isMutatingAsset,

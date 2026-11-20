@@ -202,6 +202,7 @@ export class ImagesService {
     const qs = params.toString();
     const res = await apiClient.get<{
       images?: RawApiImage[];
+      meta?: Partial<ImagesPaginationMeta>;
       total?: number;
       page?: number;
       limit?: number;
@@ -211,10 +212,11 @@ export class ImagesService {
     const baseUrl = storageService.getApiBaseUrl();
     const items = (res.images || []).map((img) => normalizeImage(img, baseUrl));
 
-    const total = res.total ?? items.length;
-    const page = res.page ?? options?.page ?? 1;
-    const limit = res.limit ?? options?.limit ?? Math.max(items.length, 50);
-    const totalPages = res.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, limit)));
+    const total = res.meta?.total ?? res.total ?? items.length;
+    const page = res.meta?.page ?? res.page ?? options?.page ?? 1;
+    const limit = res.meta?.limit ?? res.limit ?? options?.limit ?? Math.max(items.length, 50);
+    const totalPages =
+      res.meta?.totalPages ?? res.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, limit)));
     const meta: ImagesPaginationMeta = { total, page, limit, totalPages };
 
     return { items, meta };

@@ -35,7 +35,9 @@ export interface NotificationsPopoverProps {
 function isFormNotification(item: NotificationItem): boolean {
   return (
     Boolean(item.resourceId) &&
-    (item.type === 'FORM_NEW_ENTRY' || item.type === 'FORM_ENTRY_RESOLVED')
+    (item.type === 'FORM_ENTRY_NEW' ||
+      item.type === 'FORM_NEW_ENTRY' ||
+      item.type === 'FORM_ENTRY_RESOLVED')
   );
 }
 
@@ -77,8 +79,12 @@ export const NotificationsPopover: React.FC<NotificationsPopoverProps> = ({
 
     setNavigatingId(item.id);
     try {
-      const cachedForms = queryClient.getQueryData<FormDefinition[]>(queryKeys.forms.list());
-      const cachedForm = cachedForms?.find((f) => f.id === formId || f.slug === formId);
+      const formEntries = queryClient.getQueriesData<FormDefinition[]>({
+        queryKey: queryKeys.forms.all,
+      });
+      const cachedForm = formEntries
+        .flatMap(([, list]) => (Array.isArray(list) ? list : []))
+        .find((f) => f.id === formId || f.slug === formId);
       let folderId = cachedForm?.folderId ?? null;
 
       if (!folderId) {
@@ -137,6 +143,13 @@ export const NotificationsPopover: React.FC<NotificationsPopoverProps> = ({
         {listQuery.isLoading ? (
           <div className={styles.empty}>
             <Skeleton variant="line" height={16} />
+          </div>
+        ) : listQuery.isError ? (
+          <div className={styles.empty}>
+            <p>No se pudieron cargar las notificaciones.</p>
+            <Button variant="secondary" size="sm" onClick={() => void listQuery.refetch()}>
+              Reintentar
+            </Button>
           </div>
         ) : items.length === 0 ? (
           <div className={styles.empty}>

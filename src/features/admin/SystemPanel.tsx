@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
   BookOpen,
@@ -15,11 +16,12 @@ import { Badge } from '../../components/ui/Badge';
 import { Input } from '../../components/ui/Input';
 import { useToast } from '../../context/useToast';
 import { useHealthQuery } from '../../queries/useAdminQueries';
+import { queryKeys } from '../../queries/queryKeys';
 import { healthService } from '../../services/healthService';
 import { storageService } from '../../services/storageService';
 import { ShellContext } from '../shell/shellContextDef';
 import { triggerBlobDownload } from '../forms/formHelpers';
-import { formatDate, formatUptime } from '../../utils/formatters';
+import { formatDate, formatUptime, validateHttpBaseUrl } from '../../utils/formatters';
 import styles from './AdminShared.module.css';
 
 type PreviewKind = 'image' | 'table' | 'pdf';
@@ -38,6 +40,7 @@ function cleanCodeInput(raw: string): string {
  */
 export const SystemPanel: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const shell = useContext(ShellContext);
   const { showToast } = useToast();
 
@@ -50,20 +53,29 @@ export const SystemPanel: React.FC = () => {
   const [downloadingSpec, setDownloadingSpec] = useState(false);
 
   const health = healthQuery.data;
+  const isInitialHealth = healthQuery.isLoading && !health;
   const docsUrl = healthService.getDocsUrl();
   const openApiUrl = healthService.getOpenApiUrl();
 
   const handleSaveBaseUrl = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = baseUrlInput.trim();
-    if (!/^https?:\/\//i.test(trimmed)) {
-      showToast('La URL del servidor debe comenzar por http:// o https://.', 'warning');
+    const cleaned = validateHttpBaseUrl(baseUrlInput);
+    if (!cleaned) {
+      showToast('Introduce una URL HTTP o HTTPS válida para el servidor API.', 'warning');
       return;
     }
-    storageService.setApiBaseUrl(trimmed);
-    setBaseUrlInput(storageService.getApiBaseUrl());
-    showToast('URL base del backend actualizada. Verificando /health...', 'info');
-    await healthQuery.refetch();
+    const savedUrl = storageService.setApiBaseUrl(cleaned);
+    setBaseUrlInput(savedUrl);
+    queryClient.clear();
+    const result = await queryClient.fetchQuery({
+      queryKey: queryKeys.health.status(),
+      queryFn: () => healthService.checkHealth(),
+    });
+    if (result.status === 'ok') {
+      showToast(`Conectado a ${savedUrl} (${result.latencyMs ?? 0} ms).`, 'success');
+    } else {
+      showToast(`URL guardada (${savedUrl}), pero /health responde degradado.`, 'warning');
+    }
   };
 
   const handleQuickPreview = (e: React.FormEvent) => {
@@ -71,11 +83,20 @@ export const SystemPanel: React.FC = () => {
     const code = cleanCodeInput(shortCodeInput);
     if (!code) return;
 
-    if (previewKind === 'table') {
+    const prefixMatch = shortCodeInput.trim().match(/(?:^|\/)(i|t|p)\/[a-zA-Z0-9_-]+/i);
+    const kind: PreviewKind = prefixMatch?.[1]
+      ? prefixMatch[1].toLowerCase() === 'i'
+        ? 'image'
+        : prefixMatch[1].toLowerCase() === 't'
+        ? 'table'
+        : 'pdf'
+      : previewKind;
+
+    if (kind === 'table') {
       navigate(`/tables/${encodeURIComponent(code)}`);
       return;
     }
-    shell?.openShortCodePreview({ type: previewKind, shortCode: code });
+    shell?.openShortCodePreview({ type: kind, shortCode: code });
   };
 
   const handleDownloadOpenApi = async () => {
@@ -132,7 +153,7 @@ export const SystemPanel: React.FC = () => {
       <section className={styles.sectionCard} data-testid="system-health-section">
         <div className={styles.sectionHeader}>
           <div>
-            <h2 className={styles.sectionTitle}>Diagnóstico de salud (`GET /health`)</h2>
+            <h2 className={styles.sectionTitle}>Diagnóstico de salud (GET /health)</h2>
             <p className={styles.sectionDesc}>
               {health?.timestamp
                 ? `Última comprobación: ${formatDate(health.timestamp)}`
@@ -155,8 +176,8 @@ export const SystemPanel: React.FC = () => {
           <div className={`${styles.metricCard} ${styles.spineAccent}`}>
             <span className={styles.metricLabel}>Estado global</span>
             <span className={styles.metricValue}>
-              <Badge tone={health?.status === 'ok' ? 'ok' : 'danger'} mono>
-                {(health?.status || 'degraded').toUpperCase()}
+              <Badge tone={isInitialHealth ? 'neutral' : health?.status === 'ok' ? 'ok' : 'danger'} mono>
+                {isInitialHealth ? '...' : (health?.status || 'degraded').toUpperCase()}
               </Badge>
             </span>
             <span className={styles.metricSub}>
@@ -167,8 +188,8 @@ export const SystemPanel: React.FC = () => {
           <div className={styles.metricCard}>
             <span className={styles.metricLabel}>PostgreSQL</span>
             <span className={styles.metricValue}>
-              <Badge tone={health?.db === 'up' ? 'ok' : 'danger'} mono>
-                {(health?.db || 'down').toUpperCase()}
+              <Badge tone={isInitialHealth ? 'neutral' : health?.db === 'up' ? 'ok' : 'danger'} mono>
+                {isInitialHealth ? '...' : (health?.db || 'down').toUpperCase()}
               </Badge>
             </span>
             <span className={styles.metricSub}>Motor relacional y Prisma</span>
@@ -177,8 +198,8 @@ export const SystemPanel: React.FC = () => {
           <div className={styles.metricCard}>
             <span className={styles.metricLabel}>Almacenamiento</span>
             <span className={styles.metricValue}>
-              <Badge tone={health?.storage === 'writable' ? 'ok' : 'danger'} mono>
-                {(health?.storage || 'unwritable').toUpperCase()}
+              <Badge tone={isInitialHealth ? 'neutral' : health?.storage === 'writable' ? 'ok' : 'danger'} mono>
+                {isInitialHealth ? '...' : (health?.storage || 'unwritable').toUpperCase()}
               </Badge>
             </span>
             <span className={styles.metricSub}>Permiso de escritura en disco</span>
@@ -196,10 +217,9 @@ export const SystemPanel: React.FC = () => {
 
       <section className={styles.sectionCard}>
         <div>
-          <h2 className={styles.sectionTitle}>Previsualizador rápido por `shortCode`</h2>
+          <h2 className={styles.sectionTitle}>Previsualizador rápido por código corto</h2>
           <p className={styles.sectionDesc}>
-            Abre directamente una imagen (`/i/`), tabla (`/t/`) o documento PDF (`/p/`) desde su
-            código corto o URL pública.
+            Abre directamente una imagen (/i/), tabla (/t/) o documento PDF (/p/) desde su código corto o URL pública.
           </p>
         </div>
 
@@ -227,13 +247,7 @@ export const SystemPanel: React.FC = () => {
             />
           </div>
 
-          <Button
-            type="submit"
-            variant="secondary"
-            icon={<Eye size={14} />}
-            disabled={!shortCodeInput.trim()}
-            data-testid="system-preview-open-btn"
-          >
+          <Button type="submit" variant="secondary" icon={<Eye size={14} />} disabled={!shortCodeInput.trim()} data-testid="system-preview-open-btn">
             Abrir visor
           </Button>
         </form>
@@ -244,48 +258,25 @@ export const SystemPanel: React.FC = () => {
           <div>
             <h2 className={styles.sectionTitle}>Documentación interactiva Scalar & OpenAPI 3.1</h2>
             <p className={styles.sectionDesc}>
-              Inspecciona los 75 endpoints de <code>monolith-backend</code> o descarga el contrato
-              JSON completo.
+              Inspecciona los 75 endpoints de <code>monolith-backend</code> o descarga el contrato JSON completo.
             </p>
           </div>
           <div className={styles.filterCluster}>
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<BookOpen size={14} />}
-              onClick={() => setShowScalarFrame((prev) => !prev)}
-              data-testid="system-toggle-scalar-btn"
-            >
+            <Button variant="secondary" size="sm" icon={<BookOpen size={14} />} onClick={() => setShowScalarFrame((prev) => !prev)} data-testid="system-toggle-scalar-btn">
               {showScalarFrame ? 'Ocultar visor Scalar' : 'Abrir visor Scalar aquí'}
             </Button>
             <a href={docsUrl} target="_blank" rel="noreferrer">
-              <Button variant="ghost" size="sm" icon={<ExternalLink size={14} />}>
-                /docs
-              </Button>
+              <Button variant="ghost" size="sm" icon={<ExternalLink size={14} />}>/docs</Button>
             </a>
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Download size={14} />}
-              loading={downloadingSpec}
-              onClick={() => void handleDownloadOpenApi()}
-              data-testid="system-download-openapi-btn"
-            >
+            <Button variant="secondary" size="sm" icon={<Download size={14} />} loading={downloadingSpec} onClick={() => void handleDownloadOpenApi()} data-testid="system-download-openapi-btn">
               Descargar /openapi.json
             </Button>
-            <a href={openApiUrl} target="_blank" rel="noreferrer" className="sr-only">
-              Ver openapi.json
-            </a>
+            <a href={openApiUrl} target="_blank" rel="noreferrer" className="sr-only">Ver openapi.json</a>
           </div>
         </div>
 
         {showScalarFrame ? (
-          <iframe
-            src={docsUrl}
-            title="Documentación interactiva Scalar"
-            className={styles.iframeBox}
-            data-testid="scalar-docs-iframe"
-          />
+          <iframe src={docsUrl} title="Documentación interactiva Scalar" className={styles.iframeBox} data-testid="scalar-docs-iframe" />
         ) : null}
       </section>
     </div>
