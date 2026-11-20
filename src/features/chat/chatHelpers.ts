@@ -43,12 +43,36 @@ export function createAssistantChatMessage(
 
 /**
  * Determina si una fuente citada por el motor RAG corresponde a un documento PDF
- * (por oposición a un dataset tabular).
+ * (por oposición a un dataset tabular), tolerando respuestas del backend que reutilizan
+ * los campos genéricos `tableId`/`tableName` para PDFs.
+ *
+ * @param source Fuente citada devuelta por `/api/v1/chat/ask`.
+ * @param knownPdfShortCodes Conjunto opcional de `shortCode` de PDFs conocidos en caché.
  */
-export function isPdfSource(source: ChatSource): boolean {
-  return Boolean(
-    source.pdfId || source.pdfName || (Array.isArray(source.pages) && source.pages.length > 0)
-  );
+export function isPdfSource(
+  source: ChatSource,
+  knownPdfShortCodes?: ReadonlySet<string>
+): boolean {
+  if (
+    source.pdfId ||
+    source.pdfName ||
+    (Array.isArray(source.pages) && source.pages.length > 0)
+  ) {
+    return true;
+  }
+
+  const rawType = (source.type || source.resourceType || source.kind || '').trim().toLowerCase();
+  if (rawType === 'pdf') return true;
+
+  if (/\.pdf$/i.test((source.tableName || '').trim()) || /\.pdf$/i.test((source.title || '').trim())) {
+    return true;
+  }
+
+  if (knownPdfShortCodes && knownPdfShortCodes.has(source.shortCode)) {
+    return true;
+  }
+
+  return false;
 }
 
 /**

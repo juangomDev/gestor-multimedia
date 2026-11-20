@@ -78,7 +78,9 @@ export class ApiClient {
     const headers = buildRequestHeaders(options, isFormData);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs || 15000);
+    const defaultTimeoutMs = path.includes('/chat/ask') ? 60000 : 15000;
+    const timeoutMs = options.timeoutMs || defaultTimeoutMs;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await fetch(url, {
@@ -115,7 +117,7 @@ export class ApiClient {
     } catch (err: unknown) {
       throw normalizeTransportError(
         err,
-        'La solicitud al servidor excedió el tiempo límite (15s)',
+        `La solicitud al servidor excedió el tiempo límite (${Math.round(timeoutMs / 1000)}s)`,
         'Error de conexión con el backend'
       );
     } finally {

@@ -1,8 +1,11 @@
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { FileText, Table2 } from 'lucide-react';
+import { queryKeys } from '../../queries/queryKeys';
 import { ShellContext } from '../shell/shellContextDef';
 import { getSourceDisplayName, isPdfSource } from './chatHelpers';
+import type { PaginatedPdfsResult } from '../../services/pdfsService';
 import type { ChatSource } from '../../types/chat';
 import styles from './ChatSourcesList.module.css';
 
@@ -26,12 +29,25 @@ export const ChatSourcesList: React.FC<ChatSourcesListProps> = ({
   onSourceOpened,
 }) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const shell = useContext(ShellContext);
 
   if (!sources || sources.length === 0) return null;
 
+  const knownPdfShortCodes = new Set<string>();
+  const cachedPdfLists = queryClient.getQueriesData<PaginatedPdfsResult>({
+    queryKey: queryKeys.pdfs.all,
+  });
+  for (const [, data] of cachedPdfLists) {
+    if (data && Array.isArray(data.items)) {
+      for (const item of data.items) {
+        if (item.shortCode) knownPdfShortCodes.add(item.shortCode);
+      }
+    }
+  }
+
   const handleOpenSource = (source: ChatSource) => {
-    const pdf = isPdfSource(source);
+    const pdf = isPdfSource(source, knownPdfShortCodes);
     onSourceOpened?.();
 
     if (pdf) {
@@ -53,7 +69,7 @@ export const ChatSourcesList: React.FC<ChatSourcesListProps> = ({
       <span className={styles.heading}>Fuentes citadas ({sources.length})</span>
       <div className={styles.list}>
         {sources.map((source, idx) => {
-          const pdf = isPdfSource(source);
+          const pdf = isPdfSource(source, knownPdfShortCodes);
           const name = getSourceDisplayName(source);
           const prefix = pdf ? 'p' : 't';
           const pagesLabel =

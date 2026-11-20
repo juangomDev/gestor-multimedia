@@ -1,4 +1,4 @@
-import React, { useContext, useState, useTransition } from 'react';
+import React, { useContext, useEffect, useRef, useState, useTransition } from 'react';
 import { Globe, Loader2, Send, Sparkles, Trash2 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -36,6 +36,14 @@ export const DataChatPage: React.FC = () => {
   const [isAsking, setIsAsking] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [widgetOpen, setWidgetOpen] = useState(false);
+  const threadRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const container = threadRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [messages.length, isAsking]);
 
   const folders = shell?.allFolders ?? [];
   const activeFolderId = scopeMode === 'folder' && selectedFolderId ? selectedFolderId : null;
@@ -144,7 +152,7 @@ export const DataChatPage: React.FC = () => {
         onSelectShortCode={setSelectedShortCode}
       />
 
-      <section className={styles.thread} aria-label="Conversación de Data Chat">
+      <section ref={threadRef} className={styles.thread} aria-label="Conversación de Data Chat">
         {messages.length === 0 ? (
           <div className={styles.welcomeCard}>
             <div className={styles.welcomeHeader}>

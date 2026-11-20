@@ -2,10 +2,10 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: calc(100vh - 16px);
   width: 100%;
   padding: var(--space-5) var(--space-6);
   gap: var(--space-4);
+  overflow: hidden;
 }
 
 .header {
@@ -105,7 +105,7 @@
 
 .thread {
   flex: 1;
-  min-height: 300px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);

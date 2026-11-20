@@ -8,6 +8,9 @@ export interface ChatSource {
   tableName?: string;
   pdfId?: string;
   pdfName?: string;
+  type?: string;
+  resourceType?: string;
+  kind?: string;
   shortCode: string;
   title?: string;
   pages?: number[];
