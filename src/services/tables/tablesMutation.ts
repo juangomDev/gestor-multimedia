@@ -1,6 +1,6 @@
 import { apiClient } from '../apiClient';
 import { storageService } from '../storageService';
-import { buildPublicAssetUrl } from '../../utils/formatters';
+import { buildPublicAssetUrl, buildVersionedAssetUrl } from '../../utils/formatters';
 import type { TableItem } from '../../types/media';
 import type { MetadataCard } from '../../types/api';
 
@@ -83,7 +83,9 @@ export function normalizeTableItem(
     columns: normalizeTableColumns(raw.columns || raw.columnsSchema),
     sizeBytes: raw.sizeBytes ?? fallback?.sizeBytes ?? 0,
     url: canonicalUrl,
-    urlWithVersion: raw.urlWithVersion,
+    urlWithVersion: raw.urlWithVersion
+      ? buildVersionedAssetUrl(canonicalUrl, raw.urlWithVersion, raw.updatedAt)
+      : undefined,
     metadataCard: raw.metadataCard ?? null,
     createdAt: raw.createdAt || new Date().toISOString(),
     updatedAt: raw.updatedAt,

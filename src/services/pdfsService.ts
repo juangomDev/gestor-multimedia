@@ -1,6 +1,6 @@
 import { apiClient } from './apiClient';
 import { storageService } from './storageService';
-import { buildPublicAssetUrl } from '../utils/formatters';
+import { buildPublicAssetUrl, buildVersionedAssetUrl } from '../utils/formatters';
 import type { PdfItem, PdfMetadataCard } from '../types/media';
 
 /**
@@ -78,9 +78,11 @@ export function isSupportedPdfFile(file: File): boolean {
 function normalizePdf(raw: RawApiPdf, baseUrl: string): PdfItem {
   const shortCode = raw.shortCode || raw.id;
   const canonicalUrl = buildPublicAssetUrl(baseUrl, 'p', shortCode);
-  const updatedMs = raw.updatedAt ? Date.parse(raw.updatedAt) : Number.NaN;
-  const stableVersionedUrl =
-    raw.urlWithVersion || (Number.isFinite(updatedMs) ? `${canonicalUrl}?v=${updatedMs}` : canonicalUrl);
+  const stableVersionedUrl = buildVersionedAssetUrl(
+    canonicalUrl,
+    raw.urlWithVersion,
+    raw.updatedAt
+  );
 
   return {
     id: raw.id,

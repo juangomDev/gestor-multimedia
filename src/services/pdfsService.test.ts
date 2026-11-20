@@ -44,17 +44,17 @@ describe('pdfsService (v2 Stateless)', () => {
     expect(res.id).toBe('pdf-123');
   });
 
-  it('listPdfs preserva urlWithVersion estable sin Date.now() cuando falta updatedAt', async () => {
+  it('listPdfs normaliza urlWithVersion sobre el baseUrl configurado (evitando rutas relativas /p/ hacia el SPA) y sin Date.now()', async () => {
     vi.spyOn(apiClient, 'get').mockResolvedValueOnce({
       data: [
-        { ...mockPdf, updatedAt: undefined, urlWithVersion: 'http://localhost:3000/p/doc999?v=77' },
+        { ...mockPdf, updatedAt: undefined, urlWithVersion: '/p/doc999?v=77' },
         { ...mockPdf, id: 'pdf-2', shortCode: 'stable2', updatedAt: undefined },
       ],
       meta: { total: 2, page: 1, limit: 10, totalPages: 1 },
     } as never);
 
     const { items } = await pdfsService.listPdfs();
-    expect(items[0].urlWithVersion).toBe('http://localhost:3000/p/doc999?v=77');
+    expect(items[0].urlWithVersion).toBe(`${items[0].url}?v=77`);
     expect(items[1].urlWithVersion).toBe(items[1].url);
   });
 

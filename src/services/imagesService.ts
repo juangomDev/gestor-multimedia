@@ -1,6 +1,6 @@
 import { apiClient } from './apiClient';
 import { storageService } from './storageService';
-import { buildPublicAssetUrl } from '../utils/formatters';
+import { buildPublicAssetUrl, buildVersionedAssetUrl } from '../utils/formatters';
 import type { ImageItem } from '../types/media';
 
 /** Opciones de paginación y filtrado server-side para listar imágenes. */
@@ -75,7 +75,9 @@ function normalizeImage(
     width: raw.width ?? null,
     height: raw.height ?? null,
     url: canonicalUrl,
-    urlWithVersion: raw.urlWithVersion,
+    urlWithVersion: raw.urlWithVersion
+      ? buildVersionedAssetUrl(canonicalUrl, raw.urlWithVersion, raw.updatedAt)
+      : undefined,
     createdAt: raw.createdAt || new Date().toISOString(),
     updatedAt: raw.updatedAt,
     folderId: raw.folderId !== undefined ? raw.folderId : fallback?.folderId ?? null,

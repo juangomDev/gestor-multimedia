@@ -68,6 +68,32 @@ export function buildPublicAssetUrl(
 }
 
 /**
+ * Construye la URL pública versionada (`?v=`) de un recurso garantizando que siempre
+ * utilice la `canonicalUrl` resuelta contra el `baseUrl` del backend configurado,
+ * extrayendo el token `?v=` de `rawUrlWithVersion` o derivándolo de `updatedAt`.
+ *
+ * @param canonicalUrl URL canónica absoluta construida con `buildPublicAssetUrl`.
+ * @param rawUrlWithVersion Valor `urlWithVersion` crudo devuelto por el backend (relativo o absoluto).
+ * @param updatedAt Fecha ISO opcional (`updatedAt`) como respaldo determinista de versión.
+ * @returns URL absoluta versionada (`${canonicalUrl}?v=...`) o `canonicalUrl` si no hay versión.
+ */
+export function buildVersionedAssetUrl(
+  canonicalUrl: string,
+  rawUrlWithVersion?: string | null,
+  updatedAt?: string | null
+): string {
+  const match = rawUrlWithVersion ? /[?&]v=([^&#]+)/.exec(rawUrlWithVersion) : null;
+  if (match?.[1]) {
+    return `${canonicalUrl}?v=${encodeURIComponent(match[1])}`;
+  }
+  const updatedMs = updatedAt ? Date.parse(updatedAt) : Number.NaN;
+  if (Number.isFinite(updatedMs)) {
+    return `${canonicalUrl}?v=${updatedMs}`;
+  }
+  return canonicalUrl;
+}
+
+/**
  * Convierte segundos de actividad en un texto compacto (`2d 3h`, `4h 12m`, `2m 5s`, `35s`).
  * @param seconds Segundos de uptime del backend.
  * @returns Texto legible.

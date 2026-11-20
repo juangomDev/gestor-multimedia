@@ -7,7 +7,7 @@ import { ShortCodeChip } from '../../components/ui/ShortCodeChip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/Tabs';
 import { pdfsService } from '../../services/pdfsService';
 import { usePdfExtractedTextQuery } from '../../queries/useMediaQueries';
-import { formatBytes } from '../../utils/formatters';
+import { buildVersionedAssetUrl, formatBytes } from '../../utils/formatters';
 import { RenameAssetDialog } from '../images/RenameAssetDialog';
 import { HotSwapAssetDialog } from '../images/HotSwapAssetDialog';
 import { PdfMetadataDialog } from './PdfMetadataDialog';
@@ -71,7 +71,11 @@ export const PdfViewerDialog: React.FC<PdfViewerDialogProps> = ({
   const activeCode = localPdf?.shortCode || shortCode;
   const activeTitle = localPdf?.originalName || title || `Documento PDF · ${activeCode}`;
   const canonicalUrl = pdfsService.getPdfUrl(activeCode);
-  const versionedBase = localPdf?.urlWithVersion || canonicalUrl;
+  const versionedBase = buildVersionedAssetUrl(
+    canonicalUrl,
+    localPdf?.urlWithVersion,
+    localPdf?.updatedAt
+  );
   const pdfPreview = usePdfBlobUrl(versionedBase, open);
   const iframeUrl = `${pdfPreview.previewBaseUrl}#page=${activePage}`;
   const downloadUrl = pdfsService.getPdfDownloadUrl(activeCode);
