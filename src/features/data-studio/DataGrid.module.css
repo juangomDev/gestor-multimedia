@@ -42,10 +42,14 @@
   font-variant-numeric: tabular-nums;
 }
 
-.thIndex {
+.table thead {
   position: sticky;
   top: 0;
   z-index: 2;
+  background-color: var(--paper-sheet);
+}
+
+.thIndex {
   width: 52px;
   padding: 8px 10px;
   text-align: center;
@@ -74,9 +78,6 @@
 }
 
 .thCol {
-  position: sticky;
-  top: 0;
-  z-index: 2;
   padding: 0;
   text-align: left;
   background-color: var(--paper-canvas);
@@ -113,7 +114,7 @@
 
 .bodyRow {
   content-visibility: auto;
-  contain-intrinsic-size: 36px;
+  contain-intrinsic-size: auto 36px;
 }
 
 .bodyRow:hover td {

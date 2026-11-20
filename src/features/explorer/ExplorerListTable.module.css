@@ -28,7 +28,7 @@
 .row {
   border-bottom: 1px solid var(--hairline-soft);
   content-visibility: auto;
-  contain-intrinsic-size: 0 48px;
+  contain-intrinsic-size: auto 48px;
   transition: background-color var(--duration-press) var(--ease-out-quint);
 }
 

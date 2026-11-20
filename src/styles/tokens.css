@@ -20,7 +20,7 @@
   /* Tinta (4 niveles de jerarquía) */
   --ink-primary: #161614;
   --ink-secondary: #57554f;
-  --ink-tertiary: #8a867e;
+  --ink-tertiary: #66635b;
   --ink-muted: #b0aca3;
 
   /* Bordes y Hairlines */
@@ -56,9 +56,9 @@
   --status-ok-bg: rgba(30, 122, 76, 0.1);
   --status-ok-border: rgba(30, 122, 76, 0.24);
 
-  --status-warn: #a86416;
-  --status-warn-bg: rgba(168, 100, 22, 0.1);
-  --status-warn-border: rgba(168, 100, 22, 0.26);
+  --status-warn: #945510;
+  --status-warn-bg: rgba(148, 85, 16, 0.1);
+  --status-warn-border: rgba(148, 85, 16, 0.26);
 
   --status-danger: #b93838;
   --status-danger-bg: rgba(185, 56, 56, 0.1);
@@ -128,7 +128,7 @@
   /* Tinta (4 niveles invertidos) */
   --ink-primary: #f2f0eb;
   --ink-secondary: #a8a49b;
-  --ink-tertiary: #706d65;
+  --ink-tertiary: #949087;
   --ink-muted: #4d4b45;
 
   /* Bordes y Hairlines */

@@ -52,13 +52,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setPreferenceState((prev) => {
-      const currentResolved = prev === 'system' ? getSystemTheme() : prev;
-      const next: ThemePreference = currentResolved === 'dark' ? 'light' : 'dark';
-      writeStoredTheme(next);
-      return next;
-    });
-  }, []);
+    const next: ThemePreference = resolvedTheme === 'dark' ? 'light' : 'dark';
+    setPreferenceState(next);
+    writeStoredTheme(next);
+  }, [resolvedTheme]);
 
   const value = useMemo(
     () => ({ preference, resolvedTheme, setPreference, toggleTheme }),

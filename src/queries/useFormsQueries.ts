@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formsService } from '../services/formsService';
 import { notificationsService } from '../services/notificationsService';
 import type {
@@ -51,6 +51,7 @@ export function useFormEntriesQuery(
   return useQuery({
     queryKey: queryKeys.forms.entries(formId || '', options),
     queryFn: () => formsService.listEntries(formId!, options),
+    placeholderData: keepPreviousData,
     enabled: Boolean(formId) && enabled,
   });
 }

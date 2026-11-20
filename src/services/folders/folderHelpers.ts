@@ -84,16 +84,23 @@ export function flattenFolderTree(
  * Construye la ruta legible de hasta 3 niveles (`Padre › Subcarpeta`) para breadcrumbs y selectores.
  *
  * @param folder Carpeta destino.
- * @param allFolders Lista plana de todas las carpetas disponibles.
+ * @param allFoldersOrMap Lista plana o mapa preindexado (`id -> FolderItem`) de carpetas disponibles.
  * @returns Ruta jerárquica legible separada por ` › `.
  */
-export function getFolderPathLabel(folder: FolderItem, allFolders: FolderItem[]): string {
+export function getFolderPathLabel(
+  folder: FolderItem,
+  allFoldersOrMap: FolderItem[] | Map<string, FolderItem>
+): string {
+  const byId =
+    allFoldersOrMap instanceof Map
+      ? allFoldersOrMap
+      : new Map(allFoldersOrMap.map((f) => [f.id, f]));
   const parts: string[] = [folder.name];
   let curr: FolderItem | undefined = folder;
   const visited = new Set<string>([folder.id]);
   while (curr?.parentId && !visited.has(curr.parentId)) {
     visited.add(curr.parentId);
-    const parent = allFolders.find((f) => f.id === curr!.parentId);
+    const parent = byId.get(curr.parentId);
     if (!parent) break;
     parts.unshift(parent.name);
     curr = parent;

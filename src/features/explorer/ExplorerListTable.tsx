@@ -50,7 +50,7 @@ const FOLDER_SPINE = {
  * Vista en lista tabular compacta con `content-visibility: auto`, lomo cromático por tipo,
  * `ShortCodeChip` copiable, selección múltiple y menú contextual Radix `⋯`.
  */
-export const ExplorerListTable: React.FC<ExplorerListTableProps> = ({
+export const ExplorerListTable: React.FC<ExplorerListTableProps> = React.memo(({
   folders,
   assets,
   canEditFolder,
@@ -184,4 +184,4 @@ export const ExplorerListTable: React.FC<ExplorerListTableProps> = ({
       </tbody>
     </table>
   </div>
-);
+));

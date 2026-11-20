@@ -65,7 +65,7 @@
 
 .item {
   content-visibility: auto;
-  contain-intrinsic-size: 76px;
+  contain-intrinsic-size: auto 76px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -156,7 +156,7 @@
 .itemActions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
   flex-shrink: 0;
 }
 

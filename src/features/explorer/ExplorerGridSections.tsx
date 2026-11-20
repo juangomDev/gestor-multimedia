@@ -34,7 +34,7 @@ export interface ExplorerGridSectionsProps {
  * Renderiza en modo cuadrícula las secciones de carpetas y activos tipados
  * con separación visual editorial y soporte de selección múltiple en `IMAGE` / `TABLE`.
  */
-export const ExplorerGridSections: React.FC<ExplorerGridSectionsProps> = ({
+export const ExplorerGridSections: React.FC<ExplorerGridSectionsProps> = React.memo(({
   isInsideFolder,
   activeFolderType,
   folders,
@@ -119,4 +119,4 @@ export const ExplorerGridSections: React.FC<ExplorerGridSectionsProps> = ({
       </section>
     ) : null}
   </>
-);
+));

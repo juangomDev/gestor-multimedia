@@ -116,7 +116,7 @@ export const StorageStatsPanel: React.FC<StorageStatsPanelProps> = ({ enabled = 
       {disk ? (
         <section className={styles.sectionCard} data-testid="storage-disk-section">
           <div className={styles.sectionHeader}>
-            <h3 className={styles.sectionTitle}>Salud del disco físico (`./storage`)</h3>
+            <h3 className={styles.sectionTitle}>Salud del disco físico (./storage)</h3>
             <Badge tone={stats.warning ? 'warn' : 'ok'} mono>
               {formatBytes(disk.totalBytes ?? 0)} · {disk.totalFilesCount ?? 0} ficheros
             </Badge>

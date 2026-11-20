@@ -79,7 +79,7 @@ export const FormEmbedDialog: React.FC<FormEmbedDialogProps> = ({
 
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <span className={styles.label}>Snippet JavaScript (`fetch`)</span>
+            <span className={styles.label}>Snippet JavaScript (fetch)</span>
             <Button
               variant="secondary"
               size="sm"

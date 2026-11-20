@@ -44,4 +44,20 @@ describe('ToastContext', () => {
 
     expect(screen.queryByText('Operación exitosa')).toBeNull();
   });
+
+  it('limpia temporizadores pendientes al desmontar ToastProvider', async () => {
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+    const { unmount } = render(
+      <ToastProvider>
+        <TestComponent />
+      </ToastProvider>
+    );
+
+    await userEvent.click(screen.getByText('Mostrar Exito'));
+    expect(screen.getByText('Operación exitosa')).toBeDefined();
+
+    unmount();
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+    clearTimeoutSpy.mockRestore();
+  });
 });

@@ -68,10 +68,11 @@ export function buildCommandEntries(params: {
     });
   }
 
+  const folderById = new Map(allFolders.map((f) => [f.id, f]));
   const folderItems: CommandEntry[] = allFolders.map((folder) => ({
     id: `folder-${folder.id}`,
     title: folder.name,
-    subtitle: getFolderPathLabel(folder, allFolders),
+    subtitle: getFolderPathLabel(folder, folderById),
     badge: folder.isSystem ? 'SISTEMA' : folder.type.toUpperCase(),
     dot: folder.type,
     icon: <Folder size={15} />,

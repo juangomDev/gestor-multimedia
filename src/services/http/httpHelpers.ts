@@ -21,12 +21,9 @@ export function buildRequestHeaders(
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const method = options?.method?.toUpperCase() || 'GET';
-  const isDeleteWithoutBody = method === 'DELETE' && options?.body === undefined;
-
-  if (isFormData || isDeleteWithoutBody) {
+  if (isFormData || options?.body === undefined) {
     headers.delete('Content-Type');
-  } else if (!headers.has('Content-Type') && (options?.body !== undefined || method === 'GET')) {
+  } else if (!headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 

@@ -201,6 +201,20 @@
   align-self: flex-start;
 }
 
+.spinnerWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-ink);
+  animation: chatSpin 0.8s linear infinite;
+}
+
+@keyframes chatSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .composer {
   display: flex;
   flex-direction: column;
@@ -251,5 +265,9 @@
 @media (prefers-reduced-motion: reduce) {
   .suggestionChip:active {
     transform: none;
+  }
+
+  .spinnerWrap {
+    animation: none;
   }
 }

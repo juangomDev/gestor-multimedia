@@ -19,11 +19,11 @@
     opacity var(--duration-press) var(--ease-out-quint);
 }
 
-/* Área táctil mínima accesible (>= 40px) sin inflar la geometría visual */
-.button::after {
+/* Área táctil mínima accesible (>= 40px) en botones de ícono sin solapar acciones adyacentes */
+.icon::after {
   content: '';
   position: absolute;
-  inset: -4px;
+  inset: -2px;
 }
 
 .button:active:not(:disabled) {

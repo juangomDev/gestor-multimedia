@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usersService } from '../services/usersService';
 import { auditService, type FetchAuditLogsOptions } from '../services/auditService';
 import { apiKeysService, type CreateApiKeyInput } from '../services/apiKeysService';
@@ -28,6 +28,7 @@ export function useAuditLogsQuery(
   return useQuery({
     queryKey: queryKeys.auditLogs.list(options),
     queryFn: () => auditService.fetchAuditLogs(options),
+    placeholderData: keepPreviousData,
     enabled,
   });
 }

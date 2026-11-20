@@ -53,7 +53,7 @@ const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
  * soporte de `headers` multinivel, `merges`, `cellStyles`, `content-visibility: auto`
  * en filas y paginación server-side fluida.
  */
-export const DataGrid: React.FC<DataGridProps> = ({
+export const DataGrid: React.FC<DataGridProps> = React.memo(({
   columns,
   rows,
   rawRows,
@@ -229,4 +229,4 @@ export const DataGrid: React.FC<DataGridProps> = ({
       </footer>
     </div>
   );
-};
+});

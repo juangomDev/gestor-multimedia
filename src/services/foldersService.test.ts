@@ -109,6 +109,8 @@ describe('FoldersService (v2 — CRUD, Árbol 3 niveles /tree, Move y Compartici
 
     const lvl3 = flat.find((f) => f.id === 'fld-l3')!;
     expect(getFolderPathLabel(lvl3, flat)).toBe('Proyectos 2026 › Campañas › Banners Q4');
+    const folderMap = new Map(flat.map((f) => [f.id, f]));
+    expect(getFolderPathLabel(lvl3, folderMap)).toBe('Proyectos 2026 › Campañas › Banners Q4');
   });
 
   it('getFolderById(), createFolder() con parentId, updateFolder() y deleteFolder()', async () => {

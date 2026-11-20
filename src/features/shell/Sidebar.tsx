@@ -175,6 +175,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, inDrawer = false }
           <NavLink
             to="/chat"
             onClick={onNavigate}
+            onMouseEnter={() => void import('../chat/DataChatPage')}
+            onFocus={() => void import('../chat/DataChatPage')}
             className={({ isActive }) =>
               `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
             }
@@ -187,6 +189,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, inDrawer = false }
             <NavLink
               to="/team"
               onClick={onNavigate}
+              onMouseEnter={() => void import('../team/TeamPage')}
+              onFocus={() => void import('../team/TeamPage')}
               className={({ isActive }) =>
                 `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
               }
@@ -203,6 +207,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, inDrawer = false }
             <NavLink
               to="/admin"
               onClick={onNavigate}
+              onMouseEnter={() => void import('../admin/AdminPage')}
+              onFocus={() => void import('../admin/AdminPage')}
               className={({ isActive }) =>
                 `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
               }

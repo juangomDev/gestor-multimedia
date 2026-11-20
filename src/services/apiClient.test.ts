@@ -36,6 +36,7 @@ describe('apiClient (v2 — Bearer, RFC 7807, FormData y Descargas)', () => {
     const headers = calledInit.headers as Headers;
     expect(headers.get('Authorization')).toBe('Bearer jwt.token.abc');
     expect(headers.get('X-API-Key')).toBeNull();
+    expect(headers.get('Content-Type')).toBeNull();
   });
 
   it('omite Content-Type en DELETE sin cuerpo y soporta 204 No Content', async () => {
@@ -81,6 +82,7 @@ describe('apiClient (v2 — Bearer, RFC 7807, FormData y Descargas)', () => {
     expect(patchRes.updated).toBe(true);
     expect(fetchMock.mock.calls[0][1].method).toBe('PATCH');
     expect(fetchMock.mock.calls[0][1].body).toBe(JSON.stringify({ originalName: 'nuevo-banner.png' }));
+    expect((fetchMock.mock.calls[0][1].headers as Headers).get('Content-Type')).toBe('application/json');
 
     const formData = new FormData();
     formData.append('file', new Blob(['fake'], { type: 'image/png' }), 'banner.png');

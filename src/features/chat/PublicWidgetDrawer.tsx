@@ -135,7 +135,7 @@ export const PublicWidgetDrawer: React.FC<PublicWidgetDrawerProps> = ({
 
             <div className={styles.selectRow}>
               <label htmlFor="public-widget-folder" className={styles.label}>
-                Carpeta pública opcional (`folderId`)
+                Carpeta pública opcional
               </label>
               <select
                 id="public-widget-folder"

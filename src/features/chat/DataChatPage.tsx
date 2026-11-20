@@ -183,7 +183,7 @@ export const DataChatPage: React.FC = () => {
                 </div>
               ) : (
                 <span className={styles.composerHint}>
-                  Escribe una pregunta abajo para consultar tus tablas `.csv/.xlsx/.json` y PDFs.
+                  Escribe una pregunta abajo para consultar tus tablas .csv, .xlsx, .json y PDFs.
                 </span>
               )}
             </div>
@@ -194,7 +194,9 @@ export const DataChatPage: React.FC = () => {
 
         {isAsking || isPendingTransition ? (
           <div className={styles.loadingBubble} role="status" data-testid="chat-loading-indicator">
-            <Loader2 size={14} aria-hidden="true" />
+            <span className={styles.spinnerWrap} aria-hidden="true">
+              <Loader2 size={14} />
+            </span>
             <span>Consultando fuentes y sintetizando respuesta...</span>
           </div>
         ) : null}

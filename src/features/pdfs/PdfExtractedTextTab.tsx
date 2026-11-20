@@ -25,7 +25,7 @@ export interface PdfExtractedTextTabProps {
  * Panel de auditoría de texto extraído por página (`?format=text`), con alerta preventiva
  * para documentos `isScanned`, filtro en vivo (`useDeferredValue`) y salto rápido al binario.
  */
-export const PdfExtractedTextTab: React.FC<PdfExtractedTextTabProps> = ({
+export const PdfExtractedTextTab: React.FC<PdfExtractedTextTabProps> = React.memo(({
   shortCode,
   isScanned = false,
   data,
@@ -121,4 +121,4 @@ export const PdfExtractedTextTab: React.FC<PdfExtractedTextTabProps> = ({
       </div>
     </>
   );
-};
+});

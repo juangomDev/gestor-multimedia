@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 import { imagesService, type FetchImagesOptions } from '../services/imagesService';
 import { tablesService, type FetchTablesOptions } from '../services/tablesService';
 import { pdfsService, type FetchPdfsOptions } from '../services/pdfsService';
@@ -25,6 +31,7 @@ export function useImagesQuery(options: FetchImagesOptions = {}, enabled: boolea
   return useQuery({
     queryKey: queryKeys.images.list(options),
     queryFn: () => imagesService.listImages(options),
+    placeholderData: keepPreviousData,
     enabled,
   });
 }
@@ -36,6 +43,7 @@ export function useTablesQuery(options: FetchTablesOptions = {}, enabled: boolea
   return useQuery({
     queryKey: queryKeys.tables.list(options),
     queryFn: () => tablesService.listTables(options),
+    placeholderData: keepPreviousData,
     enabled,
   });
 }
@@ -51,6 +59,7 @@ export function useTableDataQuery(
   return useQuery({
     queryKey: queryKeys.tables.data(shortCode || '', page, limit),
     queryFn: () => tablesService.fetchTableDetails(shortCode!, page, limit),
+    placeholderData: keepPreviousData,
     enabled: Boolean(shortCode),
   });
 }
@@ -62,6 +71,7 @@ export function usePdfsQuery(options: FetchPdfsOptions = {}, enabled: boolean = 
   return useQuery({
     queryKey: queryKeys.pdfs.list(options),
     queryFn: () => pdfsService.listPdfs(options),
+    placeholderData: keepPreviousData,
     enabled,
   });
 }
