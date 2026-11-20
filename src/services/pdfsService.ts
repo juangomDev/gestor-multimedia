@@ -99,8 +99,6 @@ function normalizePdf(raw: RawApiPdf, baseUrl: string): PdfItem {
  * Implementa el patrón de doble artefacto binario/texto, metadatos semánticos y RAG documental.
  */
 export class PdfsService {
-  private lastPaginationMeta: PdfsPaginationMeta | null = null;
-
   /**
    * Lista documentos PDF desde `GET /api/v1/pdfs` devolviendo items y metadatos de paginación.
    */
@@ -135,23 +133,7 @@ export class PdfsService {
       res.meta?.totalPages ?? res.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, limit)));
 
     const meta: PdfsPaginationMeta = { total, page, limit, totalPages };
-    this.lastPaginationMeta = meta;
     return { items, meta };
-  }
-
-  /**
-   * Obtiene el arreglo de documentos PDF desde el backend con paginación y filtros.
-   */
-  async fetchRemotePdfs(options?: FetchPdfsOptions): Promise<PdfItem[]> {
-    const { items } = await this.listPdfs(options);
-    return items;
-  }
-
-  /**
-   * Retorna los metadatos de paginación de la última consulta.
-   */
-  getLastPaginationMeta(): PdfsPaginationMeta | null {
-    return this.lastPaginationMeta;
   }
 
   /**
@@ -246,14 +228,6 @@ export class PdfsService {
    */
   getPdfDownloadUrl(shortCode: string): string {
     return `${this.getPdfUrl(shortCode)}?download=true`;
-  }
-
-  /**
-   * Construye la URL de consulta de texto estructurado extraído (`/p/:shortCode?format=text`).
-   */
-  getPdfTextUrl(shortCode: string, page?: number): string {
-    const base = `${this.getPdfUrl(shortCode)}?format=text`;
-    return page ? `${base}&page=${page}` : base;
   }
 
   /**

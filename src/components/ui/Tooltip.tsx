@@ -17,8 +17,6 @@ export interface UiTooltipProps {
   side?: 'top' | 'right' | 'bottom' | 'left';
   /** Desplazamiento en píxeles */
   sideOffset?: number;
-  /** Si es `true`, desactiva el tooltip y renderiza solo `children` */
-  disabled?: boolean;
 }
 
 /**
@@ -30,9 +28,8 @@ export const Tooltip: React.FC<UiTooltipProps> = ({
   children,
   side = 'top',
   sideOffset = 6,
-  disabled = false,
 }) => {
-  if (disabled || !content) return <>{children}</>;
+  if (!content) return <>{children}</>;
 
   return (
     <RadixTooltip.Root>

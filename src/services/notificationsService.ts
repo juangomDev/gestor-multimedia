@@ -1,6 +1,4 @@
 import { apiClient } from './apiClient';
-import { storageService } from './storageService';
-import { cleanBaseUrl } from '../utils/formatters';
 import type {
   NotificationItem,
   NotificationsPaginatedResponse,
@@ -115,26 +113,6 @@ export class NotificationsService {
   async deleteNotification(id: string): Promise<{ success: boolean }> {
     const res = await apiClient.delete<{ success?: boolean }>(`/api/v1/notifications/${id}`);
     return { success: res?.success ?? true };
-  }
-
-  /**
-   * Construye la URL de conexión Server-Sent Events (SSE) en tiempo real (`GET /api/v1/notifications/stream?token=...`).
-   */
-  getNotificationStreamUrl(tokenOverride?: string | null): string {
-    const config =
-      typeof storageService.getConfig === 'function'
-        ? storageService.getConfig()
-        : { baseUrl: 'http://localhost:3000', apiKey: '' };
-    const rawBase =
-      config?.baseUrl ||
-      (config as { apiBaseUrl?: string })?.apiBaseUrl ||
-      'http://localhost:3000';
-    const baseUrl = cleanBaseUrl(rawBase);
-    const token =
-      tokenOverride ??
-      (typeof storageService.getToken === 'function' ? storageService.getToken() : null);
-    const qs = token ? `?token=${encodeURIComponent(token)}` : '';
-    return `${baseUrl}/api/v1/notifications/stream${qs}`;
   }
 
   /**

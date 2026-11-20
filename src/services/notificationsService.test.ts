@@ -6,7 +6,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { notificationsService } from './notificationsService';
 import { apiClient } from './apiClient';
-import { storageService } from './storageService';
 
 vi.mock('./apiClient', () => ({
   apiClient: {
@@ -14,13 +13,6 @@ vi.mock('./apiClient', () => ({
     post: vi.fn(),
     patch: vi.fn(),
     delete: vi.fn(),
-  },
-}));
-
-vi.mock('./storageService', () => ({
-  storageService: {
-    getConfig: vi.fn(() => ({ baseUrl: 'http://localhost:3000', apiKey: 'test-key' })),
-    getToken: vi.fn(() => 'jwt-test-token-123'),
   },
 }));
 
@@ -103,14 +95,6 @@ describe('notificationsService (Módulo 24 — Bandeja In-App, SSE y Suscripcion
 
     await notificationsService.deleteNotification('notif-99');
     expect(apiClient.delete).toHaveBeenCalledWith('/api/v1/notifications/notif-99');
-  });
-
-  it('debe construir la URL del stream SSE con token JWT (GET /api/v1/notifications/stream)', () => {
-    const url = notificationsService.getNotificationStreamUrl();
-    expect(storageService.getConfig).toHaveBeenCalled();
-    expect(url).toBe(
-      'http://localhost:3000/api/v1/notifications/stream?token=jwt-test-token-123'
-    );
   });
 
   it('debe suscribirse y actualizar preferencias de un formulario (POST /api/v1/forms/:id/subscribe)', async () => {

@@ -11,18 +11,10 @@ import { useToast } from '../../context/useToast';
 import styles from './ServerUrlPopover.module.css';
 
 /**
- * Propiedades del popover secundario para cambiar la URL base del backend en `/login`.
- */
-export interface ServerUrlPopoverProps {
-  /** Callback opcional ejecutado tras guardar y probar una nueva URL de servidor. */
-  onServerChanged?: (newBaseUrl: string) => void;
-}
-
-/**
  * Popover accesible (Radix Popover) para configurar `apiBaseUrl` antes de iniciar sesión,
  * probar `GET /health` contra el destino y restablecer el valor de `VITE_API_BASE_URL`.
  */
-export const ServerUrlPopover: React.FC<ServerUrlPopoverProps> = ({ onServerChanged }) => {
+export const ServerUrlPopover: React.FC = () => {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
@@ -61,7 +53,6 @@ export const ServerUrlPopover: React.FC<ServerUrlPopoverProps> = ({ onServerChan
       const savedUrl = storageService.setApiBaseUrl(cleaned);
       const health = await healthService.checkHealth();
       queryClient.setQueryData(queryKeys.health.status(), health);
-      onServerChanged?.(savedUrl);
 
       if (health.status === 'ok') {
         showToast(`Conectado a ${savedUrl} (${health.latencyMs ?? 0} ms)`, 'success');

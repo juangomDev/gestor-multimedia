@@ -4,7 +4,7 @@ import {
   type CreateFolderPayload,
 } from '../services/foldersService';
 import type { ApiUpdateFolderInput } from '../types/api';
-import { queryKeys, type FolderListQueryParams } from './queryKeys';
+import { queryKeys } from './queryKeys';
 
 /**
  * Consulta el árbol jerárquico completo de carpetas en hasta 3 niveles (`GET /api/v1/folders/tree`).
@@ -16,43 +16,6 @@ export function useFolderTreeQuery(enabled: boolean = true) {
     queryKey: queryKeys.folders.tree(),
     queryFn: () => foldersService.fetchFolderTree(),
     enabled,
-  });
-}
-
-/**
- * Consulta el listado filtrado de carpetas (`GET /api/v1/folders`).
- *
- * @param params Filtros opcionales (`type`, `search`, `page`, `limit`, `parentId`).
- * @param enabled Controla si la consulta está activa.
- */
-export function useFoldersListQuery(
-  params: FolderListQueryParams = {},
-  enabled: boolean = true
-) {
-  return useQuery({
-    queryKey: queryKeys.folders.list(params),
-    queryFn: () =>
-      foldersService.fetchFolders(
-        params.type,
-        params.search,
-        params.page,
-        params.limit,
-        params.parentId
-      ),
-    enabled,
-  });
-}
-
-/**
- * Consulta el detalle de una carpeta específica por UUID (`GET /api/v1/folders/:id`).
- *
- * @param folderId UUID de la carpeta destino.
- */
-export function useFolderDetailQuery(folderId: string | null | undefined) {
-  return useQuery({
-    queryKey: queryKeys.folders.detail(folderId || ''),
-    queryFn: () => foldersService.getFolderById(folderId!),
-    enabled: Boolean(folderId),
   });
 }
 

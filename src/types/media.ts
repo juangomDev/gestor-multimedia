@@ -26,10 +26,6 @@ export interface ImageItem extends Partial<Omit<ApiImage, 'id' | 'shortCode' | '
   createdAt: string;
   updatedAt?: string;
   folderId?: string | null;
-  /** URL de previsualización local o modo demo. */
-  demoPreviewUrl?: string;
-  /** Indicador de elemento de demostración local. */
-  isDemo?: boolean;
 }
 
 /**
@@ -49,10 +45,6 @@ export interface TableItem extends Partial<Omit<ApiTable, 'id' | 'shortCode' | '
   createdAt: string;
   updatedAt?: string;
   folderId?: string | null;
-  /** Filas de respaldo para previsualización offline o modo demo. */
-  demoRows?: Record<string, any>[];
-  /** Indicador de dataset de demostración local. */
-  isDemo?: boolean;
 }
 
 /**
@@ -121,9 +113,4 @@ export interface PdfItem {
   url: string;
   urlWithVersion?: string;
 }
-
-/**
- * Alias de compatibilidad canónico para registros de PDF.
- */
-export type PdfRegistry = PdfItem;
 

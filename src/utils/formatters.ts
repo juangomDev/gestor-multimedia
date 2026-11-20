@@ -25,12 +25,6 @@ export function formatDate(dateString: string): string {
   }
 }
 
-export function truncate(text: string, maxLength: number): string {
-  if (!text) return '';
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + '...';
-}
-
 export function cleanBaseUrl(url: string): string {
   if (!url) return '';
   return url.trim().replace(/\/+$/, '');

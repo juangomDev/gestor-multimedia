@@ -6,10 +6,13 @@ Este documento define las reglas obligatorias y la arquitectura oficial del proy
 
 ## 1. Reglas Inquebrantables de Ingeniería
 
-### 1.1. Inmutabilidad Estricta de los Tests Existentes (Suite v2 Congelada)
-- **La lógica, casos de prueba y aserciones de toda la suite de tests v2 consolidada están congelados y NO se pueden modificar ni debilitar.**
-- **Excepción arquitectónica única:** únicamente las sentencias `import` pueden actualizarse si una refactorización requiere mover o dividir módulos.
-- Las nuevas funcionalidades o casos de prueba deben añadirse siempre en **nuevos archivos de test** (`*.test.ts` / `*.test.tsx`).
+### 1.1. Integridad y Calidad de la Suite de Tests
+- **No se puede debilitar la cobertura real ni eliminar aserciones que protejan comportamiento vigente.**
+- Los tests existentes pueden actualizarse, consolidarse o retirarse únicamente cuando:
+  1. Validaban un **contrato OpenAPI desalineado** que acaba de corregirse contra `monolith-backend`.
+  2. Cubrían **código muerto o legacy de v1** eliminado del código de producción.
+  3. Se **consolidan micro-suites redundantes** en archivos cohesivos (`<= 300` líneas) preservando íntegra la cobertura funcional.
+- Toda corrección de bug o nueva funcionalidad debe incluir pruebas que reproduzcan el escenario real.
 
 ### 1.2. Documentación Simultánea
 - **Cada nueva función, método, hook, interfaz exportada o componente debe documentarse a la par que se crea.**

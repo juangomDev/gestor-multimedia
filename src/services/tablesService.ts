@@ -48,8 +48,6 @@ export interface PaginatedTablesResult {
  * (ingesta `.csv`, `.xlsx`, `.xls` y `.json` Fase 21, formato rico, Ficha Técnica y paginación).
  */
 export class TablesService {
-  private lastPaginationMeta: TablesPaginationMeta | null = null;
-
   /**
    * Sube un dataset `.csv`, `.xlsx`, `.xls` o `.json` (`POST /api/v1/tables`).
    *
@@ -92,13 +90,6 @@ export class TablesService {
   /**
    * Sustituye en caliente el archivo de una tabla (`PUT /api/v1/tables/:id`) soportando
    * `.csv`, `.xlsx`, `.xls` y `.json` (Fase 21).
-   */
-  async replaceTable(id: string, file: File): Promise<TableItem> {
-    return executeTableHotSwap(id, file);
-  }
-
-  /**
-   * Alias semántico de `replaceTable` para reemplazo Hot-Swap (`PUT /api/v1/tables/:id`).
    */
   async hotSwapTable(id: string, file: File): Promise<TableItem> {
     return executeTableHotSwap(id, file);
@@ -216,13 +207,6 @@ export class TablesService {
   }
 
   /**
-   * Devuelve los metadatos de paginación de la última consulta remota.
-   */
-  getLastPaginationMeta(): TablesPaginationMeta | null {
-    return this.lastPaginationMeta;
-  }
-
-  /**
    * Lista datasets tabulares desde `GET /api/v1/tables` devolviendo items y metadatos de paginación.
    */
   async listTables(options?: FetchTablesOptions): Promise<PaginatedTablesResult> {
@@ -250,16 +234,7 @@ export class TablesService {
     const totalPages = res.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, limit)));
     const meta: TablesPaginationMeta = { total, page, limit, totalPages };
 
-    this.lastPaginationMeta = meta;
     return { items, meta };
-  }
-
-  /**
-   * Obtiene el arreglo de datasets tabulares desde `GET /api/v1/tables`.
-   */
-  async fetchRemoteTables(options?: FetchTablesOptions): Promise<TableItem[]> {
-    const { items } = await this.listTables(options);
-    return items;
   }
 }
 

@@ -1,6 +1,4 @@
 import { apiClient, type DownloadResult } from './apiClient';
-import { storageService } from './storageService';
-import { cleanBaseUrl } from '../utils/formatters';
 import type {
   FormDefinition,
   CreateFormInput,
@@ -153,18 +151,6 @@ export class FormsService {
   }
 
   /**
-   * Construye la URL absoluta de exportación de entradas en formato `.xlsx` o `.csv`.
-   */
-  getExportUrl(
-    formId: string,
-    format: 'xlsx' | 'csv' = 'xlsx',
-    options?: { month?: string; status?: string }
-  ): string {
-    const base = cleanBaseUrl(storageService.getConfig().baseUrl);
-    return `${base}${this.buildExportPath(formId, format, options)}`;
-  }
-
-  /**
    * Descarga con autenticación Bearer la exportación de entradas en formato Excel o CSV
    * (`GET /api/v1/forms/:formId/export`).
    */
@@ -175,24 +161,6 @@ export class FormsService {
   ): Promise<DownloadResult> {
     const path = this.buildExportPath(formId, format, options);
     return apiClient.download(path, `formulario-${formId}.${format}`);
-  }
-
-  /**
-   * Envía una entrada pública utilizando el slug del formulario sin token JWT
-   * (`POST /api/v1/public/forms/:slug/entries`).
-   */
-  async submitPublicEntry(
-    slug: string,
-    payload: Record<string, unknown>
-  ): Promise<{ id: string; status: string; createdAt: string }> {
-    const res = await apiClient.post<{
-      id: string;
-      status: string;
-      createdAt: string;
-      data?: { id: string; status: string; createdAt: string };
-    }>(`/api/v1/public/forms/${slug}/entries`, payload, { skipAuth: true });
-
-    return res.data || res;
   }
 }
 

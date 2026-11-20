@@ -1,23 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { foldersService, getFolderDepth } from './foldersService';
+import {
+  foldersService,
+  flattenFolderTree,
+  getFolderDepth,
+  getFolderPathLabel,
+} from './foldersService';
 import { apiClient } from './apiClient';
+import { storageService } from './storageService';
 
-describe('FoldersService (v2 Stateless PostgreSQL RBAC Folders & Sharing)', () => {
+describe('FoldersService (v2 — CRUD, Árbol 3 niveles /tree, Move y Compartición)', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    storageService.resetCache();
   });
 
-  it('fetchFolders() calls GET /api/v1/folders with optional filters and normalizes folders', async () => {
+  it('fetchFolders() consulta GET /api/v1/folders con filtros (type, search, page, limit, parentId)', async () => {
     const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({
       folders: [
         {
           id: 'fld-1',
           name: 'General',
           type: 'IMAGE',
-          color: '#3b82f6',
           isPrivate: false,
           itemCount: 8,
-          userId: 'admin-1',
           myPermission: 'ADMIN',
           createdAt: '2026-01-01T00:00:00.000Z',
         },
@@ -25,10 +30,8 @@ describe('FoldersService (v2 Stateless PostgreSQL RBAC Folders & Sharing)', () =
           id: 'fld-2',
           name: 'Finanzas 2026',
           type: 'TABLE',
-          color: '#10b981',
           isPrivate: true,
           itemCount: 3,
-          userId: 'mgr-1',
           myPermission: 'EDIT',
           createdAt: '2026-01-05T00:00:00.000Z',
         },
@@ -37,165 +40,167 @@ describe('FoldersService (v2 Stateless PostgreSQL RBAC Folders & Sharing)', () =
     });
 
     const folders = await foldersService.fetchFolders();
-
     expect(getSpy).toHaveBeenCalledWith('/api/v1/folders');
     expect(folders).toHaveLength(2);
     expect(folders[0].type).toBe('image');
-    expect(folders[1].type).toBe('table');
     expect(folders[1].isPrivate).toBe(true);
 
-    await foldersService.fetchFolders('IMAGE', 'General', 1, 20);
+    await foldersService.fetchFolders('TABLE', 'Finanzas', 1, 20, 'fld-l1');
     expect(getSpy).toHaveBeenCalledWith(
-      '/api/v1/folders?type=IMAGE&search=General&page=1&limit=20'
+      '/api/v1/folders?type=TABLE&search=Finanzas&page=1&limit=20&parentId=fld-l1'
     );
   });
 
-  it('getFolderDepth calculates 0..3 hierarchy depth accurately', () => {
-    const all = [
-      { id: 'n1', name: 'Raiz', type: 'container' as const, parentId: null, createdAt: '' },
-      { id: 'n2', name: 'Fotos', type: 'image' as const, parentId: 'n1', createdAt: '' },
-      { id: 'n3', name: '2026', type: 'image' as const, parentId: 'n2', createdAt: '' },
-    ];
-    expect(getFolderDepth(null, all)).toBe(0);
-    expect(getFolderDepth('n1', all)).toBe(1);
-    expect(getFolderDepth('n2', all)).toBe(2);
-    expect(getFolderDepth('n3', all)).toBe(3);
-  });
-
-  it('getFolderById() calls GET /api/v1/folders/:id', async () => {
+  it('fetchFolderTree() normaliza shared (isSystem) y calcula profundidad 0..3 y rutas', async () => {
     const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({
-      folder: {
-        id: 'fld-10',
-        name: 'Campaña Verano',
-        type: 'IMAGE',
-        color: '#ec4899',
-        isPrivate: true,
-        itemCount: 15,
-        userId: 'admin-1',
-        createdAt: '2026-02-01T00:00:00.000Z',
-      },
+      tree: [
+        {
+          id: 'fld-shared',
+          name: 'shared',
+          type: 'CONTAINER',
+          parentId: null,
+          isSystem: true,
+          myPermission: 'READ',
+          children: [],
+        },
+        {
+          id: 'fld-l1',
+          name: 'Proyectos 2026',
+          type: 'CONTAINER',
+          parentId: null,
+          isSystem: false,
+          myPermission: 'ADMIN',
+          children: [
+            {
+              id: 'fld-l2',
+              name: 'Campañas',
+              type: 'IMAGE',
+              parentId: 'fld-l1',
+              isSystem: false,
+              myPermission: 'EDIT',
+              children: [
+                {
+                  id: 'fld-l3',
+                  name: 'Banners Q4',
+                  type: 'IMAGE',
+                  parentId: 'fld-l2',
+                  isSystem: false,
+                  myPermission: 'EDIT',
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      total: 4,
     });
 
-    const folder = await foldersService.getFolderById('fld-10');
-    expect(getSpy).toHaveBeenCalledWith('/api/v1/folders/fld-10');
-    expect(folder.name).toBe('Campaña Verano');
-    expect(folder.itemCount).toBe(15);
+    const tree = await foldersService.fetchFolderTree();
+    expect(getSpy).toHaveBeenCalledWith('/api/v1/folders/tree');
+    expect(tree[0].isSystem).toBe(true);
+
+    const flat = flattenFolderTree(tree);
+    expect(flat).toHaveLength(4);
+    expect(getFolderDepth(null, flat)).toBe(0);
+    expect(getFolderDepth('fld-l1', flat)).toBe(1);
+    expect(getFolderDepth('fld-l2', flat)).toBe(2);
+    expect(getFolderDepth('fld-l3', flat)).toBe(3);
+
+    const lvl3 = flat.find((f) => f.id === 'fld-l3')!;
+    expect(getFolderPathLabel(lvl3, flat)).toBe('Proyectos 2026 › Campañas › Banners Q4');
   });
 
-  it('createFolder() calls POST /api/v1/folders and returns normalized folder', async () => {
-    const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValue({
-      folder: {
-        id: 'fld-new',
-        name: 'Logos Corporativos',
-        type: 'IMAGE',
-        color: '#8b5cf6',
-        isPrivate: true,
-        itemCount: 0,
-        userId: 'admin-1',
-        createdAt: '2026-02-10T00:00:00.000Z',
-      },
+  it('getFolderById(), createFolder() con parentId, updateFolder() y deleteFolder()', async () => {
+    const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({
+      folder: { id: 'fld-10', name: 'Campaña Verano', type: 'IMAGE', itemCount: 15 },
     });
+    const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValue({
+      folder: { id: 'fld-new', name: 'Finanzas', type: 'TABLE', parentId: 'fld-l1', isPrivate: true },
+    });
+    const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValue({
+      folder: { id: 'fld-edit', name: 'Nuevo Nombre', type: 'IMAGE', color: '#10b981', isPrivate: true },
+    });
+    const delSpy = vi.spyOn(apiClient, 'delete').mockResolvedValue({
+      message: 'Eliminada',
+      deletedCount: 2,
+    });
+
+    const detail = await foldersService.getFolderById('fld-10');
+    expect(getSpy).toHaveBeenCalledWith('/api/v1/folders/fld-10');
+    expect(detail.itemCount).toBe(15);
 
     const created = await foldersService.createFolder({
-      name: 'Logos Corporativos',
-      type: 'image',
-      color: '#8b5cf6',
+      name: 'Finanzas',
+      type: 'table',
+      parentId: 'fld-l1',
       isPrivate: true,
     });
-
     expect(postSpy).toHaveBeenCalledWith('/api/v1/folders', {
-      name: 'Logos Corporativos',
-      type: 'IMAGE',
-      color: '#8b5cf6',
+      name: 'Finanzas',
+      type: 'TABLE',
+      color: undefined,
       isPrivate: true,
+      parentId: 'fld-l1',
     });
-    expect(created.id).toBe('fld-new');
-  });
-
-  it('updateFolder() calls PATCH /api/v1/folders/:id', async () => {
-    const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValue({
-      folder: {
-        id: 'fld-edit',
-        name: 'Nuevo Nombre',
-        type: 'IMAGE',
-        color: '#10b981',
-        isPrivate: true,
-        itemCount: 4,
-        userId: 'admin-1',
-        createdAt: '2026-01-01T00:00:00.000Z',
-      },
-    });
+    expect(created.parentId).toBe('fld-l1');
 
     const updated = await foldersService.updateFolder('fld-edit', {
       name: 'Nuevo Nombre',
       color: '#10b981',
       isPrivate: true,
     });
-
     expect(patchSpy).toHaveBeenCalledWith('/api/v1/folders/fld-edit', {
       name: 'Nuevo Nombre',
       color: '#10b981',
       isPrivate: true,
     });
     expect(updated.name).toBe('Nuevo Nombre');
-  });
 
-  it('deleteFolder() calls DELETE /api/v1/folders/:id', async () => {
-    const delSpy = vi.spyOn(apiClient, 'delete').mockResolvedValue({
-      message: 'Eliminada',
-      deletedCount: 2,
-    });
-
-    const res = await foldersService.deleteFolder('fld-del');
+    const deleted = await foldersService.deleteFolder('fld-del');
     expect(delSpy).toHaveBeenCalledWith('/api/v1/folders/fld-del');
-    expect(res.deletedCount).toBe(2);
+    expect(deleted.deletedCount).toBe(2);
   });
 
-  it('moveImageToFolder() and moveTableToFolder() call PATCH endpoints', async () => {
+  it('moveImageToFolder() y moveTableToFolder() reasignan activos vía PATCH', async () => {
     const patchSpy = vi
       .spyOn(apiClient, 'patch')
       .mockResolvedValueOnce({ image: { id: 'img-1', folderId: 'fld-img' } })
       .mockResolvedValueOnce({ table: { id: 'tbl-1', folderId: 'fld-tbl' } });
 
     const imgRes = await foldersService.moveImageToFolder('img-1', 'fld-img');
-    expect(patchSpy).toHaveBeenCalledWith('/api/v1/images/img-1/folder', {
-      folderId: 'fld-img',
-    });
+    expect(patchSpy).toHaveBeenCalledWith('/api/v1/images/img-1/folder', { folderId: 'fld-img' });
     expect(imgRes.folderId).toBe('fld-img');
 
     const tblRes = await foldersService.moveTableToFolder('tbl-1', 'fld-tbl');
-    expect(patchSpy).toHaveBeenCalledWith('/api/v1/tables/tbl-1/folder', {
-      folderId: 'fld-tbl',
-    });
+    expect(patchSpy).toHaveBeenCalledWith('/api/v1/tables/tbl-1/folder', { folderId: 'fld-tbl' });
     expect(tblRes.folderId).toBe('fld-tbl');
   });
 
-  it('handles folder sharing lifecycle: shareFolder, listShares, updateSharePermission, revokeShare', async () => {
+  it('gestiona shares de carpeta (READ/EDIT, ai_manager y revocación)', async () => {
     const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValue({
-      share: { id: 'sh-1', folderId: 'fld-1', userId: 'col-1', permission: 'READ' },
+      share: {
+        id: 'sh-ai',
+        folderId: 'fld-1',
+        userId: 'u-ai-manager',
+        permission: 'READ',
+        user: { id: 'u-ai-manager', username: 'ai_manager', role: 'COLLABORATOR' },
+      },
     });
     const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({
-      shares: [
-        {
-          id: 'sh-1',
-          folderId: 'fld-1',
-          userId: 'col-1',
-          permission: 'READ',
-          user: { id: 'col-1', username: 'colab_uno', role: 'COLLABORATOR' },
-        },
-      ],
+      shares: [{ id: 'sh-ai', folderId: 'fld-1', userId: 'u-ai-manager', permission: 'READ' }],
     });
     const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValue({
       share: { id: 'sh-1', folderId: 'fld-1', userId: 'col-1', permission: 'EDIT' },
     });
     const deleteSpy = vi.spyOn(apiClient, 'delete').mockResolvedValue({ revoked: true });
 
-    const created = await foldersService.shareFolder('fld-1', 'col-1', 'READ');
+    const created = await foldersService.shareFolder('fld-1', 'u-ai-manager', 'READ');
     expect(postSpy).toHaveBeenCalledWith('/api/v1/folders/fld-1/shares', {
-      userId: 'col-1',
+      userId: 'u-ai-manager',
       permission: 'READ',
     });
-    expect(created.permission).toBe('READ');
+    expect(created.user?.username).toBe('ai_manager');
 
     const shares = await foldersService.listShares('fld-1');
     expect(getSpy).toHaveBeenCalledWith('/api/v1/folders/fld-1/shares');
@@ -207,8 +212,8 @@ describe('FoldersService (v2 Stateless PostgreSQL RBAC Folders & Sharing)', () =
     });
     expect(updated.permission).toBe('EDIT');
 
-    const revoked = await foldersService.revokeShare('fld-1', 'col-1');
-    expect(deleteSpy).toHaveBeenCalledWith('/api/v1/folders/fld-1/shares/col-1');
+    const revoked = await foldersService.revokeShare('fld-1', 'u-ai-manager');
+    expect(deleteSpy).toHaveBeenCalledWith('/api/v1/folders/fld-1/shares/u-ai-manager');
     expect(revoked.revoked).toBe(true);
   });
 });

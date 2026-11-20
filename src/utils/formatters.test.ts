@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatBytes, formatDate, truncate, cleanBaseUrl, buildPublicAssetUrl } from './formatters';
+import { formatBytes, formatDate, cleanBaseUrl, buildPublicAssetUrl } from './formatters';
 
 describe('formatters utility', () => {
   describe('buildPublicAssetUrl', () => {
@@ -21,20 +21,6 @@ describe('formatters utility', () => {
       expect(formatBytes(1536)).toBe('1.5 KB');
       expect(formatBytes(1048576)).toBe('1 MB');
       expect(formatBytes(5242880)).toBe('5 MB');
-    });
-  });
-
-  describe('truncate', () => {
-    it('does not truncate text shorter than maxLength', () => {
-      expect(truncate('hola', 10)).toBe('hola');
-    });
-
-    it('truncates text exceeding maxLength and appends ellipsis', () => {
-      expect(truncate('un texto bastante largo', 8)).toBe('un texto...');
-    });
-
-    it('handles empty strings gracefully', () => {
-      expect(truncate('', 5)).toBe('');
     });
   });
 

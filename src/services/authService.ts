@@ -8,11 +8,9 @@ import type {
   ChangePasswordInput,
   ChangePasswordResponse,
   LogoutResponse,
-  RefreshResponse,
 } from '../types/auth';
 
 type RawLoginResponse = Partial<UserSession> & { accessToken?: string };
-type RawRefreshResponse = Partial<RefreshResponse> & { accessToken?: string };
 
 /**
  * Servicio de autenticación 100% real contra `monolith-backend`
@@ -53,36 +51,6 @@ export class AuthService {
    */
   async createUser(input: CreateUserInput): Promise<{ user: User }> {
     return apiClient.post<{ user: User }>('/api/v1/users', input);
-  }
-
-  /**
-   * Renueva el access token con `POST /api/v1/auth/refresh` (cookie HttpOnly).
-   *
-   * @returns Respuesta normalizada de refresco con el nuevo JWT.
-   */
-  async refresh(): Promise<RefreshResponse> {
-    const raw = await apiClient.post<RawRefreshResponse>(
-      '/api/v1/auth/refresh',
-      undefined,
-      {
-        skipAuth: true,
-        credentials: 'include',
-      }
-    );
-
-    const token = raw.token ?? raw.accessToken ?? '';
-    if (token) {
-      storageService.saveToken(token);
-      if (raw.user) {
-        storageService.updateSessionUser(raw.user);
-      }
-    }
-
-    return {
-      token,
-      ...(raw.accessToken ? { accessToken: raw.accessToken } : {}),
-      ...(raw.user ? { user: raw.user } : {}),
-    };
   }
 
   /**

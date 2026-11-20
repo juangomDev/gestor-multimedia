@@ -26,8 +26,6 @@ export interface UiDialogProps {
   children: React.ReactNode;
   /** Pie opcional con botones de acción */
   footer?: React.ReactNode;
-  /** Oculta el botón `X` de cierre en cabecera */
-  hideCloseButton?: boolean;
   /** Clase CSS adicional para el contenedor del diálogo */
   contentClassName?: string;
 }
@@ -44,7 +42,6 @@ export const Dialog: React.FC<UiDialogProps> = ({
   size = 'md',
   children,
   footer,
-  hideCloseButton = false,
   contentClassName,
 }) => {
   return (
@@ -53,7 +50,7 @@ export const Dialog: React.FC<UiDialogProps> = ({
         <RadixDialog.Overlay className={styles.overlay} />
         <RadixDialog.Content
           className={`${styles.content} ${styles[size]} ${contentClassName ?? ''}`}
-          aria-describedby={description ? undefined : undefined}
+          {...(!description ? { 'aria-describedby': undefined } : {})}
         >
           <div className={styles.header}>
             <div className={styles.headingGroup}>
@@ -62,15 +59,11 @@ export const Dialog: React.FC<UiDialogProps> = ({
                 <RadixDialog.Description className={styles.description}>
                   {description}
                 </RadixDialog.Description>
-              ) : (
-                <RadixDialog.Description className="sr-only">{title}</RadixDialog.Description>
-              )}
+              ) : null}
             </div>
-            {!hideCloseButton ? (
-              <RadixDialog.Close className={styles.closeBtn} aria-label="Cerrar diálogo">
-                <X size={16} />
-              </RadixDialog.Close>
-            ) : null}
+            <RadixDialog.Close className={styles.closeBtn} aria-label="Cerrar diálogo">
+              <X size={16} />
+            </RadixDialog.Close>
           </div>
 
           <div className={styles.body}>{children}</div>

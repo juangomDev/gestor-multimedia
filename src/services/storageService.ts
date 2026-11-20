@@ -1,9 +1,4 @@
-import {
-  readStoredTheme,
-  writeStoredTheme,
-  resetThemeStorageCache,
-  type ThemePreference,
-} from '../context/themeStorage';
+import { resetThemeStorageCache } from '../context/themeStorage';
 import type { ClientConfig } from '../types/api';
 import type { UserSession } from '../types/auth';
 
@@ -29,7 +24,6 @@ export const STORAGE_KEYS = {
  */
 export const DEFAULT_CONFIG: ClientConfig = {
   baseUrl: import.meta.env?.VITE_API_BASE_URL || 'http://localhost:3000',
-  apiKey: '',
 };
 
 const memoryCache = new Map<string, string | null>();
@@ -113,7 +107,7 @@ export const storageService = {
   /**
    * Obtiene la configuración activa de conexión con `monolith-backend`.
    *
-   * @returns Objeto `ClientConfig` con `baseUrl` y `apiKey` opcional.
+   * @returns Objeto `ClientConfig` con `baseUrl`.
    */
   getConfig(): ClientConfig {
     try {
@@ -125,7 +119,6 @@ export const storageService = {
           typeof parsed.baseUrl === 'string' && parsed.baseUrl.trim()
             ? parsed.baseUrl.trim()
             : DEFAULT_CONFIG.baseUrl,
-        apiKey: typeof parsed.apiKey === 'string' ? parsed.apiKey.trim() : '',
       };
     } catch {
       return { ...DEFAULT_CONFIG };
@@ -145,7 +138,6 @@ export const storageService = {
         config.baseUrl !== undefined
           ? config.baseUrl.trim() || DEFAULT_CONFIG.baseUrl
           : current.baseUrl,
-      apiKey: config.apiKey !== undefined ? config.apiKey.trim() : current.apiKey,
     };
     writeCachedItem(STORAGE_KEYS.CONFIG, JSON.stringify(updated));
     return updated;
@@ -259,23 +251,5 @@ export const storageService = {
    */
   setViewMode(mode: ExplorerViewMode): void {
     writeCachedItem(STORAGE_KEYS.VIEW_MODE, mode);
-  },
-
-  /**
-   * Lee la preferencia de tema persistida (`light | dark | system`).
-   *
-   * @returns Preferencia de tema activa.
-   */
-  getTheme(): ThemePreference {
-    return readStoredTheme();
-  },
-
-  /**
-   * Persiste la preferencia de tema (`light | dark | system`).
-   *
-   * @param theme Nueva preferencia de tema.
-   */
-  setTheme(theme: ThemePreference): void {
-    writeStoredTheme(theme);
   },
 };

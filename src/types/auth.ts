@@ -1,11 +1,9 @@
-import type { ApiUser, ApiUserProfile } from './api';
+import type { ApiUser } from './api';
 
 /**
  * Roles jerárquicos del sistema RBAC en monolith-backend.
  */
-export type Role = NonNullable<ApiUserProfile['role']> extends 'ADMIN' | 'MANAGER' | 'COLLABORATOR'
-  ? 'ADMIN' | 'MANAGER' | 'COLLABORATOR'
-  : 'ADMIN' | 'MANAGER' | 'COLLABORATOR';
+export type Role = 'ADMIN' | 'MANAGER' | 'COLLABORATOR';
 
 /**
  * Entidad de usuario del sistema sincronizada con el contrato OpenAPI (`ApiUser`).
@@ -71,18 +69,4 @@ export interface ChangePasswordResponse {
  */
 export interface LogoutResponse {
   message: string;
-}
-
-/**
- * Respuesta del endpoint de rotación de token (`POST /api/v1/auth/refresh`).
- */
-export interface RefreshResponse {
-  token: string;
-  accessToken?: string;
-  user?: {
-    id?: string;
-    username?: string;
-    role?: Role;
-    isActive?: boolean;
-  };
 }

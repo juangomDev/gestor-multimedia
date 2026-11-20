@@ -4,7 +4,6 @@ import { auditService, type FetchAuditLogsOptions } from '../services/auditServi
 import { apiKeysService, type CreateApiKeyInput } from '../services/apiKeysService';
 import { storageStatsService } from '../services/storageStatsService';
 import { healthService } from '../services/healthService';
-import { chatService } from '../services/chatService';
 import type { CreateUserInput, User } from '../types/auth';
 import { queryKeys } from './queryKeys';
 
@@ -63,20 +62,6 @@ export function useHealthQuery(enabled: boolean = true) {
     queryKey: queryKeys.health.status(),
     queryFn: () => healthService.checkHealth(),
     staleTime: 15_000,
-    enabled,
-  });
-}
-
-/**
- * Consulta sugerencias públicas de preguntas para Data Chat (`GET /api/v1/public/chat/suggestions`).
- */
-export function useChatSuggestionsQuery(
-  folderId?: string | null,
-  enabled: boolean = true
-) {
-  return useQuery({
-    queryKey: queryKeys.chat.suggestions(folderId),
-    queryFn: () => chatService.getPublicSuggestions(folderId),
     enabled,
   });
 }

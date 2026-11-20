@@ -8,9 +8,6 @@ export const Popover = RadixPopover.Root;
 /** Disparador del popover. */
 export const PopoverTrigger = RadixPopover.Trigger;
 
-/** Botón de cierre interno del popover. */
-export const PopoverClose = RadixPopover.Close;
-
 /**
  * Propiedades del panel flotante `PopoverContent`.
  */

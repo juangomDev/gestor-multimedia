@@ -87,8 +87,6 @@ function normalizeImage(
  * (subida, renombrado en caliente, reemplazo binario Hot-Swap, variantes WebP y paginación).
  */
 export class ImagesService {
-  private lastPaginationMeta: ImagesPaginationMeta | null = null;
-
   /**
    * Sube una nueva imagen al servidor (`POST /api/v1/images`).
    *
@@ -189,13 +187,6 @@ export class ImagesService {
   }
 
   /**
-   * Devuelve los metadatos de paginación de la última consulta remota.
-   */
-  getLastPaginationMeta(): ImagesPaginationMeta | null {
-    return this.lastPaginationMeta;
-  }
-
-  /**
    * Lista imágenes paginadas y filtradas desde `GET /api/v1/images` devolviendo items y metadatos.
    *
    * @param options Parámetros de paginación, carpeta y búsqueda.
@@ -226,19 +217,7 @@ export class ImagesService {
     const totalPages = res.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, limit)));
     const meta: ImagesPaginationMeta = { total, page, limit, totalPages };
 
-    this.lastPaginationMeta = meta;
     return { items, meta };
-  }
-
-  /**
-   * Obtiene únicamente el arreglo de imágenes desde `GET /api/v1/images`.
-   *
-   * @param options Parámetros opcionales de consulta.
-   * @returns Arreglo de `ImageItem`.
-   */
-  async fetchRemoteImages(options?: FetchImagesOptions): Promise<ImageItem[]> {
-    const { items } = await this.listImages(options);
-    return items;
   }
 
   /**

@@ -50,7 +50,7 @@ export class ApiError extends Error {
   type?: string;
   instance?: string;
   invalidParams?: InvalidParam[];
-  details?: any;
+  details?: unknown;
 
   /**
    * Crea una instancia de ApiError con soporte completo para campos RFC 7807.
@@ -59,7 +59,7 @@ export class ApiError extends Error {
     status: number,
     code: string,
     message: string,
-    details?: any,
+    details?: unknown,
     options?: {
       title?: string;
       type?: string;
@@ -94,27 +94,40 @@ export async function buildApiErrorFromResponse(
   defaultCode: string = 'HTTP_ERROR',
   defaultMessagePrefix: string = 'Error del servidor'
 ): Promise<ApiError> {
-  let errData: any = {};
+  let errData: Record<string, unknown> = {};
   try {
-    errData = await response.json();
+    const parsed: unknown = await response.json();
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      errData = parsed as Record<string, unknown>;
+    }
   } catch {
-    errData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
+    const suffix = response.statusText ? `: ${response.statusText}` : '';
+    errData = { message: `Error HTTP ${response.status}${suffix}` };
   }
 
   const detail =
-    errData.detail || errData.message || `${defaultMessagePrefix} (${response.status})`;
-  const code = errData.code || errData.error || defaultCode;
+    (typeof errData.detail === 'string' && errData.detail) ||
+    (typeof errData.message === 'string' && errData.message) ||
+    (typeof errData.title === 'string' && errData.title) ||
+    `${defaultMessagePrefix} (${response.status})`;
+  const code =
+    (typeof errData.code === 'string' && errData.code) ||
+    (typeof errData.error === 'string' && errData.error) ||
+    defaultCode;
+  const invalidParams = Array.isArray(errData.invalidParams)
+    ? (errData.invalidParams as InvalidParam[])
+    : undefined;
 
   return new ApiError(
     response.status,
     code,
     detail,
-    errData.details || errData.invalidParams,
+    errData.details ?? invalidParams,
     {
-      title: errData.title,
-      type: errData.type,
-      instance: errData.instance,
-      invalidParams: errData.invalidParams,
+      title: typeof errData.title === 'string' ? errData.title : undefined,
+      type: typeof errData.type === 'string' ? errData.type : undefined,
+      instance: typeof errData.instance === 'string' ? errData.instance : undefined,
+      invalidParams,
     }
   );
 }

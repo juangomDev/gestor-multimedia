@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { pdfsService } from './pdfsService';
-import { apiClient } from './apiClient';
+import { apiClient, ApiError } from './apiClient';
 
 describe('pdfsService (v2 Stateless)', () => {
   beforeEach(() => {
@@ -19,17 +19,18 @@ describe('pdfsService (v2 Stateless)', () => {
     updatedAt: '2026-11-08T01:00:00Z',
   };
 
-  it('fetchRemotePdfs consulta /api/v1/pdfs con filtros y normaliza', async () => {
+  it('listPdfs consulta /api/v1/pdfs con filtros y normaliza items y meta', async () => {
     const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValueOnce({
       data: [mockPdf],
       meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
     } as never);
 
-    const res = await pdfsService.fetchRemotePdfs({ page: 1, limit: 10, search: 'contrato' });
+    const { items, meta } = await pdfsService.listPdfs({ page: 1, limit: 10, search: 'contrato' });
     expect(getSpy).toHaveBeenCalledWith('/api/v1/pdfs?page=1&limit=10&search=contrato');
-    expect(res).toHaveLength(1);
-    expect(res[0].shortCode).toBe('doc999');
-    expect(res[0].url).toContain('/p/doc999');
+    expect(items).toHaveLength(1);
+    expect(items[0].shortCode).toBe('doc999');
+    expect(items[0].url).toContain('/p/doc999');
+    expect(meta).toEqual({ total: 1, page: 1, limit: 10, totalPages: 1 });
   });
 
   it('uploadPdf envía archivo multipart a POST /api/v1/pdfs', async () => {
@@ -78,11 +79,15 @@ describe('pdfsService (v2 Stateless)', () => {
     expect(res.metadataCard?.category).toBe('Legal');
   });
 
-  it('deletePdf llama a DELETE /api/v1/pdfs/:id sin estado local', async () => {
-    const deleteSpy = vi.spyOn(apiClient, 'delete').mockResolvedValueOnce(undefined as never);
+  it('deletePdf llama a DELETE /api/v1/pdfs/:id y propaga errores HTTP', async () => {
+    const deleteSpy = vi
+      .spyOn(apiClient, 'delete')
+      .mockResolvedValueOnce(undefined as never)
+      .mockRejectedValueOnce(new ApiError(500, 'SERVER_ERROR', 'Fallo disco'));
 
     await pdfsService.deletePdf('pdf-123');
     expect(deleteSpy).toHaveBeenCalledWith('/api/v1/pdfs/pdf-123');
+    await expect(pdfsService.deletePdf('pdf-123')).rejects.toThrow('Fallo disco');
   });
 
   it('movePdfToFolder actualiza la carpeta destino', async () => {

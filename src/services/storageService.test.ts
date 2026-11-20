@@ -8,8 +8,7 @@ describe('storageService (v2 — caché Map sin entidades de negocio)', () => {
   });
 
   describe('Config & API Base URL', () => {
-    it('returns DEFAULT_CONFIG with empty apiKey when storage is empty', () => {
-      expect(DEFAULT_CONFIG.apiKey).toBe('');
+    it('returns DEFAULT_CONFIG when storage is empty', () => {
       expect(storageService.getConfig()).toEqual(DEFAULT_CONFIG);
       expect(storageService.getApiBaseUrl()).toBe(DEFAULT_CONFIG.baseUrl);
     });
@@ -17,14 +16,13 @@ describe('storageService (v2 — caché Map sin entidades de negocio)', () => {
     it('saves and retrieves custom apiBaseUrl with in-memory cache', () => {
       storageService.setApiBaseUrl('https://api.archivo-editorial.test');
       expect(storageService.getApiBaseUrl()).toBe('https://api.archivo-editorial.test');
-      expect(storageService.getConfig().apiKey).toBe('');
     });
 
     it('re-reads localStorage after resetCache()', () => {
       storageService.setApiBaseUrl('https://first.test');
       localStorage.setItem(
         'dokploy_config',
-        JSON.stringify({ baseUrl: 'https://second.test', apiKey: '' })
+        JSON.stringify({ baseUrl: 'https://second.test' })
       );
       expect(storageService.getApiBaseUrl()).toBe('https://first.test');
       storageService.resetCache();
@@ -58,14 +56,10 @@ describe('storageService (v2 — caché Map sin entidades de negocio)', () => {
   });
 
   describe('UI Preferences', () => {
-    it('persists explorer viewMode and theme preference', () => {
+    it('persists explorer viewMode preference', () => {
       expect(storageService.getViewMode()).toBe('grid');
       storageService.setViewMode('list');
       expect(storageService.getViewMode()).toBe('list');
-
-      expect(storageService.getTheme()).toBe('system');
-      storageService.setTheme('dark');
-      expect(storageService.getTheme()).toBe('dark');
     });
   });
 });

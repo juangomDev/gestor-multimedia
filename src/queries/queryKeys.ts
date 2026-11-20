@@ -81,6 +81,5 @@ export const queryKeys = {
   health: {
     all: ['health'] as const,
     status: () => ['health', 'status'] as const,
-    openApi: () => ['health', 'openApi'] as const,
   },
 } as const;

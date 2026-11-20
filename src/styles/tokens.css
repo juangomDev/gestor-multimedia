@@ -61,7 +61,6 @@
   --status-warn-border: rgba(168, 100, 22, 0.26);
 
   --status-danger: #b93838;
-  --status-danger-hover: #992b2b;
   --status-danger-bg: rgba(185, 56, 56, 0.1);
   --status-danger-border: rgba(185, 56, 56, 0.26);
 
@@ -105,7 +104,6 @@
 
   /* Curvas y duraciones (< 220ms) */
   --ease-out-quint: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out-quart: cubic-bezier(0.77, 0, 0.175, 1);
   --duration-press: 120ms;
   --duration-popover: 150ms;
   --duration-dialog: 180ms;
@@ -171,7 +169,6 @@
   --status-warn-border: rgba(229, 169, 76, 0.28);
 
   --status-danger: #e67676;
-  --status-danger-hover: #f09090;
   --status-danger-bg: rgba(230, 118, 118, 0.12);
   --status-danger-border: rgba(230, 118, 118, 0.28);
 

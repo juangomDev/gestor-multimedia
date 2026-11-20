@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import type { LoginCredentials, User, CreateUserInput, Role } from '../types/auth';
+import type { LoginCredentials, Role } from '../types/auth';
 
 /**
  * Datos básicos del usuario autenticado expuestos por `AuthContext`.
@@ -21,11 +21,9 @@ export interface AuthContextValue {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isManager: boolean;
-  isLoading: boolean;
   isCheckingSession: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
-  createUser: (input: CreateUserInput) => Promise<{ user: User }>;
   refreshProfile: () => Promise<void>;
 }
 

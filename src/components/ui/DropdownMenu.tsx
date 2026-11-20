@@ -55,8 +55,6 @@ export interface UiDropdownItemProps extends RadixDropdown.DropdownMenuItemProps
   tone?: 'default' | 'danger';
   /** Icono opcional a la izquierda */
   icon?: React.ReactNode;
-  /** Atajo de teclado informativo a la derecha */
-  shortcut?: string;
 }
 
 /**
@@ -65,7 +63,6 @@ export interface UiDropdownItemProps extends RadixDropdown.DropdownMenuItemProps
 export const DropdownMenuItem: React.FC<UiDropdownItemProps> = ({
   tone = 'default',
   icon,
-  shortcut,
   className,
   children,
   ...rest
@@ -80,7 +77,6 @@ export const DropdownMenuItem: React.FC<UiDropdownItemProps> = ({
       </span>
     ) : null}
     <span>{children}</span>
-    {shortcut ? <span className={styles.shortcut}>{shortcut}</span> : null}
   </RadixDropdown.Item>
 );
 

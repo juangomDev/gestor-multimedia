@@ -3,7 +3,7 @@ import { authService } from '../services/authService';
 import { apiClient, ApiError } from '../services/apiClient';
 import { storageService } from '../services/storageService';
 import { AuthContext } from './authContextDef';
-import type { LoginCredentials, CreateUserInput } from '../types/auth';
+import type { LoginCredentials } from '../types/auth';
 
 /**
  * Proveedor de autenticación real contra `monolith-backend`.
@@ -13,7 +13,6 @@ import type { LoginCredentials, CreateUserInput } from '../types/auth';
  */
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState(() => authService.getSession());
-  const [isLoading, setIsLoading] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(() => Boolean(authService.getSession()?.token));
 
   /**
@@ -93,17 +92,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * Inicia sesión con credenciales reales (`POST /api/v1/auth/login`) y sincroniza `/auth/me`.
    */
   const login = useCallback(async (credentials: LoginCredentials) => {
-    setIsLoading(true);
+    const newSession = await authService.login(credentials);
+    setSession(newSession);
     try {
-      const newSession = await authService.login(credentials);
-      setSession(newSession);
-      try {
-        await refreshProfile();
-      } catch {
-        // Mantener la sesión recién emitida por /login si /me falla transitoriamente
-      }
-    } finally {
-      setIsLoading(false);
+      await refreshProfile();
+    } catch {
+      // Mantener la sesión recién emitida por /login si /me falla transitoriamente
     }
   }, [refreshProfile]);
 
@@ -115,13 +109,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await authService.logout();
   }, []);
 
-  /**
-   * Registra un nuevo usuario respetando la jerarquía RBAC (`POST /api/v1/users`).
-   */
-  const createUser = useCallback(async (input: CreateUserInput) => {
-    return authService.createUser(input);
-  }, []);
-
   const value = useMemo(
     () => ({
       user: session?.user || null,
@@ -129,14 +116,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated: Boolean(session?.token),
       isAdmin: session?.user?.role === 'ADMIN',
       isManager: session?.user?.role === 'MANAGER',
-      isLoading,
       isCheckingSession,
       login,
       logout,
-      createUser,
       refreshProfile,
     }),
-    [session, isLoading, isCheckingSession, login, logout, createUser, refreshProfile]
+    [session, isCheckingSession, login, logout, refreshProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

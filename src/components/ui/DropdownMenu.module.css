@@ -95,13 +95,6 @@
   color: var(--status-danger);
 }
 
-.shortcut {
-  margin-left: auto;
-  font-family: var(--font-code);
-  font-size: var(--text-xs);
-  color: var(--ink-tertiary);
-}
-
 .separator {
   height: 1px;
   margin: 4px 6px;

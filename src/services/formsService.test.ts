@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { formsService } from './formsService';
 import { apiClient } from './apiClient';
+import { ApiError } from './http/apiError';
 
 vi.mock('./apiClient', () => ({
   apiClient: {
@@ -8,14 +9,6 @@ vi.mock('./apiClient', () => ({
     post: vi.fn(),
     patch: vi.fn(),
     download: vi.fn(),
-  },
-}));
-
-vi.mock('./storageService', () => ({
-  storageService: {
-    getConfig: vi.fn(() => ({ baseUrl: 'http://localhost:3000', apiKey: '' })),
-    getApiBaseUrl: vi.fn(() => 'http://localhost:3000'),
-    resetCache: vi.fn(),
   },
 }));
 
@@ -180,6 +173,19 @@ describe('formsService (v2 Stateless)', () => {
       });
     });
 
+    it('propaga intacto el ApiError 409 ENTRY_ALREADY_RESOLVED al re-sellar una entrada Write-Once', async () => {
+      vi.mocked(apiClient.patch).mockRejectedValueOnce(
+        new ApiError(409, 'ENTRY_ALREADY_RESOLVED', 'Entry already resolved')
+      );
+
+      await expect(
+        formsService.resolveEntry('entry-sealed', {
+          status: 'VALID',
+          resolutionPayload: { nota: 'segundo intento' },
+        })
+      ).rejects.toMatchObject({ status: 409, code: 'ENTRY_ALREADY_RESOLVED' });
+    });
+
     it('debe llamar a POST /api/v1/forms/entries/:id/dispatch', async () => {
       const dispatchResponse = {
         dispatched: true,
@@ -195,14 +201,7 @@ describe('formsService (v2 Stateless)', () => {
     });
   });
 
-  describe('getExportUrl, downloadExport & submitPublicEntry', () => {
-    it('debe generar la URL de exportación con parámetros correctos', () => {
-      const url = formsService.getExportUrl('f-1', 'xlsx', { month: '2026-03', status: 'VALID' });
-      expect(url).toBe(
-        'http://localhost:3000/api/v1/forms/f-1/export?format=xlsx&month=2026-03&status=VALID'
-      );
-    });
-
+  describe('downloadExport', () => {
     it('debe descargar exportación autenticada vía apiClient.download', async () => {
       const blob = new Blob(['a,b'], { type: 'text/csv' });
       vi.mocked(apiClient.download).mockResolvedValueOnce({
@@ -218,22 +217,6 @@ describe('formsService (v2 Stateless)', () => {
         'formulario-f-1.csv'
       );
       expect(res.filename).toBe('reporte.csv');
-    });
-
-    it('debe enviar la entrada pública a /api/v1/public/forms/:slug/entries con skipAuth', async () => {
-      vi.mocked(apiClient.post).mockResolvedValueOnce({
-        id: 'pub-1',
-        status: 'NEW',
-        createdAt: '2026-03-01',
-      });
-
-      const res = await formsService.submitPublicEntry('reclamos', { detalle: 'Consulta' });
-      expect(res.id).toBe('pub-1');
-      expect(apiClient.post).toHaveBeenCalledWith(
-        '/api/v1/public/forms/reclamos/entries',
-        { detalle: 'Consulta' },
-        { skipAuth: true }
-      );
     });
   });
 });
