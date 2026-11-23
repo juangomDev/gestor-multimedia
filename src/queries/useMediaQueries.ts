@@ -7,10 +7,11 @@ import {
 } from '@tanstack/react-query';
 import { imagesService, type FetchImagesOptions } from '../services/imagesService';
 import { tablesService, type FetchTablesOptions } from '../services/tablesService';
+import { hasActiveTableQueryFilters } from '../services/tables/tableQueryUrl';
 import { pdfsService, type FetchPdfsOptions } from '../services/pdfsService';
 import { foldersService } from '../services/foldersService';
 import { bulkService } from '../services/bulkService';
-import type { MetadataCard } from '../types/api';
+import type { MetadataCard, TableDataQueryOptions } from '../types/api';
 import type { PdfMetadataCard } from '../types/media';
 import { queryKeys } from './queryKeys';
 
@@ -49,16 +50,22 @@ export function useTablesQuery(options: FetchTablesOptions = {}, enabled: boolea
 }
 
 /**
- * Consulta filas paginadas y metadatos ricos de una tabla para Data Studio (`GET /t/:shortCode`).
+ * Consulta filas paginadas, filtradas dinámicamente (`?search=`, `?select=`, `?col=val`, `?father=null`)
+ * y metadatos ricos de una tabla para Data Studio (`GET /t/:shortCode`).
  */
 export function useTableDataQuery(
   shortCode: string | null | undefined,
   page: number = 1,
-  limit: number = 50
+  limit: number = 50,
+  filterOptions?: Omit<TableDataQueryOptions, 'page' | 'limit'>
 ) {
+  const hasFilters = hasActiveTableQueryFilters(filterOptions);
   return useQuery({
-    queryKey: queryKeys.tables.data(shortCode || '', page, limit),
-    queryFn: () => tablesService.fetchTableDetails(shortCode!, page, limit),
+    queryKey: queryKeys.tables.data(shortCode || '', page, limit, filterOptions),
+    queryFn: () =>
+      hasFilters
+        ? tablesService.fetchTableDetails(shortCode!, page, limit, filterOptions)
+        : tablesService.fetchTableDetails(shortCode!, page, limit),
     placeholderData: keepPreviousData,
     enabled: Boolean(shortCode),
   });
@@ -97,8 +104,7 @@ export function useUploadImageMutation() {
   return useMutation({
     mutationFn: ({ file, folderId }: { file: File; folderId?: string | null }) =>
       imagesService.uploadImage(file, folderId),
-    onSuccess: () =>
-      invalidateMany(qc, [queryKeys.images.all, queryKeys.folders.all, queryKeys.storageStats.all]),
+    onSuccess: () => invalidateMany(qc, [queryKeys.images.all, queryKeys.folders.all, queryKeys.storageStats.all]),
   });
 }
 
@@ -126,8 +132,7 @@ export function useDeleteImageMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => imagesService.deleteImage(id),
-    onSuccess: () =>
-      invalidateMany(qc, [queryKeys.images.all, queryKeys.folders.all, queryKeys.storageStats.all]),
+    onSuccess: () => invalidateMany(qc, [queryKeys.images.all, queryKeys.folders.all, queryKeys.storageStats.all]),
   });
 }
 
@@ -147,8 +152,7 @@ export function useUploadTableMutation() {
   return useMutation({
     mutationFn: ({ file, folderId }: { file: File; folderId?: string | null }) =>
       tablesService.uploadTable(file, folderId),
-    onSuccess: () =>
-      invalidateMany(qc, [queryKeys.tables.all, queryKeys.folders.all, queryKeys.storageStats.all]),
+    onSuccess: () => invalidateMany(qc, [queryKeys.tables.all, queryKeys.folders.all, queryKeys.storageStats.all]),
   });
 }
 
@@ -156,8 +160,7 @@ export function useUploadTableMutation() {
 export function useRenameTableMutation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, tableName }: { id: string; tableName: string }) =>
-      tablesService.renameTable(id, tableName),
+    mutationFn: ({ id, tableName }: { id: string; tableName: string }) => tablesService.renameTable(id, tableName),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.tables.all }),
   });
 }
@@ -186,8 +189,7 @@ export function useDeleteTableMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => tablesService.deleteTable(id),
-    onSuccess: () =>
-      invalidateMany(qc, [queryKeys.tables.all, queryKeys.folders.all, queryKeys.storageStats.all]),
+    onSuccess: () => invalidateMany(qc, [queryKeys.tables.all, queryKeys.folders.all, queryKeys.storageStats.all]),
   });
 }
 
@@ -207,8 +209,7 @@ export function useUploadPdfMutation() {
   return useMutation({
     mutationFn: ({ file, folderId }: { file: File; folderId?: string | null }) =>
       pdfsService.uploadPdf(file, folderId),
-    onSuccess: () =>
-      invalidateMany(qc, [queryKeys.pdfs.all, queryKeys.folders.all, queryKeys.storageStats.all]),
+    onSuccess: () => invalidateMany(qc, [queryKeys.pdfs.all, queryKeys.folders.all, queryKeys.storageStats.all]),
   });
 }
 
@@ -216,8 +217,7 @@ export function useUploadPdfMutation() {
 export function useRenamePdfMutation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, originalName }: { id: string; originalName: string }) =>
-      pdfsService.renamePdf(id, originalName),
+    mutationFn: ({ id, originalName }: { id: string; originalName: string }) => pdfsService.renamePdf(id, originalName),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.pdfs.all }),
   });
 }
@@ -246,8 +246,7 @@ export function useDeletePdfMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => pdfsService.deletePdf(id),
-    onSuccess: () =>
-      invalidateMany(qc, [queryKeys.pdfs.all, queryKeys.folders.all, queryKeys.storageStats.all]),
+    onSuccess: () => invalidateMany(qc, [queryKeys.pdfs.all, queryKeys.folders.all, queryKeys.storageStats.all]),
   });
 }
 
@@ -266,8 +265,7 @@ export function useBulkDeleteImagesMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (ids: string[]) => bulkService.bulkDeleteImages(ids),
-    onSuccess: () =>
-      invalidateMany(qc, [queryKeys.images.all, queryKeys.folders.all, queryKeys.storageStats.all]),
+    onSuccess: () => invalidateMany(qc, [queryKeys.images.all, queryKeys.folders.all, queryKeys.storageStats.all]),
   });
 }
 
@@ -286,8 +284,7 @@ export function useBulkDeleteTablesMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (ids: string[]) => bulkService.bulkDeleteTables(ids),
-    onSuccess: () =>
-      invalidateMany(qc, [queryKeys.tables.all, queryKeys.folders.all, queryKeys.storageStats.all]),
+    onSuccess: () => invalidateMany(qc, [queryKeys.tables.all, queryKeys.folders.all, queryKeys.storageStats.all]),
   });
 }
 

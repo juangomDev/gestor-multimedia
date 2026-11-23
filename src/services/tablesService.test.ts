@@ -216,4 +216,53 @@ describe('tablesService (v2 — .csv/.xlsx/.json, Formato Rico, MetadataCard y M
     expect(deleteSpy).toHaveBeenCalledWith('/api/v1/tables/tbl-123');
     await expect(tablesService.deleteTable('tbl-123')).rejects.toThrow('No existe');
   });
+
+  it('soporta filtrado dinámico en GET /t/:short_code (?father=15, ?father=null, ?select=, ?search= y ?format=rows)', async () => {
+    storageService.setApiBaseUrl('http://localhost:3000');
+    const getSpy = vi
+      .spyOn(apiClient, 'get')
+      .mockResolvedValueOnce({
+        id: 'tbl-dpt',
+        shortCode: '12cRDnYduz',
+        tableName: 'dpt_venezuela.json',
+        columns: ['id', 'name', 'code'],
+        data: [{ id: 1503, name: 'Sucre', code: '1503' }],
+        meta: { page: 1, limit: 50, total: 1, totalPages: 1, hasNext: false },
+      })
+      .mockResolvedValueOnce([
+        { id: 15, name: 'Miranda', father: null },
+        { id: 24, name: 'Zulia', father: null },
+      ]);
+
+    const filtered = await tablesService.fetchTableDetails('12cRDnYduz', 1, 50, {
+      search: 'sucre',
+      select: ['id', 'name', 'code'],
+      filters: { father: 15, Estado: 'Miranda,Zulia' },
+    });
+    expect(getSpy).toHaveBeenNthCalledWith(
+      1,
+      '/t/12cRDnYduz?page=1&limit=50&search=sucre&select=id%2Cname%2Ccode&father=15&Estado=Miranda%2CZulia',
+      { skipAuth: true }
+    );
+    expect(filtered.data).toHaveLength(1);
+
+    const rootRows = await tablesService.queryTableRows('12cRDnYduz', {
+      filters: { father: null },
+      select: 'id,name',
+    });
+    expect(getSpy).toHaveBeenNthCalledWith(
+      2,
+      '/t/12cRDnYduz?select=id%2Cname&father=null&format=rows',
+      { skipAuth: true }
+    );
+    expect(rootRows).toHaveLength(2);
+
+    expect(
+      tablesService.getTableQueryUrl('12cRDnYduz', {
+        filters: { father_id: '15' },
+        select: ['id', 'name'],
+        format: 'rows',
+      })
+    ).toBe('http://localhost:3000/t/12cRDnYduz?select=id%2Cname&father_id=15&format=rows');
+  });
 });

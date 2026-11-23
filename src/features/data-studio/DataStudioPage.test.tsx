@@ -172,4 +172,75 @@ describe('DataStudioPage, DataGrid y TableMetadataDialog (Fase 5.2)', () => {
       expect(hotSwapSpy).toHaveBeenCalledWith('tbl-uuid-1', jsonFile);
     });
   });
+
+  it('ejecuta filtrado dinámico server-side (?father=null, drill-down ?father=15, ?select= y URL ?format=rows)', async () => {
+    const hierarchyFixture: PaginatedTableResponse = {
+      id: 'tbl-dpt-1',
+      shortCode: 'tbl01',
+      tableName: 'dpt-venezuela.json',
+      columns: ['id', 'name', 'father'],
+      metadataCard: {
+        title: 'División Político Territorial',
+        columnsMeta: { father: 'father_id' },
+      },
+      data: [
+        { id: 15, name: 'Miranda', father: null },
+        { id: 16, name: 'Nueva Esparta', father: null },
+      ],
+      meta: { page: 1, limit: 50, total: 2, totalPages: 1, hasNext: false },
+    };
+
+    const fetchSpy = vi
+      .spyOn(tablesService, 'fetchTableDetails')
+      .mockResolvedValue(hierarchyFixture);
+
+    renderDataStudio();
+    expect(await screen.findByText('dpt-venezuela.json')).toBeInTheDocument();
+
+    // 1. Filtrar solo raíces (?father=null)
+    fireEvent.click(screen.getByTestId('hierarchy-roots-btn'));
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'tbl01',
+        1,
+        50,
+        expect.objectContaining({ filters: { father: 'null' } })
+      );
+    });
+    expect(screen.getByTestId('table-live-api-url')).toHaveTextContent(
+      'http://localhost:3000/t/tbl01?father=null&format=rows'
+    );
+
+    // 2. Drill-down hacia los hijos de Miranda (#15) (?father=15)
+    fireEvent.click(screen.getByTestId('drilldown-row-0'));
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'tbl01',
+        1,
+        50,
+        expect.objectContaining({ filters: { father: '15' } })
+      );
+    });
+    expect(screen.getByTestId('hierarchy-breadcrumb')).toHaveTextContent('Miranda (#15)');
+
+    // 3. Proyección de columnas (?select=id,name)
+    fireEvent.click(screen.getByTestId('toggle-select-columns-btn'));
+    fireEvent.click(screen.getByTestId('select-col-chip-id'));
+    fireEvent.click(screen.getByTestId('select-col-chip-name'));
+
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'tbl01',
+        1,
+        50,
+        expect.objectContaining({
+          filters: { father: '15' },
+          select: ['id', 'name'],
+        })
+      );
+    });
+    expect(screen.getByTestId('table-live-api-url')).toHaveTextContent(
+      'http://localhost:3000/t/tbl01?select=id%2Cname&father=15&format=rows'
+    );
+  });
 });

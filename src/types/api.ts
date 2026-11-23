@@ -39,6 +39,26 @@ export interface TableCellStyle {
 }
 
 /**
+ * Opciones de consulta y filtrado dinámico server-side para `GET /t/:short_code`.
+ */
+export interface TableDataQueryOptions {
+  /** Página solicitada (1-indexed). */
+  page?: number;
+  /** Cantidad de registros por página (1..500). */
+  limit?: number;
+  /** Búsqueda parcial de texto libre sin acentos en cualquier columna (`?search=`). */
+  search?: string;
+  /** Lista de columnas a proyectar separadas por coma o arreglo (`?select=id,name,code`). */
+  select?: string | string[];
+  /** Formato de respuesta (`json` paginado con metadatos o `rows` arreglo plano `[{...}]`). */
+  format?: 'json' | 'rows';
+  /** Si es `true`, solicita `cellStyles`, `merges` y `headers` multinivel de Excel. */
+  includeStyles?: boolean;
+  /** Filtros dinámicos por columna o alias de `columnsMeta` (ej. `{ father: '15' }`, `{ father: 'null' }`, `{ Estado: 'Miranda,Zulia' }`). */
+  filters?: Record<string, string | number | null | undefined>;
+}
+
+/**
  * Estructura paginada devuelta al consultar registros y formato rico de un dataset (/t/:short_code).
  */
 export interface PaginatedTableResponse {

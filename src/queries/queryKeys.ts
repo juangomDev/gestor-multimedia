@@ -1,6 +1,8 @@
 import type { FolderCategory, MediaCategory } from '../types/media';
+import type { TableDataQueryOptions } from '../types/api';
 import type { FetchImagesOptions } from '../services/imagesService';
 import type { FetchTablesOptions } from '../services/tablesService';
+import { hasActiveTableQueryFilters } from '../services/tables/tableQueryUrl';
 import type { FetchPdfsOptions } from '../services/pdfsService';
 import type { FetchFormsOptions, ListEntriesOptions } from '../types/forms';
 import type { FetchNotificationsParams } from '../services/notificationsService';
@@ -36,8 +38,15 @@ export const queryKeys = {
   tables: {
     all: ['tables'] as const,
     list: (options: FetchTablesOptions = {}) => ['tables', 'list', options] as const,
-    data: (shortCode: string, page: number = 1, limit: number = 50) =>
-      ['tables', 'data', shortCode, page, limit] as const,
+    data: (
+      shortCode: string,
+      page: number = 1,
+      limit: number = 50,
+      filterOptions?: Omit<TableDataQueryOptions, 'page' | 'limit'>
+    ) =>
+      hasActiveTableQueryFilters(filterOptions)
+        ? (['tables', 'data', shortCode, page, limit, filterOptions] as const)
+        : (['tables', 'data', shortCode, page, limit] as const),
   },
   pdfs: {
     all: ['pdfs'] as const,

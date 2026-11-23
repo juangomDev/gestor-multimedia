@@ -91,6 +91,69 @@ export function classifySemanticStatus(value: unknown): 'ok' | 'warn' | 'danger'
 }
 
 /**
+ * Configuración detectada para navegación jerárquica Padre/Hijo (`?father=<id>` / `?father=null`).
+ */
+export interface FatherHierarchyConfig {
+  /** Nombre real de la columna padre en las filas (ej. `father`). */
+  fatherColumn: string;
+  /** Alias opcional configurado en `columnsMeta` (ej. `father_id`). */
+  fatherAlias?: string;
+  /** Columna identificadora del registro padre (ej. `id`). */
+  idColumn: string;
+  /** Columna descriptiva para mostrar en el breadcrumb (ej. `name` o `nombre`). */
+  labelColumn: string;
+}
+
+/**
+ * Paso dentro del breadcrumb de drill-down jerárquico Padre/Hijo.
+ */
+export interface HierarchyCrumb {
+  idValue: string;
+  label: string;
+}
+
+/**
+ * Detecta si un dataset posee estructura jerárquica Padre/Hijo (`father` / `father_id`)
+ * inspeccionando tanto las columnas reales como los alias de `columnsMeta`.
+ */
+export function resolveFatherHierarchyConfig(
+  columns: string[],
+  columnsMeta?: Record<string, string>
+): FatherHierarchyConfig | null {
+  if (columns.length === 0) return null;
+
+  const directFather = columns.find((col) =>
+    /^(father|father_id|parent|parent_id)$/i.test(col.trim())
+  );
+
+  let fatherColumn = directFather || '';
+  let fatherAlias: string | undefined;
+
+  if (columnsMeta) {
+    for (const [col, metaVal] of Object.entries(columnsMeta)) {
+      const cleanVal = (metaVal || '').trim();
+      if (!fatherColumn && /^(father|father_id|parent|parent_id)$/i.test(cleanVal)) {
+        fatherColumn = col;
+      }
+      if (col === fatherColumn && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(cleanVal) && cleanVal !== col) {
+        fatherAlias = cleanVal;
+      }
+    }
+  }
+
+  if (!fatherColumn) return null;
+
+  const idColumn =
+    columns.find((col) => /^(id|code|codigo|cod)$/i.test(col.trim())) || columns[0];
+  const labelColumn =
+    columns.find((col) => /^(name|nombre|title|titulo|estado|municipio|parroquia)$/i.test(col.trim())) ||
+    columns.find((col) => col !== idColumn && col !== fatherColumn) ||
+    idColumn;
+
+  return { fatherColumn, fatherAlias, idColumn, labelColumn };
+}
+
+/**
  * Filtra y ordena localmente las filas de la página activa del dataset.
  */
 export function filterAndSortRows(

@@ -1239,9 +1239,17 @@ export interface paths {
                     download?: "true" | "false";
                     /** @description Servir artefacto precalculado gzip directo */
                     raw?: "true" | "false";
+                    /** @description Si es rows, devuelve únicamente el array JSON de filas ([{...}, {...}]) sin metadatos adicionales */
+                    format?: "rows" | "json";
+                    /** @description Si es true, incluye cellStyles, merges y headers de Excel (false por defecto para evitar relleno) */
+                    includeStyles?: "true" | "false";
+                    /** @description Búsqueda parcial de texto libre (insensible a mayúsculas/acentos) en cualquier columna de la tabla */
+                    search?: string;
+                    /** @description Lista de columnas a devolver separadas por coma (ej. ?select=id,name,code) */
+                    select?: string;
                     /** @description Número de página a consultar */
                     page?: number;
-                    /** @description Registros por página (máx 500) */
+                    /** @description Registros por página */
                     limit?: number;
                 };
                 header?: never;
@@ -1253,39 +1261,6 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Datos paginados o stream de descarga de dataset */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            id?: string;
-                            shortCode?: string;
-                            tableName?: string;
-                            columns?: string[];
-                            headers?: string[][];
-                            merges?: string[];
-                            cellStyles?: {
-                                [key: string]: unknown;
-                            };
-                            data?: {
-                                [key: string]: unknown;
-                            }[];
-                            meta?: {
-                                page?: number;
-                                limit?: number;
-                                total?: number;
-                                totalPages?: number;
-                                hasNext?: boolean;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } & {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
                 /** @description Recurso no encontrado */
                 404: {
                     headers: {
@@ -5489,7 +5464,7 @@ export interface paths {
                             /** @description Indica si los datos existen en el sistema */
                             foundInSystem: boolean;
                             /**
-                             * @description Indica si la respuesta fue generada/sintetizada por la IA (true) o por el sistema determinista / circuit breaker (false)
+                             * @description Indica si la respuesta fue generada/sintetizada por la IA (true) o por el sistema determinista / fallback local / circuit breaker (false)
                              * @default false
                              */
                             usedAi: boolean;
@@ -5644,7 +5619,7 @@ export interface paths {
                             /** @description Indica si los datos existen en el sistema */
                             foundInSystem: boolean;
                             /**
-                             * @description Indica si la respuesta fue generada/sintetizada por la IA (true) o por el sistema determinista / circuit breaker (false)
+                             * @description Indica si la respuesta fue generada/sintetizada por la IA (true) o por el sistema determinista / fallback local / circuit breaker (false)
                              * @default false
                              */
                             usedAi: boolean;
@@ -7691,22 +7666,22 @@ export interface paths {
                                 folderId?: null | string;
                                 /**
                                  * Format: uri
-                                 * @example /p/pdf1234567
+                                 * @example http://localhost:8080/p/pdf1234567
                                  */
                                 url?: string;
                                 /**
                                  * Format: uri
-                                 * @example /p/pdf1234567?v=1740000000000
+                                 * @example http://localhost:8080/p/pdf1234567?v=1740000000000
                                  */
                                 urlWithVersion?: string;
                                 /**
                                  * Format: uri
-                                 * @example /p/pdf1234567?download=true
+                                 * @example http://localhost:8080/p/pdf1234567?download=true
                                  */
                                 downloadUrl?: string;
                                 /**
                                  * Format: uri
-                                 * @example /p/pdf1234567?format=text
+                                 * @example http://localhost:8080/p/pdf1234567?format=text
                                  */
                                 textUrl?: string;
                                 /** Format: date-time */
@@ -7788,22 +7763,22 @@ export interface paths {
                             folderId?: null | string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567
+                             * @example http://localhost:8080/p/pdf1234567
                              */
                             url?: string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567?v=1740000000000
+                             * @example http://localhost:8080/p/pdf1234567?v=1740000000000
                              */
                             urlWithVersion?: string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567?download=true
+                             * @example http://localhost:8080/p/pdf1234567?download=true
                              */
                             downloadUrl?: string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567?format=text
+                             * @example http://localhost:8080/p/pdf1234567?format=text
                              */
                             textUrl?: string;
                             /** Format: date-time */
@@ -8000,22 +7975,22 @@ export interface paths {
                             folderId?: null | string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567
+                             * @example http://localhost:8080/p/pdf1234567
                              */
                             url?: string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567?v=1740000000000
+                             * @example http://localhost:8080/p/pdf1234567?v=1740000000000
                              */
                             urlWithVersion?: string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567?download=true
+                             * @example http://localhost:8080/p/pdf1234567?download=true
                              */
                             downloadUrl?: string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567?format=text
+                             * @example http://localhost:8080/p/pdf1234567?format=text
                              */
                             textUrl?: string;
                             /** Format: date-time */
@@ -8336,22 +8311,22 @@ export interface paths {
                             folderId?: null | string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567
+                             * @example http://localhost:8080/p/pdf1234567
                              */
                             url?: string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567?v=1740000000000
+                             * @example http://localhost:8080/p/pdf1234567?v=1740000000000
                              */
                             urlWithVersion?: string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567?download=true
+                             * @example http://localhost:8080/p/pdf1234567?download=true
                              */
                             downloadUrl?: string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567?format=text
+                             * @example http://localhost:8080/p/pdf1234567?format=text
                              */
                             textUrl?: string;
                             /** Format: date-time */
@@ -8530,22 +8505,22 @@ export interface paths {
                             folderId?: null | string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567
+                             * @example http://localhost:8080/p/pdf1234567
                              */
                             url?: string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567?v=1740000000000
+                             * @example http://localhost:8080/p/pdf1234567?v=1740000000000
                              */
                             urlWithVersion?: string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567?download=true
+                             * @example http://localhost:8080/p/pdf1234567?download=true
                              */
                             downloadUrl?: string;
                             /**
                              * Format: uri
-                             * @example /p/pdf1234567?format=text
+                             * @example http://localhost:8080/p/pdf1234567?format=text
                              */
                             textUrl?: string;
                             /** Format: date-time */

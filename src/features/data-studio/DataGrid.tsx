@@ -44,6 +44,10 @@ export interface DataGridProps {
   onPageChange: (nextPage: number) => void;
   /** Cambia el tamaño de página server-side. */
   onLimitChange: (nextLimit: number) => void;
+  /** Habilita la acción por fila para filtrar hijos (`?father=<id>`) en tablas jerárquicas. */
+  canDrillDownChildren?: boolean;
+  /** Callback al pulsar "Ver hijos" sobre una fila padre. */
+  onDrillDownRow?: (row: Record<string, unknown>) => void;
 }
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
@@ -69,6 +73,8 @@ export const DataGrid: React.FC<DataGridProps> = React.memo(({
   onSort,
   onPageChange,
   onLimitChange,
+  canDrillDownChildren = false,
+  onDrillDownRow,
 }) => {
   const extraHeaderRows =
     headers && headers.length > 1 ? headers.slice(0, headers.length - 1) : [];
@@ -116,6 +122,9 @@ export const DataGrid: React.FC<DataGridProps> = React.memo(({
                         {grp.label}
                       </th>
                     ))}
+                    {canDrillDownChildren && onDrillDownRow ? (
+                      <th className={styles.thAction} aria-hidden="true" />
+                    ) : null}
                   </tr>
                 );
               })}
@@ -146,6 +155,9 @@ export const DataGrid: React.FC<DataGridProps> = React.memo(({
                     </th>
                   );
                 })}
+                {canDrillDownChildren && onDrillDownRow ? (
+                  <th className={styles.thAction}>Jerarquía</th>
+                ) : null}
               </tr>
             </thead>
 
@@ -178,6 +190,18 @@ export const DataGrid: React.FC<DataGridProps> = React.memo(({
                         </td>
                       );
                     })}
+                    {canDrillDownChildren && onDrillDownRow ? (
+                      <td className={styles.tdAction}>
+                        <button
+                          type="button"
+                          className={styles.drillDownBtn}
+                          onClick={() => onDrillDownRow(row)}
+                          data-testid={`drilldown-row-${rowIdx}`}
+                        >
+                          Ver hijos →
+                        </button>
+                      </td>
+                    ) : null}
                   </tr>
                 );
               })}

@@ -2,7 +2,12 @@ import { apiClient } from './apiClient';
 import { storageService } from './storageService';
 import { buildPublicAssetUrl } from '../utils/formatters';
 import type { TableItem } from '../types/media';
-import type { PaginatedTableResponse, MetadataCard, TableCellStyle } from '../types/api';
+import type {
+  PaginatedTableResponse,
+  MetadataCard,
+  TableCellStyle,
+  TableDataQueryOptions,
+} from '../types/api';
 import {
   type RawApiTable,
   ACCEPTED_TABLE_EXTENSIONS,
@@ -12,8 +17,9 @@ import {
   executeTableRename,
   executeTableHotSwap,
 } from './tables/tablesMutation';
+import { buildTableEndpointUrl } from './tables/tableQueryUrl';
 
-export { ACCEPTED_TABLE_EXTENSIONS, isSupportedTableFile, normalizeTableColumns };
+export { ACCEPTED_TABLE_EXTENSIONS, isSupportedTableFile, normalizeTableColumns, buildTableEndpointUrl };
 
 /**
  * Opciones de paginación y filtrado server-side para listar datasets tabulares.
@@ -96,21 +102,29 @@ export class TablesService {
   }
 
   /**
-   * Consulta registros paginados y metadatos de formato rico (`headers`, `merges`, `cellStyles`)
-   * de un dataset público (`GET /t/:short_code?page=&limit=`).
+   * Consulta registros paginados, filtrados dinámicamente (`?search=`, `?select=`, `?col=val`, `?father=null`)
+   * y metadatos de formato rico (`headers`, `merges`, `cellStyles`) de un dataset público (`GET /t/:short_code`).
    */
   async getTableData(
     shortCode: string,
-    page: number = 1,
-    limit: number = 50
+    pageOrOptions: number | TableDataQueryOptions = 1,
+    limit: number = 50,
+    extraOptions?: Omit<TableDataQueryOptions, 'page' | 'limit'>
   ): Promise<PaginatedTableResponse> {
-    const safePage = Math.max(1, page);
-    const safeLimit = Math.min(500, Math.max(1, limit));
+    const resolvedOptions: TableDataQueryOptions =
+      typeof pageOrOptions === 'object' && pageOrOptions !== null
+        ? pageOrOptions
+        : { ...extraOptions, page: pageOrOptions, limit };
 
-    const res = await apiClient.get<Record<string, unknown>>(
-      `/t/${encodeURIComponent(shortCode)}?page=${safePage}&limit=${safeLimit}`,
-      { skipAuth: true }
-    );
+    const safePage = Math.max(1, resolvedOptions.page ?? 1);
+    const safeLimit = Math.min(500, Math.max(1, resolvedOptions.limit ?? 50));
+    const endpoint = buildTableEndpointUrl(shortCode, {
+      ...resolvedOptions,
+      page: safePage,
+      limit: safeLimit,
+    });
+
+    const res = await apiClient.get<Record<string, unknown>>(endpoint, { skipAuth: true });
 
     const rawRows = Array.isArray(res.data)
       ? (res.data as Record<string, unknown>[])
@@ -163,16 +177,44 @@ export class TablesService {
    */
   async fetchTableDetails(
     shortCode: string,
-    page: number = 1,
-    limit: number = 50
+    pageOrOptions: number | TableDataQueryOptions = 1,
+    limit: number = 50,
+    extraOptions?: Omit<TableDataQueryOptions, 'page' | 'limit'>
   ): Promise<PaginatedTableResponse> {
-    const res = await this.getTableData(shortCode, page, limit);
+    const res = await this.getTableData(shortCode, pageOrOptions, limit, extraOptions);
     return {
       ...res,
       headers: res.headers || (res.columns ? [res.columns] : []),
       merges: res.merges || [],
       cellStyles: res.cellStyles || {},
     };
+  }
+
+  /**
+   * Consulta directamente el arreglo plano de filas filtradas (`GET /t/:short_code?...&format=rows`).
+   * Ideal para cascadas jerárquicas (`?father=15&format=rows`), raíces (`?father=null&format=rows`)
+   * o proyecciones ligeras (`?select=id,name,code&format=rows`).
+   */
+  async queryTableRows(
+    shortCode: string,
+    options: Omit<TableDataQueryOptions, 'format'> = {}
+  ): Promise<Record<string, unknown>[]> {
+    const endpoint = buildTableEndpointUrl(shortCode, { ...options, format: 'rows' });
+    const res = await apiClient.get< unknown>(endpoint, { skipAuth: true });
+    if (Array.isArray(res)) {
+      return res as Record<string, unknown>[];
+    }
+    const obj = res as { data?: unknown; rows?: unknown } | null;
+    if (obj && Array.isArray(obj.data)) return obj.data as Record<string, unknown>[];
+    if (obj && Array.isArray(obj.rows)) return obj.rows as Record<string, unknown>[];
+    return [];
+  }
+
+  /**
+   * Construye la URL pública absoluta de consulta dinámica (`GET /t/:short_code?...`) con los filtros activos.
+   */
+  getTableQueryUrl(shortCode: string, options: TableDataQueryOptions = {}): string {
+    return buildTableEndpointUrl(shortCode, options, storageService.getApiBaseUrl());
   }
 
   /**
