@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { FolderInput, Pencil, RefreshCw, Trash2 } from 'lucide-react';
+import { Download, FolderInput, Pencil, RefreshCw, Tags, Trash2 } from 'lucide-react';
+import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { ShortCodeChip } from '../../components/ui/ShortCodeChip';
 import { formatBytes, formatDate } from '../../utils/formatters';
@@ -14,6 +15,8 @@ export interface ImageInspectorSidebarProps {
   shortCode: string;
   /** URL canónica copiable de la imagen. */
   canonicalUrl: string;
+  /** URL directa de descarga forzada (`GET /i/:shortCode?download=true`). */
+  downloadUrl: string;
   /** Registro completo opcional de la imagen. */
   image?: ImageItem;
   /** Ancho medido o registrado en píxeles. */
@@ -28,17 +31,19 @@ export interface ImageInspectorSidebarProps {
   isDeleting: boolean;
   onOpenRename: () => void;
   onOpenHotSwap: () => void;
+  onOpenMetadata: () => void;
   onOpenMove: () => void;
   onConfirmDelete: () => Promise<void>;
 }
 
 /**
  * Panel lateral derecho del Inspector de Imágenes con `ShortCodeChip`, detalles técnicos
- * en `tabular-nums` y accesos a Renombrar, Hot-Swap, Mover y Eliminar con confirmación inline.
+ * en `tabular-nums`, resumen de ficha técnica, descarga original y acciones mutadoras.
  */
 export const ImageInspectorSidebar: React.FC<ImageInspectorSidebarProps> = ({
   shortCode,
   canonicalUrl,
+  downloadUrl,
   image,
   width,
   height,
@@ -47,10 +52,20 @@ export const ImageInspectorSidebar: React.FC<ImageInspectorSidebarProps> = ({
   isDeleting,
   onOpenRename,
   onOpenHotSwap,
+  onOpenMetadata,
   onOpenMove,
   onConfirmDelete,
 }) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const meta = image?.metadataCard ?? null;
+  const hasMetadataCard = Boolean(
+    meta &&
+      (meta.title ||
+        meta.alt ||
+        meta.description ||
+        (meta.tags && meta.tags.length > 0) ||
+        (meta.custom && Object.keys(meta.custom).length > 0))
+  );
 
   return (
     <aside className={styles.aside} aria-label="Metadatos de la imagen">
@@ -85,9 +100,61 @@ export const ImageInspectorSidebar: React.FC<ImageInspectorSidebarProps> = ({
         </dl>
       </div>
 
+      {hasMetadataCard && meta ? (
+        <div className={styles.asideSection} data-testid="image-metadata-summary">
+          <span className={styles.sectionLabel}>Ficha técnica</span>
+          <dl className={styles.metaList}>
+            {meta.title ? (
+              <div className={styles.metaRow}>
+                <dt className={styles.metaKey}>Título</dt>
+                <dd className={styles.metaValue}>{meta.title}</dd>
+              </div>
+            ) : null}
+            {meta.alt ? (
+              <div className={styles.metaRow}>
+                <dt className={styles.metaKey}>Alt</dt>
+                <dd className={styles.metaValue}>{meta.alt}</dd>
+              </div>
+            ) : null}
+          </dl>
+          {meta.description ? <p className={styles.metaCardDesc}>{meta.description}</p> : null}
+          {meta.tags && meta.tags.length > 0 ? (
+            <div className={styles.tagList}>
+              {meta.tags.map((tag) => (
+                <Badge key={tag} tone="accent" mono>
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <a
+        href={downloadUrl}
+        target="_blank"
+        rel="noreferrer"
+        className={styles.downloadLink}
+        data-testid="image-download-link"
+      >
+        <Button variant="secondary" size="sm" fullWidth icon={<Download size={14} />}>
+          Descargar original
+        </Button>
+      </a>
+
       {canMutate ? (
         <div className={styles.actionStack}>
           <span className={styles.sectionLabel}>Acciones</span>
+          <Button
+            variant="secondary"
+            size="sm"
+            fullWidth
+            icon={<Tags size={14} />}
+            onClick={onOpenMetadata}
+            data-testid="image-open-metadata-btn"
+          >
+            Ficha técnica
+          </Button>
           <Button
             variant="secondary"
             size="sm"

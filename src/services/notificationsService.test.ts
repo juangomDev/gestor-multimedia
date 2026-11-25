@@ -118,6 +118,14 @@ describe('notificationsService (Módulo 24 — Bandeja In-App, SSE y Suscripcion
     expect(apiClient.delete).toHaveBeenCalledWith('/api/v1/notifications/notif-99');
   });
 
+  it('debe limpiar notificaciones leídas en lote (DELETE /api/v1/notifications/read)', async () => {
+    vi.mocked(apiClient.delete).mockResolvedValueOnce({ deletedCount: 5 });
+
+    const res = await notificationsService.deleteReadNotifications();
+    expect(apiClient.delete).toHaveBeenCalledWith('/api/v1/notifications/read');
+    expect(res.deletedCount).toBe(5);
+  });
+
   it('debe suscribirse y actualizar preferencias de un formulario (POST /api/v1/forms/:id/subscribe)', async () => {
     vi.mocked(apiClient.post).mockResolvedValueOnce({
       data: {

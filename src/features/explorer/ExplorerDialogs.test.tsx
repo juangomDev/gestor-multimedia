@@ -13,6 +13,7 @@ import {
   canManageFolderEntity,
   canWriteFolder,
   getAllowedChildFolderTypes,
+  getValidMoveFolderParents,
 } from './explorerRules';
 import { foldersService } from '../../services/foldersService';
 import { usersService } from '../../services/usersService';
@@ -213,5 +214,53 @@ describe('Explorer Dialogs v2 (Fase 4.3 & 4.4 — Jerarquía 3 niveles, ai_manag
     });
     expect(onOpenChange).not.toHaveBeenCalledWith(false);
     expect(await screen.findByText(/Fallo al mover recurso/i)).toBeInTheDocument();
+  });
+
+  it('EditFolderDialog permite reubicar una carpeta (parentId) excluyendo ciclos, shared y destinos incompatibles', async () => {
+    const foldersWithExtra: FolderItem[] = [
+      ...ALL_FOLDERS,
+      { id: 'f-root-2', name: 'Archivo 2027', type: 'container', parentId: null, myPermission: 'ADMIN', createdAt: '' },
+      { id: 'f-tbl-child', name: 'Q1', type: 'table', parentId: 'f-tbl-1', myPermission: 'EDIT', createdAt: '' },
+    ];
+
+    const validTargets = getValidMoveFolderParents(
+      foldersWithExtra[1],
+      foldersWithExtra,
+      'MANAGER',
+      'u-mgr'
+    ).map((f) => f.id);
+    expect(validTargets).toContain('f-root');
+    expect(validTargets).toContain('f-root-2');
+    expect(validTargets).not.toContain('f-tbl-1');
+    expect(validTargets).not.toContain('f-tbl-child');
+    expect(validTargets).not.toContain('f-shared');
+    expect(validTargets).not.toContain('f-img-1');
+    expect(validTargets).not.toContain('f-tbl-ro');
+
+    const updateSpy = vi.spyOn(foldersService, 'updateFolder').mockResolvedValue({
+      ...foldersWithExtra[1],
+      parentId: 'f-root-2',
+    });
+
+    wrap(
+      <EditFolderDialog
+        folder={foldersWithExtra[1]}
+        allFolders={foldersWithExtra}
+        open={true}
+        onOpenChange={vi.fn()}
+      />
+    );
+
+    const parentSelect = screen.getByTestId('edit-folder-parent-select');
+    fireEvent.change(parentSelect, { target: { value: 'f-root-2' } });
+    fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/i }));
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith('f-tbl-1', {
+        name: 'Ventas',
+        isPrivate: false,
+        parentId: 'f-root-2',
+      });
+    });
   });
 });

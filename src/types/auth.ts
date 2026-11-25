@@ -23,6 +23,7 @@ export interface User extends Partial<Omit<ApiUser, 'id' | 'username' | 'role' |
  */
 export interface UserSession {
   token: string;
+  refreshToken?: string;
   user: {
     id: string;
     username: string;

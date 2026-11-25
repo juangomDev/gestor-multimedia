@@ -84,6 +84,25 @@ export class ChatService {
   }
 
   /**
+   * Obtiene preguntas sugeridas dinámicas respetando los permisos RBAC del usuario autenticado
+   * (`GET /api/v1/chat/suggestions`).
+   *
+   * @param folderId UUID opcional de carpeta para acotar las sugerencias.
+   * @returns Lista de preguntas sugeridas sobre tablas y PDFs accesibles al usuario.
+   */
+  async getInternalSuggestions(folderId?: string | null): Promise<string[]> {
+    const params = new URLSearchParams();
+    if (folderId && folderId.trim()) {
+      params.set('folderId', folderId.trim());
+    }
+    const qs = params.toString();
+    const endpoint = qs ? `/api/v1/chat/suggestions?${qs}` : '/api/v1/chat/suggestions';
+
+    const res = await apiClient.get<ApiChatSuggestionsResponse>(endpoint);
+    return Array.isArray(res?.suggestions) ? res.suggestions : [];
+  }
+
+  /**
    * Obtiene preguntas sugeridas dinámicas generadas a partir de recursos públicos
    * (`GET /api/v1/public/chat/suggestions`).
    *

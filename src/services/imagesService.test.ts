@@ -152,4 +152,47 @@ describe('imagesService (v2 — Subida, Listado, Variantes WebP, Rename, Hot-Swa
     expect(deleteSpy).toHaveBeenCalledWith('/api/v1/images/img-to-del');
     await expect(imagesService.deleteImage('img-to-del')).rejects.toThrow('Sin permisos');
   });
+
+  it('updateImageMetadata() llama a PATCH /api/v1/images/:id/metadata y getImageDownloadUrl() añade ?download=true', async () => {
+    storageService.setApiBaseUrl('http://localhost:3000');
+    expect(imagesService.getImageDownloadUrl('img77')).toBe(
+      'http://localhost:3000/i/img77?download=true'
+    );
+
+    const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValue({
+      image: {
+        id: 'img-77',
+        shortCode: 'img77',
+        originalName: 'portada.webp',
+        mimeType: 'image/webp',
+        sizeBytes: 2048,
+        metadataCard: {
+          title: 'Portada 2026',
+          alt: 'Fotografía editorial principal',
+          description: 'Uso aprobado en prensa',
+          tags: ['prensa', 'hero'],
+          custom: { fotografo: 'Ana Ruiz' },
+        },
+      },
+    });
+
+    const updated = await imagesService.updateImageMetadata('img-77', {
+      title: 'Portada 2026',
+      alt: 'Fotografía editorial principal',
+      description: 'Uso aprobado en prensa',
+      tags: ['prensa', 'hero'],
+      custom: { fotografo: 'Ana Ruiz' },
+    });
+
+    expect(patchSpy).toHaveBeenCalledWith('/api/v1/images/img-77/metadata', {
+      title: 'Portada 2026',
+      alt: 'Fotografía editorial principal',
+      description: 'Uso aprobado en prensa',
+      tags: ['prensa', 'hero'],
+      custom: { fotografo: 'Ana Ruiz' },
+    });
+    expect(updated.metadataCard?.title).toBe('Portada 2026');
+    expect(updated.metadataCard?.tags).toEqual(['prensa', 'hero']);
+    expect(updated.metadataCard?.custom?.fotografo).toBe('Ana Ruiz');
+  });
 });

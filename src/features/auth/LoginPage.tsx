@@ -18,6 +18,11 @@ import { useTheme } from '../../context/useTheme';
 import { useToast } from '../../context/useToast';
 import { useHealthQuery } from '../../queries/useAdminQueries';
 import { ApiError } from '../../services/apiClient';
+import {
+  getRememberedUsername,
+  getRememberMePreference,
+  setRememberMePreference,
+} from '../../services/auth/sessionKeepAliveStorage';
 import { RouteSkeleton } from '../shell/RouteSkeleton';
 import { ServerUrlPopover } from './ServerUrlPopover';
 import styles from './LoginPage.module.css';
@@ -79,8 +84,9 @@ export const LoginPage: React.FC = () => {
   const location = useLocation();
   const healthQuery = useHealthQuery(!isAuthenticated && !isCheckingSession);
 
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(() => getRememberedUsername());
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(() => getRememberMePreference());
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorState, setErrorState] = useState<LoginErrorState | null>(null);
@@ -112,6 +118,7 @@ export const LoginPage: React.FC = () => {
 
     setErrorState(null);
     setSubmitting(true);
+    setRememberMePreference(rememberMe);
 
     try {
       await login({ username: trimmedUser, password });
@@ -207,6 +214,19 @@ export const LoginPage: React.FC = () => {
                 </button>
               }
             />
+
+            <label className={styles.rememberRow} data-testid="remember-me-row">
+              <input
+                type="checkbox"
+                name="rememberMe"
+                className={styles.rememberCheckbox}
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={submitting}
+                data-testid="remember-me-checkbox"
+              />
+              <span className={styles.rememberTitle}>Recuérdame</span>
+            </label>
 
             <div className={styles.submitRow}>
               <Button

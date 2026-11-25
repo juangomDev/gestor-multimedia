@@ -69,6 +69,37 @@ describe('bulkService (v2 — Stateless HTTP)', () => {
     expect(report.successful).toEqual(['tbl-1']);
   });
 
+  it('bulkDeletePdfs calls POST /api/v1/pdfs/bulk-delete and returns report', async () => {
+    const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValue({
+      totalRequested: 2,
+      successful: ['pdf-1', 'pdf-2'],
+      failed: [],
+    });
+
+    const report = await bulkService.bulkDeletePdfs(['pdf-1', 'pdf-2']);
+
+    expect(postSpy).toHaveBeenCalledWith('/api/v1/pdfs/bulk-delete', {
+      ids: ['pdf-1', 'pdf-2'],
+    });
+    expect(report.successful).toEqual(['pdf-1', 'pdf-2']);
+  });
+
+  it('bulkMovePdfs calls POST /api/v1/pdfs/bulk-move with targetFolderId', async () => {
+    const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValue({
+      totalRequested: 1,
+      successful: ['pdf-1'],
+      failed: [],
+    });
+
+    const report = await bulkService.bulkMovePdfs(['pdf-1'], 'fld-target-pdfs');
+
+    expect(postSpy).toHaveBeenCalledWith('/api/v1/pdfs/bulk-move', {
+      ids: ['pdf-1'],
+      targetFolderId: 'fld-target-pdfs',
+    });
+    expect(report.successful).toEqual(['pdf-1']);
+  });
+
   it('returns empty report without network request when empty list is passed', async () => {
     const postSpy = vi.spyOn(apiClient, 'post');
     const report = await bulkService.bulkDeleteImages([]);

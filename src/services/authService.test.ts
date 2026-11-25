@@ -1,13 +1,25 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { authService } from './authService';
 import { apiClient } from './apiClient';
-import { storageService } from './storageService';
+import { storageService, STORAGE_KEYS } from './storageService';
+import {
+  getRememberedUsername,
+  readKeepAliveCredentials,
+  saveKeepAliveCredentials,
+  setRememberMePreference,
+} from './auth/sessionKeepAliveStorage';
 
-describe('authService (v2 — Autenticación real, perfil /me, clave y logout)', () => {
+describe('authService (v2 — Autenticación real, perfil /me, clave, keep-alive y logout)', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     storageService.resetCache();
     vi.restoreAllMocks();
+    storageService.saveConfig({ baseUrl: 'http://localhost:3000' });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('login() persiste sesión normalizando token o accessToken con skipAuth y credentials include', async () => {
@@ -119,5 +131,100 @@ describe('authService (v2 — Autenticación real, perfil /me, clave y logout)',
     expect(authService.getSession()).toBeNull();
     expect(authService.isAuthenticated()).toBe(false);
     expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('respeta "Mantener sesión iniciada" (localStorage vs sessionStorage) y limpia credenciales al hacer logout()', async () => {
+    vi.spyOn(apiClient, 'post')
+      .mockResolvedValueOnce({
+        token: 'jwt-keep-alive',
+        user: { id: 'u1', username: 'juan', role: 'ADMIN' as const },
+      })
+      .mockResolvedValueOnce({
+        message: 'Logged out',
+      })
+      .mockResolvedValueOnce({
+        token: 'jwt-tab-only',
+        user: { id: 'u2', username: 'temporal', role: 'COLLABORATOR' as const },
+      });
+
+    // 1. Con rememberMe = true (por defecto): guarda en localStorage y conserva respaldo keep-alive
+    setRememberMePreference(true);
+    await authService.login({ username: 'juan', password: 'MiClaveSegura!' });
+    expect(getRememberedUsername()).toBe('juan');
+    expect(readKeepAliveCredentials()).toEqual({ username: 'juan', password: 'MiClaveSegura!' });
+    expect(localStorage.getItem(STORAGE_KEYS.AUTH_SESSION)).not.toBeNull();
+    expect(sessionStorage.getItem(STORAGE_KEYS.AUTH_SESSION)).toBeNull();
+
+    // Al cerrar sesión manualmente, destruye tanto la sesión como el respaldo keep-alive
+    await authService.logout();
+    expect(readKeepAliveCredentials()).toBeNull();
+    expect(authService.getSession()).toBeNull();
+
+    // 2. Con rememberMe = false: guarda la sesión solo en sessionStorage y no guarda keep-alive
+    setRememberMePreference(false);
+    await authService.login({ username: 'temporal', password: 'ClaveTemp!' });
+    expect(readKeepAliveCredentials()).toBeNull();
+    expect(localStorage.getItem(STORAGE_KEYS.AUTH_SESSION)).toBeNull();
+    expect(sessionStorage.getItem(STORAGE_KEYS.AUTH_SESSION)).not.toBeNull();
+    expect(authService.getSession()?.user.username).toBe('temporal');
+  });
+
+  it('re-autentica silenciosamente contra /api/v1/auth/login cuando /auth/refresh falla a los 15 min por cookie bloqueada', async () => {
+    setRememberMePreference(true);
+    saveKeepAliveCredentials({ username: 'juan', password: 'MiClaveSegura!' });
+    storageService.saveSession({
+      token: 'expired.15min.token',
+      user: { id: 'u1', username: 'juan', role: 'ADMIN' },
+    });
+
+    let foldersAttempt = 0;
+    const fetchMock = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url.includes('/api/v1/folders')) {
+        foldersAttempt += 1;
+        const authHeader = (init?.headers as Headers | undefined)?.get('Authorization');
+        if (foldersAttempt === 1 || authHeader !== 'Bearer silent.renewed.jwt') {
+          return {
+            ok: false,
+            status: 401,
+            statusText: 'Unauthorized',
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ code: 'UNAUTHORIZED', detail: 'Access token expired' }),
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({ folders: [{ id: 'f-1', name: 'General' }] }),
+        };
+      }
+      if (url.includes('/api/v1/auth/refresh')) {
+        // Simula cookie HttpOnly bloqueada en HTTP/Brave -> 401
+        return {
+          ok: false,
+          status: 401,
+          statusText: 'Unauthorized',
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({ code: 'NO_REFRESH_COOKIE', detail: 'Missing refresh token' }),
+        };
+      }
+      if (url.includes('/api/v1/auth/login')) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({
+            token: 'silent.renewed.jwt',
+            user: { id: 'u1', username: 'juan', role: 'ADMIN' },
+          }),
+        };
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await apiClient.get<{ folders: Array<{ id: string }> }>('/api/v1/folders');
+    expect(res.folders).toHaveLength(1);
+    expect(storageService.getToken()).toBe('silent.renewed.jwt');
   });
 });

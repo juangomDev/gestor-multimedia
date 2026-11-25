@@ -9,6 +9,7 @@ import { imagesService } from '../../services/imagesService';
 import { MoveResourceDialog } from '../explorer/MoveResourceDialog';
 import { RenameAssetDialog } from './RenameAssetDialog';
 import { HotSwapAssetDialog } from './HotSwapAssetDialog';
+import { ImageMetadataDialog } from './ImageMetadataDialog';
 import { ImageInspectorSidebar } from './ImageInspectorSidebar';
 import type { ImageItem } from '../../types/media';
 import styles from './ImageInspectorDialog.module.css';
@@ -63,6 +64,7 @@ export const ImageInspectorDialog: React.FC<ImageInspectorDialogProps> = ({
 
   const [renameOpen, setRenameOpen] = useState(false);
   const [hotSwapOpen, setHotSwapOpen] = useState(false);
+  const [metadataOpen, setMetadataOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
 
   if (identityKey !== trackedCode) {
@@ -71,12 +73,14 @@ export const ImageInspectorDialog: React.FC<ImageInspectorDialogProps> = ({
     setZoomMode('fit');
     setLoadFailed(false);
     setMeasuredDims(null);
+    setMetadataOpen(false);
   }
 
   const activeCode = localImage?.shortCode || shortCode;
   const activeTitle = localImage?.originalName || title || `Imagen · ${activeCode}`;
   const activeVersionUrl = localImage?.urlWithVersion || urlWithVersion;
   const canonicalUrl = imagesService.getImageUrl(activeCode);
+  const downloadUrl = imagesService.getImageDownloadUrl(activeCode);
   const displayUrl = imagesService.getImageVariantUrl(
     { shortCode: activeCode, urlWithVersion: activeVersionUrl, updatedAt: localImage?.updatedAt },
     'original'
@@ -186,6 +190,7 @@ export const ImageInspectorDialog: React.FC<ImageInspectorDialogProps> = ({
           <ImageInspectorSidebar
             shortCode={activeCode}
             canonicalUrl={canonicalUrl}
+            downloadUrl={downloadUrl}
             image={localImage}
             width={width}
             height={height}
@@ -194,11 +199,23 @@ export const ImageInspectorDialog: React.FC<ImageInspectorDialogProps> = ({
             isDeleting={deleteImage.isPending}
             onOpenRename={() => setRenameOpen(true)}
             onOpenHotSwap={() => setHotSwapOpen(true)}
+            onOpenMetadata={() => setMetadataOpen(true)}
             onOpenMove={() => setMoveOpen(true)}
             onConfirmDelete={handleDelete}
           />
         </div>
       </Dialog>
+
+      {localImage && metadataOpen ? (
+        <ImageMetadataDialog
+          open={metadataOpen}
+          onOpenChange={setMetadataOpen}
+          imageId={localImage.id}
+          imageName={localImage.originalName}
+          initialMetadata={localImage.metadataCard}
+          onSaved={(updated) => setLocalImage({ ...localImage, ...updated })}
+        />
+      ) : null}
 
       {localImage && renameOpen ? (
         <RenameAssetDialog

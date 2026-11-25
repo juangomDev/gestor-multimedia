@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '../../components/ui/Tabs';
 import { useToast } from '../../context/useToast';
 import {
   useDeleteNotificationMutation,
+  useDeleteReadNotificationsMutation,
   useMarkAllNotificationsReadMutation,
   useMarkNotificationReadMutation,
   useNotificationsListQuery,
@@ -66,8 +67,24 @@ export const NotificationsPopover: React.FC<NotificationsPopoverProps> = ({
   const markRead = useMarkNotificationReadMutation();
   const markAllRead = useMarkAllNotificationsReadMutation();
   const deleteNotification = useDeleteNotificationMutation();
+  const deleteRead = useDeleteReadNotificationsMutation();
 
   const items = listQuery.data?.data ?? [];
+  const hasReadItems = tab === 'all' && items.some((n) => n.read);
+
+  const handleClearRead = async () => {
+    try {
+      const { deletedCount } = await deleteRead.mutateAsync();
+      showToast(
+        deletedCount === 1
+          ? 'Se eliminó 1 notificación leída.'
+          : `Se eliminaron ${deletedCount} notificaciones leídas.`,
+        'info'
+      );
+    } catch {
+      showToast('No se pudieron limpiar las notificaciones leídas.', 'error');
+    }
+  };
 
   const handleOpenFormNotification = async (item: NotificationItem) => {
     const formId = item.resourceId;
@@ -137,6 +154,18 @@ export const NotificationsPopover: React.FC<NotificationsPopoverProps> = ({
             <TabsTrigger value="unread">No leídas</TabsTrigger>
           </TabsList>
         </Tabs>
+        {hasReadItems ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Trash2 size={13} />}
+            onClick={() => void handleClearRead()}
+            loading={deleteRead.isPending}
+            data-testid="notifications-clear-read-btn"
+          >
+            Limpiar leídas
+          </Button>
+        ) : null}
       </div>
 
       <div className={styles.list}>

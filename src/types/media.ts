@@ -11,9 +11,20 @@ export type MediaCategory = 'image' | 'table' | 'pdf';
 export type FolderCategory = MediaCategory | 'container';
 
 /**
+ * Ficha técnica semántica para imágenes (`PATCH /api/v1/images/:id/metadata`).
+ */
+export interface ImageMetadataCard {
+  title?: string;
+  alt?: string;
+  description?: string;
+  tags?: string[];
+  custom?: Record<string, string>;
+}
+
+/**
  * Representación de una imagen en el catálogo frontend, extendiendo el contrato OpenAPI (`ApiImage`).
  */
-export interface ImageItem extends Partial<Omit<ApiImage, 'id' | 'shortCode' | 'originalName' | 'mimeType' | 'sizeBytes' | 'url' | 'createdAt'>> {
+export interface ImageItem extends Partial<Omit<ApiImage, 'id' | 'shortCode' | 'originalName' | 'mimeType' | 'sizeBytes' | 'url' | 'createdAt' | 'metadataCard'>> {
   id: string;
   shortCode: string;
   originalName: string;
@@ -23,6 +34,7 @@ export interface ImageItem extends Partial<Omit<ApiImage, 'id' | 'shortCode' | '
   urlWithVersion?: string;
   width?: number | null;
   height?: number | null;
+  metadataCard?: ImageMetadataCard | null;
   createdAt: string;
   updatedAt?: string;
   folderId?: string | null;

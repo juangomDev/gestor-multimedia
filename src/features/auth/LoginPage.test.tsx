@@ -10,6 +10,10 @@ import { foldersService } from '../../services/foldersService';
 import { notificationsService } from '../../services/notificationsService';
 import * as notificationsStream from '../../services/notificationsStream';
 import { storageService } from '../../services/storageService';
+import {
+  getRememberMePreference,
+  saveRememberedUsername,
+} from '../../services/auth/sessionKeepAliveStorage';
 import { ApiError } from '../../services/apiClient';
 
 function renderAtLogin() {
@@ -26,6 +30,7 @@ function renderAtLogin() {
 describe('LoginPage v2 (Fase 3.2 — Auth real, /health y Popover Servidor API)', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     storageService.resetCache();
     vi.restoreAllMocks();
 
@@ -135,5 +140,36 @@ describe('LoginPage v2 (Fase 3.2 — Auth real, /health y Popover Servidor API)'
       expect(storageService.getApiBaseUrl()).toBe('https://server-b.example.com');
       expect(queryClient.getQueryData(['folders', 'tree'])).toBeUndefined();
     });
+  });
+
+  it('pre-rellena el último usuario recordado y permite alternar "Mantener sesión iniciada"', async () => {
+    saveRememberedUsername('juan_editor', true);
+    const loginSpy = vi.spyOn(authService, 'login').mockResolvedValue({
+      token: 'jwt-tab-only',
+      user: { id: 'u-9', username: 'juan_editor', role: 'MANAGER', isActive: true },
+    });
+    vi.spyOn(authService, 'getMe').mockResolvedValue({
+      user: { id: 'u-9', username: 'juan_editor', role: 'MANAGER', isActive: true },
+    });
+
+    renderAtLogin();
+
+    const userInput = screen.getByLabelText(/^Usuario/i) as HTMLInputElement;
+    expect(userInput.value).toBe('juan_editor');
+
+    const rememberCheckbox = screen.getByTestId('remember-me-checkbox') as HTMLInputElement;
+    expect(rememberCheckbox.checked).toBe(true);
+
+    // Desmarcar "Mantener sesión iniciada" y enviar
+    fireEvent.click(rememberCheckbox);
+    expect(rememberCheckbox.checked).toBe(false);
+
+    fireEvent.change(screen.getByLabelText(/^Contraseña/i), { target: { value: 'Clave123!' } });
+    fireEvent.click(screen.getByRole('button', { name: /Entrar al espacio/i }));
+
+    await waitFor(() => {
+      expect(loginSpy).toHaveBeenCalledWith({ username: 'juan_editor', password: 'Clave123!' });
+    });
+    expect(getRememberMePreference()).toBe(false);
   });
 });

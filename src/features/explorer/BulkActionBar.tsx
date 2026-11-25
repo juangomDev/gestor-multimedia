@@ -6,19 +6,21 @@ import { Dialog } from '../../components/ui/Dialog';
 import { useToast } from '../../context/useToast';
 import {
   useBulkDeleteImagesMutation,
+  useBulkDeletePdfsMutation,
   useBulkDeleteTablesMutation,
   useBulkMoveImagesMutation,
+  useBulkMovePdfsMutation,
   useBulkMoveTablesMutation,
-} from '../../queries/useMediaQueries';
+} from '../../queries/useBulkMediaMutations';
 import { MoveResourceDialog } from './MoveResourceDialog';
-import type { BulkActionReport, FolderItem } from '../../types/media';
+import type { BulkActionReport, FolderItem, MediaCategory } from '../../types/media';
 import styles from './BulkActionBar.module.css';
 
 /**
- * Propiedades de la barra flotante de acciones en lote (`BulkActionBar`) para `IMAGE` y `TABLE`.
+ * Propiedades de la barra flotante de acciones en lote (`BulkActionBar`) para `IMAGE`, `TABLE` y `PDF`.
  */
 export interface BulkActionBarProps {
-  resourceKind: 'image' | 'table';
+  resourceKind: MediaCategory;
   selectedIds: string[];
   totalSelectableCount: number;
   allSelectableIds: string[];
@@ -29,7 +31,7 @@ export interface BulkActionBarProps {
 }
 
 /**
- * Barra flotante inferior para `bulk-move` y `bulk-delete` (hasta 50 IDs) en carpetas `IMAGE` y `TABLE`,
+ * Barra flotante inferior para `bulk-move` y `bulk-delete` (hasta 50 IDs) en carpetas `IMAGE`, `TABLE` y `PDF`,
  * con confirmación y reporte detallado de éxitos y fallos parciales devueltos por `monolith-backend`.
  */
 export const BulkActionBar: React.FC<BulkActionBarProps> = ({
@@ -51,14 +53,15 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
   const bulkMoveImages = useBulkMoveImagesMutation();
   const bulkDeleteTables = useBulkDeleteTablesMutation();
   const bulkMoveTables = useBulkMoveTablesMutation();
+  const bulkDeletePdfs = useBulkDeletePdfsMutation();
+  const bulkMovePdfs = useBulkMovePdfsMutation();
 
   if (selectedIds.length === 0 && !report) return null;
 
-  const isBusy =
-    bulkDeleteImages.isPending ||
-    bulkMoveImages.isPending ||
-    bulkDeleteTables.isPending ||
-    bulkMoveTables.isPending;
+  const isMoving = bulkMoveImages.isPending || bulkMoveTables.isPending || bulkMovePdfs.isPending;
+  const isDeleting =
+    bulkDeleteImages.isPending || bulkDeleteTables.isPending || bulkDeletePdfs.isPending;
+  const isBusy = isMoving || isDeleting;
 
   const handleBulkResult = (actionLabel: string, data: BulkActionReport) => {
     onClear();
@@ -78,7 +81,9 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
     const res =
       resourceKind === 'image'
         ? await bulkMoveImages.mutateAsync({ ids: selectedIds, targetFolderId })
-        : await bulkMoveTables.mutateAsync({ ids: selectedIds, targetFolderId });
+        : resourceKind === 'table'
+        ? await bulkMoveTables.mutateAsync({ ids: selectedIds, targetFolderId })
+        : await bulkMovePdfs.mutateAsync({ ids: selectedIds, targetFolderId });
     handleBulkResult('traslado en lote', res);
   };
 
@@ -87,7 +92,9 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
       const res =
         resourceKind === 'image'
           ? await bulkDeleteImages.mutateAsync(selectedIds)
-          : await bulkDeleteTables.mutateAsync(selectedIds);
+          : resourceKind === 'table'
+          ? await bulkDeleteTables.mutateAsync(selectedIds)
+          : await bulkDeletePdfs.mutateAsync(selectedIds);
       setConfirmDeleteOpen(false);
       handleBulkResult('eliminación en lote', res);
     } catch (err: unknown) {
@@ -167,7 +174,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
         resourceLabel={`${selectedIds.length} elemento(s)`}
         currentFolderId={currentFolderId}
         allFolders={allFolders}
-        loading={bulkMoveImages.isPending || bulkMoveTables.isPending}
+        loading={isMoving}
         onConfirmMove={handleBulkMove}
       />
 
@@ -189,7 +196,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
             <Button
               variant="danger"
               icon={<Trash2 size={14} />}
-              loading={bulkDeleteImages.isPending || bulkDeleteTables.isPending}
+              loading={isDeleting}
               onClick={() => void handleBulkDelete()}
             >
               Confirmar eliminación
@@ -199,7 +206,12 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
       >
         <p className={styles.countText}>
           Se solicitará la eliminación en lote de {selectedIds.length}{' '}
-          {resourceKind === 'image' ? 'imagen(es)' : 'tabla(s)'}.
+          {resourceKind === 'image'
+            ? 'imagen(es)'
+            : resourceKind === 'table'
+            ? 'tabla(s)'
+            : 'documento(s) PDF'}
+          .
         </p>
       </Dialog>
 

@@ -79,7 +79,8 @@ export const ExplorerPage: React.FC = () => {
   const supportsBulk = Boolean(
     folderId &&
       canEditCurrentFolder &&
-      (content.activeFolder?.type === 'image' || content.activeFolder?.type === 'table')
+      content.activeFolder &&
+      content.activeFolder.type !== 'container'
   );
 
   useEffect(() => {
@@ -222,9 +223,9 @@ export const ExplorerPage: React.FC = () => {
         />
       )}
 
-      {supportsBulk && folderId && content.activeFolder ? (
+      {supportsBulk && folderId && content.activeFolder && content.activeFolder.type !== 'container' ? (
         <BulkActionBar
-          resourceKind={content.activeFolder.type === 'table' ? 'table' : 'image'}
+          resourceKind={content.activeFolder.type}
           selectedIds={bulk.selectedIds}
           totalSelectableCount={content.selectableAssetIds.length}
           allSelectableIds={content.selectableAssetIds}

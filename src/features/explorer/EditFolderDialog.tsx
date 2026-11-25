@@ -1,12 +1,18 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { AlertTriangle, Save } from 'lucide-react';
 import { Dialog } from '../../components/ui/Dialog';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Switch } from '../../components/ui/Switch';
+import { useAuth } from '../../context/useAuth';
 import { useToast } from '../../context/useToast';
 import { useUpdateFolderMutation } from '../../queries/useFoldersQueries';
-import { isGeneralFolder, isSystemFolder } from './explorerRules';
+import { getFolderPathLabel } from '../../services/foldersService';
+import {
+  getValidMoveFolderParents,
+  isGeneralFolder,
+  isSystemFolder,
+} from './explorerRules';
 import type { FolderItem } from '../../types/media';
 import styles from './ExplorerDialogs.module.css';
 
@@ -15,26 +21,33 @@ import styles from './ExplorerDialogs.module.css';
  */
 export interface EditFolderDialogProps {
   folder: FolderItem | null;
+  /** Lista plana completa de carpetas para ofrecer reubicación jerárquica segura (`parentId`). */
+  allFolders?: FolderItem[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 /**
- * Diálogo para editar nombre y privacidad de una carpeta (`PATCH /api/v1/folders/:id`),
- * protegiendo bóvedas de sistema (`shared`) y bloqueando el renombrado de `General`.
+ * Diálogo para editar nombre, ubicación jerárquica (`parentId`) y privacidad de una carpeta
+ * (`PATCH /api/v1/folders/:id`), protegiendo bóvedas de sistema (`shared`) y `General`.
  */
 export const EditFolderDialog: React.FC<EditFolderDialogProps> = ({
   folder,
+  allFolders = [],
   open,
   onOpenChange,
 }) => {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const updateMutation = useUpdateFolderMutation();
 
   const [name, setName] = useState(folder?.name ?? '');
   const [isPrivate, setIsPrivate] = useState(Boolean(folder?.isPrivate));
+  const [parentId, setParentId] = useState<string>(folder?.parentId ?? '');
   const [error, setError] = useState<string | null>(null);
-  const snapshotKey = `${open}:${folder?.id ?? ''}:${folder?.name ?? ''}:${Boolean(folder?.isPrivate)}`;
+  const snapshotKey = `${open}:${folder?.id ?? ''}:${folder?.name ?? ''}:${Boolean(
+    folder?.isPrivate
+  )}:${folder?.parentId ?? ''}`;
   const [trackedKey, setTrackedKey] = useState(snapshotKey);
 
   if (snapshotKey !== trackedKey) {
@@ -42,12 +55,23 @@ export const EditFolderDialog: React.FC<EditFolderDialogProps> = ({
     if (folder) {
       setName(folder.name);
       setIsPrivate(Boolean(folder.isPrivate));
+      setParentId(folder.parentId ?? '');
       setError(null);
     }
   }
 
   const systemLocked = isSystemFolder(folder);
   const generalLocked = isGeneralFolder(folder);
+
+  const validParents = useMemo(() => {
+    if (!folder || allFolders.length === 0) return [];
+    return getValidMoveFolderParents(folder, allFolders, user?.role, user?.id);
+  }, [folder, allFolders, user?.role, user?.id]);
+
+  const canSelectRoot = Boolean(
+    folder && (user?.role !== 'COLLABORATOR' || folder.parentId === null)
+  );
+  const showParentSelector = !systemLocked && !generalLocked && allFolders.length > 0;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -59,6 +83,10 @@ export const EditFolderDialog: React.FC<EditFolderDialogProps> = ({
       return;
     }
 
+    const nextParentId = parentId.trim() ? parentId : null;
+    const currentParentId = folder.parentId ?? null;
+    const parentChanged = showParentSelector && nextParentId !== currentParentId;
+
     setError(null);
     try {
       await updateMutation.mutateAsync({
@@ -66,9 +94,10 @@ export const EditFolderDialog: React.FC<EditFolderDialogProps> = ({
         payload: {
           ...(generalLocked ? {} : { name: cleanName }),
           isPrivate,
+          ...(parentChanged ? { parentId: nextParentId } : {}),
         },
       });
-      showToast('Carpeta actualizada', 'success');
+      showToast(parentChanged ? 'Carpeta actualizada y reubicada' : 'Carpeta actualizada', 'success');
       onOpenChange(false);
     } catch (err: unknown) {
       const detail = (err as { detail?: string })?.detail;
@@ -112,6 +141,32 @@ export const EditFolderDialog: React.FC<EditFolderDialogProps> = ({
           disabled={systemLocked || generalLocked || updateMutation.isPending}
           autoFocus={!generalLocked}
         />
+
+        {showParentSelector ? (
+          <div className={styles.field}>
+            <label htmlFor="edit-folder-parent" className={styles.label}>
+              Ubicación (carpeta padre)
+            </label>
+            <select
+              id="edit-folder-parent"
+              className={styles.select}
+              value={parentId}
+              onChange={(e) => setParentId(e.target.value)}
+              disabled={updateMutation.isPending}
+              data-testid="edit-folder-parent-select"
+            >
+              {canSelectRoot ? <option value="">Raíz (Nivel 1)</option> : null}
+              {validParents.map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {getFolderPathLabel(candidate, allFolders)}
+                </option>
+              ))}
+            </select>
+            <span className={styles.fieldHint}>
+              Solo se muestran destinos compatibles dentro del límite de 3 niveles.
+            </span>
+          </div>
+        ) : null}
 
         <div className={styles.switchRow}>
           <label htmlFor="edit-folder-private" className={styles.switchText}>

@@ -76,10 +76,10 @@ describe('DataChatPage, ChatMessageBubble (usedAi), Citas, Gráficos y PublicWid
     storageService.setApiBaseUrl('http://localhost:3000');
   });
 
-  it('muestra sugerencias, insignia usedAi true/false, gráfico chartData y abre citas de Tabla y PDF en página exacta', async () => {
-    vi.spyOn(chatService, 'getPublicSuggestions').mockResolvedValue([
-      '¿Cuál fue la facturación por región?',
-    ]);
+  it('muestra sugerencias RBAC internas, insignia usedAi true/false, gráfico chartData y abre citas de Tabla y PDF en página exacta', async () => {
+    const internalSuggSpy = vi
+      .spyOn(chatService, 'getInternalSuggestions')
+      .mockResolvedValue(['¿Cuál fue la facturación por región?']);
     const askSpy = vi
       .spyOn(chatService, 'askInternal')
       .mockResolvedValueOnce({
@@ -136,6 +136,7 @@ describe('DataChatPage, ChatMessageBubble (usedAi), Citas, Gráficos y PublicWid
     fireEvent.click(screen.getByTestId('chat-send-btn'));
 
     await waitFor(() => {
+      expect(internalSuggSpy).toHaveBeenCalledWith('fld-finanzas');
       expect(askSpy).toHaveBeenCalledWith('¿Cuántos datasets hay?', 'fld-finanzas', null);
     });
     expect(await screen.findByText('Respuesta directa del sistema')).toBeInTheDocument();
@@ -146,7 +147,7 @@ describe('DataChatPage, ChatMessageBubble (usedAi), Citas, Gráficos y PublicWid
   });
 
   it('prueba el PublicWidgetDrawer contra POST /api/v1/public/chat/ask con usedAi, maneja 429 y genera snippets HTML/React', async () => {
-    vi.spyOn(chatService, 'getPublicSuggestions').mockResolvedValue([]);
+    vi.spyOn(chatService, 'getInternalSuggestions').mockResolvedValue([]);
     const askPublicSpy = vi
       .spyOn(chatService, 'askPublic')
       .mockResolvedValueOnce({

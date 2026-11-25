@@ -96,7 +96,8 @@ export const ExplorerGridSections: React.FC<ExplorerGridSectionsProps> = React.m
         <div className={styles.assetGrid}>
           {assets.map((asset) => {
             const canSelectCard =
-              supportsBulk && (asset.kind === 'image' || asset.kind === 'table');
+              supportsBulk &&
+              (asset.kind === 'image' || asset.kind === 'table' || asset.kind === 'pdf');
             return (
               <AssetItemCard
                 key={`${asset.kind}-${asset.item.id}`}

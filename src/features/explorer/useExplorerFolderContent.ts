@@ -147,7 +147,7 @@ export function useExplorerFolderContent(
   const selectableAssetIds = useMemo(
     () =>
       visibleAssets
-        .filter((a) => a.kind === 'image' || a.kind === 'table')
+        .filter((a) => a.kind === 'image' || a.kind === 'table' || a.kind === 'pdf')
         .map((a) => a.item.id),
     [visibleAssets]
   );

@@ -69,6 +69,8 @@ export const queryKeys = {
   },
   chat: {
     all: ['chat'] as const,
+    internalSuggestions: (folderId?: string | null) =>
+      ['chat', 'internalSuggestions', folderId ?? 'all'] as const,
     suggestions: (folderId?: string | null) => ['chat', 'suggestions', folderId ?? 'all'] as const,
   },
   users: {

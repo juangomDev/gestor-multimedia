@@ -1,7 +1,7 @@
 import { apiClient } from './apiClient';
 import { storageService } from './storageService';
 import { buildPublicAssetUrl, buildVersionedAssetUrl } from '../utils/formatters';
-import type { ImageItem } from '../types/media';
+import type { ImageItem, ImageMetadataCard } from '../types/media';
 
 /** Opciones de paginación y filtrado server-side para listar imágenes. */
 export interface FetchImagesOptions {
@@ -36,6 +36,7 @@ interface RawApiImage {
   sizeBytes: number;
   width?: number | null;
   height?: number | null;
+  metadataCard?: ImageMetadataCard | null;
   createdAt?: string;
   updatedAt?: string;
   folderId?: string | null;
@@ -74,6 +75,7 @@ function normalizeImage(
     sizeBytes: raw.sizeBytes ?? fallback?.sizeBytes ?? 0,
     width: raw.width ?? null,
     height: raw.height ?? null,
+    metadataCard: raw.metadataCard ?? null,
     url: canonicalUrl,
     urlWithVersion: raw.urlWithVersion
       ? buildVersionedAssetUrl(canonicalUrl, raw.urlWithVersion, raw.updatedAt)
@@ -180,6 +182,26 @@ export class ImagesService {
   }
 
   /**
+   * Actualiza la ficha técnica semántica de una imagen (`PATCH /api/v1/images/:id/metadata`).
+   *
+   * @param id UUID de la imagen.
+   * @param metadata Campos de ficha técnica (`title`, `alt`, `description`, `tags`, `custom`).
+   * @returns Registro de imagen actualizado.
+   */
+  async updateImageMetadata(id: string, metadata: ImageMetadataCard): Promise<ImageItem> {
+    const rawRes = await apiClient.patch<Partial<RawApiImage> & { image?: Partial<RawApiImage> }>(
+      `/api/v1/images/${id}/metadata`,
+      metadata
+    );
+    const res = rawRes?.image || rawRes || {};
+    const normalized = normalizeImage(res, storageService.getApiBaseUrl(), { id });
+    return {
+      ...normalized,
+      metadataCard: res.metadataCard ?? metadata,
+    };
+  }
+
+  /**
    * Elimina una imagen del servidor (`DELETE /api/v1/images/:id`).
    *
    * @param id UUID de la imagen a eliminar.
@@ -229,6 +251,13 @@ export class ImagesService {
    */
   getImageUrl(shortCode: string): string {
     return buildPublicAssetUrl(storageService.getApiBaseUrl(), 'i', shortCode);
+  }
+
+  /**
+   * Construye la URL de descarga forzada de una imagen (`/i/:shortCode?download=true`).
+   */
+  getImageDownloadUrl(shortCode: string): string {
+    return `${this.getImageUrl(shortCode)}?download=true`;
   }
 
   /**

@@ -1,4 +1,5 @@
 import { resetThemeStorageCache } from '../context/themeStorage';
+import { getRememberMePreference } from './auth/sessionKeepAliveStorage';
 import type { ClientConfig } from '../types/api';
 import type { UserSession } from '../types/auth';
 
@@ -147,12 +148,7 @@ export const storageService = {
     return updated;
   },
 
-  /**
-   * Suscribe un listener a los cambios de `apiBaseUrl` (p. ej. para reconectar SSE).
-   *
-   * @param listener Callback invocado con la nueva URL base persistida.
-   * @returns Función de desuscripción.
-   */
+  /** Suscribe un listener a los cambios de `apiBaseUrl` (p. ej. para reconectar SSE). */
   onBaseUrlChange(listener: (baseUrl: string) => void): () => void {
     baseUrlListeners.add(listener);
     return () => {
@@ -160,57 +156,77 @@ export const storageService = {
     };
   },
 
-  /**
-   * Devuelve la URL base activa del backend (`apiBaseUrl`).
-   *
-   * @returns URL base configurada o el valor de `VITE_API_BASE_URL` / `http://localhost:3000`.
-   */
+  /** Devuelve la URL base activa del backend (`apiBaseUrl`). */
   getApiBaseUrl(): string {
     return this.getConfig().baseUrl;
   },
 
-  /**
-   * Actualiza y persiste la URL base del backend (`apiBaseUrl`).
-   *
-   * @param baseUrl Nueva URL base del servidor API.
-   * @returns URL base normalizada y persistida.
-   */
+  /** Actualiza y persiste la URL base del backend (`apiBaseUrl`). */
   setApiBaseUrl(baseUrl: string): string {
     return this.saveConfig({ baseUrl }).baseUrl;
   },
 
   /**
-   * Recupera la sesión autenticada actual (`token` + `user`) si existe.
+   * Recupera la sesión autenticada actual (`token` + `user`) desde `localStorage` o `sessionStorage`.
    *
    * @returns Sesión del usuario o `null` si no hay sesión activa.
    */
   getSession(): UserSession | null {
     try {
-      const raw = readCachedItem(STORAGE_KEYS.AUTH_SESSION);
-      return raw ? (JSON.parse(raw) as UserSession) : null;
+      const rawLocal = readCachedItem(STORAGE_KEYS.AUTH_SESSION);
+      if (rawLocal) return JSON.parse(rawLocal) as UserSession;
+      if (typeof sessionStorage !== 'undefined') {
+        const rawTab = sessionStorage.getItem(STORAGE_KEYS.AUTH_SESSION);
+        if (rawTab) return JSON.parse(rawTab) as UserSession;
+      }
+      return null;
     } catch {
       return null;
     }
   },
 
   /**
-   * Persiste o elimina la sesión autenticada del usuario.
+   * Persiste o elimina la sesión autenticada del usuario respetando "Mantener sesión iniciada"
+   * (`localStorage` cuando está activo; `sessionStorage` cuando es solo por pestaña).
    *
    * @param session Sesión a guardar o `null` para cerrar sesión localmente.
    */
   saveSession(session: UserSession | null): void {
     if (!session) {
       writeCachedItem(STORAGE_KEYS.AUTH_SESSION, null);
+      try {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+        }
+      } catch {
+        // Entorno restringido
+      }
+      return;
+    }
+
+    const serialized = JSON.stringify(session);
+    if (getRememberMePreference()) {
+      writeCachedItem(STORAGE_KEYS.AUTH_SESSION, serialized);
+      try {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+        }
+      } catch {
+        // Entorno restringido
+      }
     } else {
-      writeCachedItem(STORAGE_KEYS.AUTH_SESSION, JSON.stringify(session));
+      writeCachedItem(STORAGE_KEYS.AUTH_SESSION, null);
+      try {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem(STORAGE_KEYS.AUTH_SESSION, serialized);
+        }
+      } catch {
+        // Entorno restringido
+      }
     }
   },
 
-  /**
-   * Devuelve el token JWT de acceso actual o `null` si no existe.
-   *
-   * @returns Access token JWT o `null`.
-   */
+  /** Devuelve el token JWT de acceso actual o `null` si no existe. */
   getToken(): string | null {
     const session = this.getSession();
     return session?.token || null;
@@ -219,8 +235,6 @@ export const storageService = {
   /**
    * Actualiza únicamente el access token JWT preservando los datos del usuario en sesión.
    * No crea una sesión fantasma si el usuario cerró sesión mientras un refresco estaba en vuelo.
-   *
-   * @param token Nuevo access token JWT emitido por el backend.
    */
   saveToken(token: string): void {
     const current = this.getSession();
@@ -228,39 +242,24 @@ export const storageService = {
     this.saveSession({ ...current, token });
   },
 
-  /**
-   * Mezcla cambios del perfil de usuario dentro de la sesión persistida.
-   *
-   * @param userData Campos parciales del perfil autenticado (`GET /api/v1/auth/me`).
-   */
+  /** Mezcla cambios del perfil de usuario dentro de la sesión persistida. */
   updateSessionUser(userData: Partial<UserSession['user']>): void {
     const current = this.getSession();
     if (current) {
       this.saveSession({
         ...current,
-        user: {
-          ...current.user,
-          ...userData,
-        },
+        user: { ...current.user, ...userData },
       });
     }
   },
 
-  /**
-   * Lee el modo de vista preferido para el explorador (`grid` o `list`).
-   *
-   * @returns Modo de vista persistido (`'grid'` por defecto).
-   */
+  /** Lee el modo de vista preferido para el explorador (`grid` o `list`). */
   getViewMode(): ExplorerViewMode {
     const raw = readCachedItem(STORAGE_KEYS.VIEW_MODE);
     return raw === 'list' ? 'list' : 'grid';
   },
 
-  /**
-   * Persiste el modo de vista del explorador (`grid` o `list`).
-   *
-   * @param mode Modo de vista seleccionado por el usuario.
-   */
+  /** Persiste el modo de vista del explorador (`grid` o `list`). */
   setViewMode(mode: ExplorerViewMode): void {
     writeCachedItem(STORAGE_KEYS.VIEW_MODE, mode);
   },

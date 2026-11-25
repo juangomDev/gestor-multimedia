@@ -2,7 +2,7 @@ import { apiClient } from './apiClient';
 import type { BulkActionReport } from '../types/media';
 
 /**
- * Servicio sin estado para la ejecución masiva en lote sobre imágenes y tablas
+ * Servicio sin estado para la ejecución masiva en lote sobre imágenes, tablas y PDFs
  * (`/bulk-delete` y `/bulk-move`, hasta 50 IDs por petición).
  */
 export class BulkService {
@@ -61,6 +61,36 @@ export class BulkService {
       return { totalRequested: 0, successful: [], failed: [] };
     }
     return apiClient.post<BulkActionReport>('/api/v1/tables/bulk-move', {
+      ids,
+      targetFolderId,
+    });
+  }
+
+  /**
+   * Elimina en lote hasta 50 documentos PDF y sus artefactos (`.pdf` y `.text.json.gz`).
+   *
+   * @param ids Lista de UUIDs de los PDFs a eliminar.
+   * @returns Reporte de ejecución con éxitos y fallos parciales.
+   */
+  async bulkDeletePdfs(ids: string[]): Promise<BulkActionReport> {
+    if (!ids || ids.length === 0) {
+      return { totalRequested: 0, successful: [], failed: [] };
+    }
+    return apiClient.post<BulkActionReport>('/api/v1/pdfs/bulk-delete', { ids });
+  }
+
+  /**
+   * Mueve en lote hasta 50 documentos PDF hacia otra carpeta destino de tipo `PDF`.
+   *
+   * @param ids Lista de UUIDs de los PDFs a reasignar.
+   * @param targetFolderId UUID de la carpeta destino `PDF`.
+   * @returns Reporte de ejecución con éxitos y fallos parciales.
+   */
+  async bulkMovePdfs(ids: string[], targetFolderId: string): Promise<BulkActionReport> {
+    if (!ids || ids.length === 0) {
+      return { totalRequested: 0, successful: [], failed: [] };
+    }
+    return apiClient.post<BulkActionReport>('/api/v1/pdfs/bulk-move', {
       ids,
       targetFolderId,
     });

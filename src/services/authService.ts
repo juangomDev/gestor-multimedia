@@ -1,5 +1,12 @@
 import { apiClient } from './apiClient';
 import { storageService } from './storageService';
+import {
+  clearKeepAliveCredentials,
+  getRememberMePreference,
+  readKeepAliveCredentials,
+  saveKeepAliveCredentials,
+  saveRememberedUsername,
+} from './auth/sessionKeepAliveStorage';
 import type {
   LoginCredentials,
   UserSession,
@@ -10,7 +17,7 @@ import type {
   LogoutResponse,
 } from '../types/auth';
 
-type RawLoginResponse = Partial<UserSession> & { accessToken?: string };
+type RawLoginResponse = Partial<UserSession> & { accessToken?: string; refreshToken?: string };
 
 /**
  * Servicio de autenticación 100% real contra `monolith-backend`
@@ -37,8 +44,16 @@ export class AuthService {
 
     const session: UserSession = {
       token,
+      ...(raw.refreshToken ? { refreshToken: raw.refreshToken } : {}),
       user: raw.user,
     };
+    const remember = getRememberMePreference();
+    saveRememberedUsername(credentials.username, remember);
+    if (remember) {
+      saveKeepAliveCredentials(credentials);
+    } else {
+      clearKeepAliveCredentials();
+    }
     storageService.saveSession(session);
     return session;
   }
@@ -73,14 +88,21 @@ export class AuthService {
    * @returns Confirmación del servidor.
    */
   async changePassword(input: ChangePasswordInput): Promise<ChangePasswordResponse> {
-    return apiClient.patch<ChangePasswordResponse>('/api/v1/auth/password', input);
+    const res = await apiClient.patch<ChangePasswordResponse>('/api/v1/auth/password', input);
+    const stored = readKeepAliveCredentials();
+    if (stored) {
+      saveKeepAliveCredentials({ username: stored.username, password: input.newPassword });
+    }
+    return res;
   }
 
   /**
-   * Cierra la sesión en el backend (`POST /api/v1/auth/logout`) y limpia el almacenamiento local.
+   * Cierra la sesión en el backend (`POST /api/v1/auth/logout`) y limpia el almacenamiento local
+   * y las credenciales de auto-renovación para que la sesión no se reabra sola.
    */
   async logout(): Promise<void> {
     const token = storageService.getToken();
+    clearKeepAliveCredentials();
     storageService.saveSession(null);
 
     if (token) {

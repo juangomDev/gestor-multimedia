@@ -165,6 +165,83 @@ export function getAllowedChildFolderTypes(
 }
 
 /**
+ * Calcula la altura del subárbol de una carpeta (`1` si no tiene hijos, `2` si tiene hijos, `3` si tiene nietos)
+ * y el conjunto de IDs de sus descendientes directos e indirectos (incluyendo la propia carpeta).
+ */
+function analyzeFolderSubtree(
+  folderId: string,
+  allFolders: FolderItem[]
+): { descendantIds: Set<string>; subtreeHeight: number; hasContainerChild: boolean } {
+  const childrenByParent = new Map<string, FolderItem[]>();
+  for (const item of allFolders) {
+    if (!item.parentId) continue;
+    const list = childrenByParent.get(item.parentId) ?? [];
+    list.push(item);
+    childrenByParent.set(item.parentId, list);
+  }
+
+  const descendantIds = new Set<string>([folderId]);
+  let maxDepth = 1;
+  let hasContainerChild = false;
+
+  const walk = (currentId: string, level: number) => {
+    const children = childrenByParent.get(currentId) ?? [];
+    for (const child of children) {
+      if (descendantIds.has(child.id)) continue;
+      descendantIds.add(child.id);
+      if (child.type === 'container') hasContainerChild = true;
+      const nextLevel = level + 1;
+      if (nextLevel > maxDepth) maxDepth = nextLevel;
+      walk(child.id, nextLevel);
+    }
+  };
+
+  walk(folderId, 1);
+  return { descendantIds, subtreeHeight: maxDepth, hasContainerChild };
+}
+
+/**
+ * Devuelve las carpetas destino válidas como nuevo `parentId` al reubicar `folder` (`PATCH /api/v1/folders/:id`):
+ * - Excluye la propia carpeta, todos sus descendientes (evita ciclos) y bóvedas de sistema (`shared`).
+ * - Respeta la profundidad máxima de 3 niveles (`parentDepth + subtreeHeight <= 3`) y las reglas de tipo.
+ * - Exige permiso de escritura (`EDIT`/`ADMIN`) sobre la carpeta destino, conservando siempre el padre actual.
+ *
+ * @param folder Carpeta que se desea reubicar.
+ * @param allFolders Lista plana completa de carpetas disponibles.
+ * @param userRole Rol del usuario autenticado.
+ * @param userId Identificador del usuario autenticado.
+ * @returns Carpetas contenedoras/padre válidas como destino de reubicación.
+ */
+export function getValidMoveFolderParents(
+  folder: FolderItem,
+  allFolders: FolderItem[],
+  userRole: Role | undefined,
+  userId: string | undefined
+): FolderItem[] {
+  if (folder.isSystem || isGeneralFolder(folder)) return [];
+
+  const { descendantIds, subtreeHeight, hasContainerChild } = analyzeFolderSubtree(
+    folder.id,
+    allFolders
+  );
+
+  return allFolders.filter((candidate) => {
+    if (descendantIds.has(candidate.id)) return false;
+    if (candidate.isSystem) return false;
+
+    const isCurrentParent = candidate.id === folder.parentId;
+    if (!isCurrentParent && !canWriteFolder(candidate, userRole, userId)) return false;
+
+    const candidateDepth = getFolderDepth(candidate.id, allFolders);
+    if (candidateDepth + subtreeHeight > 3) return false;
+    if (hasContainerChild && candidateDepth >= 1) return false;
+
+    const allowedChildTypes = getAllowedChildFolderTypes(candidate, allFolders);
+    return allowedChildTypes.includes(folder.type);
+  });
+}
+
+/**
  * Reconstruye la secuencia ordenada de migas de pan desde Nivel 1 hasta la carpeta actual.
  */
 export function getBreadcrumbTrail(

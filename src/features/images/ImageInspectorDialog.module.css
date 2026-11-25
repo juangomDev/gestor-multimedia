@@ -152,6 +152,25 @@
   border-top: 1px solid var(--hairline);
 }
 
+.downloadLink {
+  display: block;
+  text-decoration: none;
+}
+
+.metaCardDesc {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
 .deleteBox {
   display: flex;
   flex-direction: column;

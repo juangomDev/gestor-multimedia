@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../../components/ui/DropdownMenu';
+import { imagesService } from '../../services/imagesService';
 import { tablesService } from '../../services/tablesService';
 import { pdfsService } from '../../services/pdfsService';
 import { formatBytes, formatDate } from '../../utils/formatters';
@@ -65,7 +66,9 @@ export const ExplorerListAssetRow: React.FC<ExplorerListAssetRowProps> = ({
 }) => {
   const id = asset.item.id;
   const isForm = asset.kind === 'form';
-  const canSelectRow = selectableAssets && (asset.kind === 'image' || asset.kind === 'table');
+  const canSelectRow =
+    selectableAssets &&
+    (asset.kind === 'image' || asset.kind === 'table' || asset.kind === 'pdf');
   const title =
     asset.kind === 'form'
       ? asset.item.title
@@ -73,7 +76,9 @@ export const ExplorerListAssetRow: React.FC<ExplorerListAssetRowProps> = ({
       ? asset.item.tableName
       : asset.item.originalName;
   const downloadUrl =
-    asset.kind === 'table'
+    asset.kind === 'image'
+      ? imagesService.getImageDownloadUrl(asset.item.shortCode)
+      : asset.kind === 'table'
       ? tablesService.getDownloadUrl(asset.item.shortCode)
       : asset.kind === 'pdf'
       ? pdfsService.getPdfDownloadUrl(asset.item.shortCode)
@@ -180,7 +185,7 @@ export const ExplorerListAssetRow: React.FC<ExplorerListAssetRowProps> = ({
               ) : null}
               {canEditAssets &&
               onEditMetadata &&
-              (asset.kind === 'table' || asset.kind === 'pdf') ? (
+              (asset.kind === 'image' || asset.kind === 'table' || asset.kind === 'pdf') ? (
                 <DropdownMenuItem icon={<Tags size={14} />} onSelect={() => onEditMetadata(asset)}>
                   Ficha técnica
                 </DropdownMenuItem>

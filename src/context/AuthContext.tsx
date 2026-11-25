@@ -6,15 +6,22 @@ import { storageService, STORAGE_KEYS } from '../services/storageService';
 import { AuthContext } from './authContextDef';
 import type { LoginCredentials } from '../types/auth';
 
+/** Intervalo preventivo de renovación JWT (12 min, antes de los 15 min de caducidad del accessToken). */
+const PROACTIVE_REFRESH_INTERVAL_MS = 12 * 60 * 1000;
+/** Umbral mínimo para renovar el token al recuperar el foco de la pestaña (10 min). */
+const VISIBILITY_REFRESH_THRESHOLD_MS = 10 * 60 * 1000;
+
 /**
  * Proveedor de autenticación real contra `monolith-backend`.
  * Al iniciar, valida la sesión persistida con `GET /api/v1/auth/me` (rotando el token vía
- * `POST /api/v1/auth/refresh` de forma transparente si el access token expiró), purga la caché
- * de TanStack Query ante cualquier cambio de sesión/cuenta y sincroniza cierres entre pestañas.
+ * `POST /api/v1/auth/refresh` o re-login silencioso si el access token expiró), mantiene viva
+ * la sesión con un heartbeat preventivo cada 12 minutos, purga la caché de TanStack Query ante
+ * cualquier cambio de cuenta y sincroniza cierres entre pestañas.
  */
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = useContext(QueryClientContext);
   const authEpochRef = useRef(0);
+  const lastTokenRefreshAtRef = useRef<number>(0);
   const [session, setSession] = useState(() => authService.getSession());
   const [isCheckingSession, setIsCheckingSession] = useState(() => Boolean(authService.getSession()?.token));
 
@@ -51,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const unsubscribeTokenRefreshed = apiClient.onTokenRefreshed((newToken) => {
+      lastTokenRefreshAtRef.current = Date.now();
       setSession((prev) => (prev ? { ...prev, token: newToken } : null));
     });
 
@@ -121,6 +129,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       cleanupListeners();
     };
   }, [queryClient]);
+
+  const hasActiveToken = Boolean(session?.token);
+
+  useEffect(() => {
+    if (!hasActiveToken || typeof window === 'undefined') return;
+    if (lastTokenRefreshAtRef.current === 0) {
+      lastTokenRefreshAtRef.current = Date.now();
+    }
+
+    const triggerProactiveRefresh = () => {
+      if (!authService.isAuthenticated()) return;
+      void apiClient.refreshAccessToken().catch(() => {
+        // Si falla definitivamente, TokenRefreshQueue notificará onUnauthorized
+      });
+    };
+
+    const intervalId = window.setInterval(triggerProactiveRefresh, PROACTIVE_REFRESH_INTERVAL_MS);
+
+    const handleVisibilityChange = () => {
+      if (
+        typeof document !== 'undefined' &&
+        document.visibilityState === 'visible' &&
+        Date.now() - lastTokenRefreshAtRef.current >= VISIBILITY_REFRESH_THRESHOLD_MS
+      ) {
+        triggerProactiveRefresh();
+      }
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    return () => {
+      window.clearInterval(intervalId);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
+    };
+  }, [hasActiveToken]);
 
   /**
    * Inicia sesión con credenciales reales (`POST /api/v1/auth/login`), purga caché previa

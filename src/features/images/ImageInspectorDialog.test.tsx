@@ -127,4 +127,63 @@ describe('ImageInspectorDialog, RenameAssetDialog y HotSwapAssetDialog (Fase 5.1
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
   });
+
+  it('expone enlace ?download=true y guarda la ficha técnica vía PATCH /api/v1/images/:id/metadata', async () => {
+    const metaSpy = vi.spyOn(imagesService, 'updateImageMetadata').mockResolvedValue({
+      ...IMAGE_FIXTURE,
+      metadataCard: {
+        title: 'Portada Institucional',
+        alt: 'Fachada sede central',
+        description: 'Aprobada para nota de prensa.',
+        tags: ['institucional', 'prensa'],
+        custom: { autor: 'Equipo Foto' },
+      },
+    });
+
+    renderInspector();
+
+    const downloadLink = await screen.findByTestId('image-download-link');
+    expect(downloadLink).toHaveAttribute('href', 'http://localhost:3000/i/img01?download=true');
+
+    fireEvent.click(screen.getByTestId('image-open-metadata-btn'));
+
+    fireEvent.change(await screen.findByLabelText(/^Título$/i), {
+      target: { value: 'Portada Institucional' },
+    });
+    fireEvent.change(screen.getByLabelText(/Texto alternativo/i), {
+      target: { value: 'Fachada sede central' },
+    });
+    fireEvent.change(screen.getByLabelText(/Descripción/i), {
+      target: { value: 'Aprobada para nota de prensa.' },
+    });
+    const tagInput = screen.getByLabelText('Nueva etiqueta de imagen');
+    fireEvent.change(tagInput, { target: { value: 'institucional' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Añadir$/i }));
+    fireEvent.change(tagInput, { target: { value: 'prensa' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Añadir$/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /Añadir campo/i }));
+    fireEvent.change(screen.getByLabelText('Clave personalizada'), {
+      target: { value: 'autor' },
+    });
+    fireEvent.change(screen.getByLabelText('Valor personalizado'), {
+      target: { value: 'Equipo Foto' },
+    });
+
+    fireEvent.click(screen.getByTestId('image-metadata-save-btn'));
+
+    await waitFor(() => {
+      expect(metaSpy).toHaveBeenCalledWith('img-uuid-1', {
+        title: 'Portada Institucional',
+        alt: 'Fachada sede central',
+        description: 'Aprobada para nota de prensa.',
+        tags: ['institucional', 'prensa'],
+        custom: { autor: 'Equipo Foto' },
+      });
+    });
+
+    expect(await screen.findByTestId('image-metadata-summary')).toHaveTextContent(
+      'Portada Institucional'
+    );
+  });
 });

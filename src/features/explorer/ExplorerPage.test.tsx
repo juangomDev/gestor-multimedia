@@ -66,6 +66,15 @@ const TREE_FIXTURE: FolderItem[] = [
         itemCount: 1,
         createdAt: '2026-11-19T00:00:00Z',
       },
+      {
+        id: 'fld-pdfs',
+        name: 'Contratos PDF',
+        type: 'pdf',
+        parentId: 'fld-cont',
+        myPermission: 'EDIT',
+        itemCount: 2,
+        createdAt: '2026-11-19T00:00:00Z',
+      },
     ],
   },
 ];
@@ -235,5 +244,54 @@ describe('ExplorerPage v2 (Fase 4 — Raíz solo carpetas, 3 niveles, Grid/Lista
     renderExplorer('/', 'COLLABORATOR');
     await screen.findByText('Proyectos 2026');
     expect(screen.getByTestId('explorer-new-folder-btn')).toBeDisabled();
+  });
+
+  it('en carpeta PDF habilita selección múltiple y ejecuta bulkDeletePdfs vía BulkActionBar', async () => {
+    vi.spyOn(pdfsService, 'listPdfs').mockResolvedValue({
+      items: [
+        {
+          id: 'pdf-1',
+          shortCode: 'doc01',
+          originalName: 'contrato-a.pdf',
+          sizeBytes: 4096,
+          pageCount: 3,
+          isScanned: false,
+          url: 'http://localhost:3000/p/doc01',
+          folderId: 'fld-pdfs',
+          createdAt: '2026-11-19T00:00:00Z',
+        },
+        {
+          id: 'pdf-2',
+          shortCode: 'doc02',
+          originalName: 'anexo-b.pdf',
+          sizeBytes: 2048,
+          pageCount: 1,
+          isScanned: false,
+          url: 'http://localhost:3000/p/doc02',
+          folderId: 'fld-pdfs',
+          createdAt: '2026-11-19T00:00:00Z',
+        },
+      ],
+      meta: { total: 2, page: 1, limit: 100, totalPages: 1 },
+    });
+    const bulkDeletePdfsSpy = vi.spyOn(bulkService, 'bulkDeletePdfs').mockResolvedValue({
+      totalRequested: 2,
+      successful: ['pdf-1', 'pdf-2'],
+      failed: [],
+    });
+
+    renderExplorer('/folder/fld-pdfs');
+    expect(await screen.findByText('contrato-a.pdf')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Seleccionar contrato-a\.pdf/i }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Seleccionar anexo-b\.pdf/i }));
+    expect(await screen.findByTestId('bulk-action-bar')).toHaveTextContent('2 seleccionados');
+
+    fireEvent.click(screen.getByRole('button', { name: /^Eliminar$/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /Confirmar eliminación/i }));
+
+    await waitFor(() => {
+      expect(bulkDeletePdfsSpy).toHaveBeenCalledWith(['pdf-1', 'pdf-2']);
+    });
   });
 });

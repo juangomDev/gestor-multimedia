@@ -120,11 +120,8 @@ export const DataStudioPage: React.FC = () => {
   );
 
   const handleSort = (col: string) => {
-    if (sortCol === col) setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-    else {
-      setSortCol(col);
-      setSortDir('asc');
-    }
+    setSortDir((prev) => (sortCol === col && prev === 'asc' ? 'desc' : 'asc'));
+    setSortCol(col);
   };
 
   const handleDrillDownRow = (row: Record<string, unknown>) => {
@@ -133,10 +130,8 @@ export const DataStudioPage: React.FC = () => {
     if (rawId === null || rawId === undefined || String(rawId).trim() === '') return;
     const idValue = String(rawId).trim();
     const rawLabel = row[hierarchyConfig.labelColumn];
-    const label =
-      rawLabel !== null && rawLabel !== undefined && String(rawLabel).trim() !== '' && String(rawLabel) !== idValue
-        ? `${String(rawLabel)} (#${idValue})`
-        : `#${idValue}`;
+    const cleanLabel = rawLabel !== null && rawLabel !== undefined ? String(rawLabel).trim() : '';
+    const label = cleanLabel && cleanLabel !== idValue ? `${cleanLabel} (#${idValue})` : `#${idValue}`;
     setHierarchyTrail((prev) => [...prev, { idValue, label }]);
     setColumnFilters((prev) => ({ ...prev, [hierarchyConfig.fatherColumn]: idValue }));
     setPage(1);
@@ -144,15 +139,18 @@ export const DataStudioPage: React.FC = () => {
 
   const handleNavigateHierarchyCrumb = (index: number) => {
     if (!hierarchyConfig) return;
-    if (index < 0) {
-      setHierarchyTrail([]);
-      setColumnFilters((prev) => ({ ...prev, [hierarchyConfig.fatherColumn]: 'null' }));
-    } else {
-      const target = hierarchyTrail[index];
-      if (!target) return;
-      setHierarchyTrail((prev) => prev.slice(0, index + 1));
-      setColumnFilters((prev) => ({ ...prev, [hierarchyConfig.fatherColumn]: target.idValue }));
-    }
+    const nextValue = index < 0 ? 'null' : hierarchyTrail[index]?.idValue;
+    if (!nextValue) return;
+    setHierarchyTrail((prev) => (index < 0 ? [] : prev.slice(0, index + 1)));
+    setColumnFilters((prev) => ({ ...prev, [hierarchyConfig.fatherColumn]: nextValue }));
+    setPage(1);
+  };
+
+  const handleResetServerFilters = () => {
+    setServerSearch('');
+    setColumnFilters({});
+    setSelectedColumns([]);
+    setHierarchyTrail([]);
     setPage(1);
   };
 
@@ -241,11 +239,7 @@ export const DataStudioPage: React.FC = () => {
           setPage(1);
         }}
         onRemoveColumnFilter={(col) => {
-          setColumnFilters((prev) => {
-            const next = { ...prev };
-            delete next[col];
-            return next;
-          });
+          setColumnFilters((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => k !== col)));
           if (hierarchyConfig && col === hierarchyConfig.fatherColumn) setHierarchyTrail([]);
           setPage(1);
         }}
@@ -257,13 +251,7 @@ export const DataStudioPage: React.FC = () => {
         onClearSelectColumns={() => { setSelectedColumns([]); setPage(1); }}
         onShowHierarchyRoots={() => handleNavigateHierarchyCrumb(-1)}
         onNavigateHierarchyCrumb={handleNavigateHierarchyCrumb}
-        onResetAllFilters={() => {
-          setServerSearch('');
-          setColumnFilters({});
-          setSelectedColumns([]);
-          setHierarchyTrail([]);
-          setPage(1);
-        }}
+        onResetAllFilters={handleResetServerFilters}
         liveRowsApiUrl={liveRowsApiUrl}
       />
 

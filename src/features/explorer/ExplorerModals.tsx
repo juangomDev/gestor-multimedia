@@ -10,6 +10,7 @@ import { MoveResourceDialog } from './MoveResourceDialog';
 import { UploadDialog } from './UploadDialog';
 import { RenameAssetDialog } from '../images/RenameAssetDialog';
 import { HotSwapAssetDialog } from '../images/HotSwapAssetDialog';
+import { ImageMetadataDialog } from '../images/ImageMetadataDialog';
 import { TableMetadataDialog } from '../data-studio/TableMetadataDialog';
 import { PdfMetadataDialog } from '../pdfs/PdfMetadataDialog';
 import { CreateFormDialog } from '../forms/CreateFormDialog';
@@ -110,6 +111,7 @@ export const ExplorerModals: React.FC<ExplorerModalsProps> = ({
 
       <EditFolderDialog
         folder={editingFolder}
+        allFolders={allFolders}
         open={Boolean(editingFolder)}
         onOpenChange={(open) => {
           if (!open) onCloseEditFolder();
@@ -171,6 +173,18 @@ export const ExplorerModals: React.FC<ExplorerModalsProps> = ({
           assetId={modalAsset.item.id}
           shortCode={modalAsset.item.shortCode}
           currentName={getAssetLabel(modalAsset)}
+        />
+      ) : null}
+
+      {assetModal?.type === 'metadata' && modalAsset?.kind === 'image' ? (
+        <ImageMetadataDialog
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) onCloseAssetModal();
+          }}
+          imageId={modalAsset.item.id}
+          imageName={modalAsset.item.originalName}
+          initialMetadata={modalAsset.item.metadataCard}
         />
       ) : null}
 

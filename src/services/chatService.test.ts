@@ -43,6 +43,17 @@ describe('chatService — Module 16 (Tabular RAG & Public Widget Endpoints)', ()
     expect(result.chartData?.percentages).toEqual([60, 40]);
   });
 
+  it('getInternalSuggestions() calls authenticated GET /api/v1/chat/suggestions without skipAuth', async () => {
+    const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({
+      suggestions: ['¿Cuál es el resumen de egresos privados?'],
+    });
+
+    const suggestions = await chatService.getInternalSuggestions('priv-folder-9');
+
+    expect(getSpy).toHaveBeenCalledWith('/api/v1/chat/suggestions?folderId=priv-folder-9');
+    expect(suggestions).toEqual(['¿Cuál es el resumen de egresos privados?']);
+  });
+
   it('getPublicSuggestions() calls GET /api/v1/public/chat/suggestions with skipAuth', async () => {
     const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({
       suggestions: [

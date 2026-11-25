@@ -200,3 +200,47 @@ export function useDeleteNotificationMutation() {
     },
   });
 }
+
+/**
+ * Mutación optimista para limpiar todas las notificaciones ya leídas
+ * (`DELETE /api/v1/notifications/read`), con rollback seguro ante errores.
+ */
+export function useDeleteReadNotificationsMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => notificationsService.deleteReadNotifications(),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
+
+      const previousLists = queryClient.getQueriesData<NotificationsPaginatedResponse>({
+        queryKey: ['notifications', 'list'],
+      });
+
+      previousLists.forEach(([key, data]) => {
+        if (!data) return;
+        const remaining = data.data.filter((n) => !n.read);
+        const removed = data.data.length - remaining.length;
+        if (removed === 0) return;
+        queryClient.setQueryData<NotificationsPaginatedResponse>(key, {
+          ...data,
+          data: remaining,
+          meta: {
+            ...data.meta,
+            total: Math.max(0, data.meta.total - removed),
+          },
+        });
+      });
+
+      return { previousLists };
+    },
+    onError: (_err, _vars, context) => {
+      context?.previousLists.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+    },
+  });
+}

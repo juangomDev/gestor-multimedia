@@ -118,6 +118,19 @@ export class NotificationsService {
   }
 
   /**
+   * Elimina en lote todas las notificaciones ya leídas del usuario (`DELETE /api/v1/notifications/read`).
+   *
+   * @returns Total de registros eliminados por el servidor (`deletedCount`).
+   */
+  async deleteReadNotifications(): Promise<{ deletedCount: number }> {
+    const res = await apiClient.delete<{
+      deletedCount?: number;
+      data?: { deletedCount?: number };
+    }>('/api/v1/notifications/read');
+    return { deletedCount: Number(res?.deletedCount ?? res?.data?.deletedCount ?? 0) };
+  }
+
+  /**
    * Suscribe al usuario o actualiza sus preferencias de alerta en un formulario (`POST /api/v1/forms/:id/subscribe`).
    */
   async subscribeToForm(

@@ -3,7 +3,7 @@ import { Globe, Loader2, Send, Sparkles, Trash2 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useToast } from '../../context/useToast';
-import { useChatSuggestionsQuery } from '../../queries/useChatQueries';
+import { useInternalChatSuggestionsQuery } from '../../queries/useChatQueries';
 import { chatService } from '../../services/chatService';
 import { ShellContext } from '../shell/shellContextDef';
 import { NotificationBell } from '../notifications/NotificationBell';
@@ -20,8 +20,8 @@ import styles from './DataChatPage.module.css';
 
 /**
  * Vista de Consulta Inteligente / Data Chat RAG (`/chat`), cargada con `React.lazy`.
- * Permite acotar consultas por espacio, carpeta o recurso, usar chips de sugerencias
- * (`GET /api/v1/public/chat/suggestions`), visualizar trazabilidad `usedAi`, citas clicables
+ * Permite acotar consultas por espacio, carpeta o recurso, usar chips de sugerencias RBAC
+ * (`GET /api/v1/chat/suggestions`), visualizar trazabilidad `usedAi`, citas clicables
  * por página, gráficos de barras (`chartData`) y abrir el cajón de **Widget Público**.
  */
 export const DataChatPage: React.FC = () => {
@@ -50,7 +50,7 @@ export const DataChatPage: React.FC = () => {
   const activeShortCode =
     scopeMode === 'resource' ? normalizeShortCodeInput(selectedShortCode) || null : null;
 
-  const suggestionsQuery = useChatSuggestionsQuery(activeFolderId);
+  const suggestionsQuery = useInternalChatSuggestionsQuery(activeFolderId);
   const suggestions = suggestionsQuery.data ?? [];
 
   const getContextLabel = (): string => {

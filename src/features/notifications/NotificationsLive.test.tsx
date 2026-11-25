@@ -127,12 +127,21 @@ describe('Notificaciones en Vivo SSE, Bell y NotificationsPopover (Fase 6.1)', (
     const deleteSpy = vi
       .spyOn(notificationsService, 'deleteNotification')
       .mockResolvedValue({ success: true });
+    const deleteReadSpy = vi
+      .spyOn(notificationsService, 'deleteReadNotifications')
+      .mockResolvedValue({ deletedCount: 1 });
 
     renderBellHarness();
     fireEvent.click(await screen.findByTestId('notification-bell-trigger'));
 
     expect(await screen.findByText('Nueva entrada en Proveedores')).toBeInTheDocument();
     expect(screen.getByText('Respaldo completado')).toBeInTheDocument();
+
+    // Limpiar notificaciones leídas desde la pestaña Todas (DELETE /api/v1/notifications/read)
+    fireEvent.click(screen.getByTestId('notifications-clear-read-btn'));
+    await waitFor(() => {
+      expect(deleteReadSpy).toHaveBeenCalledTimes(1);
+    });
 
     // Cambiar a pestaña No leídas y esperar la nueva consulta
     const unreadTab = screen.getByRole('tab', { name: 'No leídas' });

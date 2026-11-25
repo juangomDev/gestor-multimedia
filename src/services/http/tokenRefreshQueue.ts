@@ -1,10 +1,15 @@
 import { storageService } from '../storageService';
+import {
+  clearKeepAliveCredentials,
+  readKeepAliveCredentials,
+} from '../auth/sessionKeepAliveStorage';
 import type { ApiError } from './apiError';
 import type { Role } from '../../types/auth';
 
 interface RawRefreshPayload {
   token?: string;
   accessToken?: string;
+  refreshToken?: string;
   user?: {
     id?: string;
     username?: string;
@@ -107,13 +112,37 @@ export class TokenRefreshQueue {
     const timeoutId = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
 
     try {
-      const refreshResponse = await fetch(refreshUrl, {
+      const currentSession = storageService.getSession();
+      const refreshHeaders: Record<string, string> = {};
+      if (currentSession?.refreshToken) {
+        refreshHeaders['x-refresh-token'] = currentSession.refreshToken;
+      }
+
+      let refreshResponse = await fetch(refreshUrl, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        headers: refreshHeaders,
         signal: controller.signal,
       });
+
+      if (!refreshResponse.ok && storageService.getSession()) {
+        const keepAlive = readKeepAliveCredentials();
+        if (keepAlive) {
+          const loginUrl = refreshUrl.replace(/\/api\/v1\/auth\/refresh$/, '/api/v1/auth/login');
+          const silentLoginRes = await fetch(loginUrl, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(keepAlive),
+            signal: controller.signal,
+          });
+          if (silentLoginRes.ok) {
+            refreshResponse = silentLoginRes;
+          } else if (silentLoginRes.status === 401 || silentLoginRes.status === 403) {
+            clearKeepAliveCredentials();
+          }
+        }
+      }
 
       if (!refreshResponse.ok) {
         throw new Error(`Refresh failed with status ${refreshResponse.status}`);
@@ -126,14 +155,19 @@ export class TokenRefreshQueue {
       }
 
       // Si el usuario cerró sesión mientras el refresh estaba en vuelo, no resucitar la sesión
-      if (!storageService.getSession()) {
+      const activeSession = storageService.getSession();
+      if (!activeSession) {
         const clearedErr = new Error('Session cleared during token refresh');
         this.isRefreshing = false;
         this.onRefreshed(null, clearedErr);
         throw clearedErr;
       }
 
-      storageService.saveToken(newToken);
+      storageService.saveSession({
+        ...activeSession,
+        token: newToken,
+        ...(refreshData.refreshToken ? { refreshToken: refreshData.refreshToken } : {}),
+      });
       if (refreshData.user) {
         storageService.updateSessionUser(refreshData.user);
       }

@@ -113,11 +113,11 @@ export const AssetItemCard: React.FC<AssetItemCardProps> = ({
   const name =
     asset.kind === 'table' ? asset.item.tableName : asset.item.originalName;
   const downloadUrl =
-    asset.kind === 'table'
+    asset.kind === 'image'
+      ? imagesService.getImageDownloadUrl(asset.item.shortCode)
+      : asset.kind === 'table'
       ? tablesService.getDownloadUrl(asset.item.shortCode)
-      : asset.kind === 'pdf'
-      ? pdfsService.getPdfDownloadUrl(asset.item.shortCode)
-      : null;
+      : pdfsService.getPdfDownloadUrl(asset.item.shortCode);
 
   const spineClass =
     asset.kind === 'table'
@@ -203,7 +203,9 @@ export const AssetItemCard: React.FC<AssetItemCardProps> = ({
                 Reemplazar (Hot-Swap)
               </DropdownMenuItem>
             ) : null}
-            {canEdit && onEditMetadata && (asset.kind === 'table' || asset.kind === 'pdf') ? (
+            {canEdit &&
+            onEditMetadata &&
+            (asset.kind === 'image' || asset.kind === 'table' || asset.kind === 'pdf') ? (
               <DropdownMenuItem icon={<Tags size={14} />} onSelect={() => onEditMetadata(asset)}>
                 Ficha técnica
               </DropdownMenuItem>

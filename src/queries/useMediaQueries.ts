@@ -10,9 +10,8 @@ import { tablesService, type FetchTablesOptions } from '../services/tablesServic
 import { hasActiveTableQueryFilters } from '../services/tables/tableQueryUrl';
 import { pdfsService, type FetchPdfsOptions } from '../services/pdfsService';
 import { foldersService } from '../services/foldersService';
-import { bulkService } from '../services/bulkService';
 import type { MetadataCard, TableDataQueryOptions } from '../types/api';
-import type { PdfMetadataCard } from '../types/media';
+import type { ImageMetadataCard, PdfMetadataCard } from '../types/media';
 import { queryKeys } from './queryKeys';
 
 /**
@@ -124,6 +123,16 @@ export function useReplaceImageMutation() {
   return useMutation({
     mutationFn: ({ id, file }: { id: string; file: File }) => imagesService.replaceImage(id, file),
     onSuccess: () => invalidateMany(qc, [queryKeys.images.all, queryKeys.storageStats.all]),
+  });
+}
+
+/** Mutación para actualizar la ficha técnica de una imagen (`PATCH /api/v1/images/:id/metadata`). */
+export function useUpdateImageMetadataMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, metadata }: { id: string; metadata: ImageMetadataCard }) =>
+      imagesService.updateImageMetadata(id, metadata),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.images.all }),
   });
 }
 
@@ -260,40 +269,11 @@ export function useMovePdfMutation() {
   });
 }
 
-/** Mutación para eliminación en lote de hasta 50 imágenes (`POST /api/v1/images/bulk-delete`). */
-export function useBulkDeleteImagesMutation() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (ids: string[]) => bulkService.bulkDeleteImages(ids),
-    onSuccess: () => invalidateMany(qc, [queryKeys.images.all, queryKeys.folders.all, queryKeys.storageStats.all]),
-  });
-}
-
-/** Mutación para traslado en lote de hasta 50 imágenes (`POST /api/v1/images/bulk-move`). */
-export function useBulkMoveImagesMutation() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ ids, targetFolderId }: { ids: string[]; targetFolderId: string }) =>
-      bulkService.bulkMoveImages(ids, targetFolderId),
-    onSuccess: () => invalidateMany(qc, [queryKeys.images.all, queryKeys.folders.all]),
-  });
-}
-
-/** Mutación para eliminación en lote de hasta 50 tablas (`POST /api/v1/tables/bulk-delete`). */
-export function useBulkDeleteTablesMutation() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (ids: string[]) => bulkService.bulkDeleteTables(ids),
-    onSuccess: () => invalidateMany(qc, [queryKeys.tables.all, queryKeys.folders.all, queryKeys.storageStats.all]),
-  });
-}
-
-/** Mutación para traslado en lote de hasta 50 tablas (`POST /api/v1/tables/bulk-move`). */
-export function useBulkMoveTablesMutation() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ ids, targetFolderId }: { ids: string[]; targetFolderId: string }) =>
-      bulkService.bulkMoveTables(ids, targetFolderId),
-    onSuccess: () => invalidateMany(qc, [queryKeys.tables.all, queryKeys.folders.all]),
-  });
-}
+export {
+  useBulkDeleteImagesMutation,
+  useBulkMoveImagesMutation,
+  useBulkDeleteTablesMutation,
+  useBulkMoveTablesMutation,
+  useBulkDeletePdfsMutation,
+  useBulkMovePdfsMutation,
+} from './useBulkMediaMutations';
