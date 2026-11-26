@@ -8,6 +8,7 @@ vi.mock('./apiClient', () => ({
     get: vi.fn(),
     post: vi.fn(),
     patch: vi.fn(),
+    delete: vi.fn(),
     download: vi.fn(),
   },
 }));
@@ -232,6 +233,48 @@ describe('formsService (v2 Stateless)', () => {
         'formulario-f-1.csv'
       );
       expect(res.filename).toBe('reporte.csv');
+    });
+  });
+
+  describe('updateForm & deleteForm', () => {
+    it('debe actualizar configuración parcial con PATCH /api/v1/forms/:id incluyendo externalTargetUrl null', async () => {
+      const updated = {
+        id: 'f-1',
+        slug: 'soporte-tecnico',
+        title: 'Soporte Técnico 2026',
+        allowedResolutionStates: ['VALID', 'INVALID', 'OBSERVED'],
+        autoResolveWithAi: true,
+        externalTargetUrl: null,
+        entryFieldsSchema: [],
+        resolutionFieldsSchema: [],
+        createdAt: '2026-03-01T00:00:00Z',
+      };
+      vi.mocked(apiClient.patch).mockResolvedValueOnce({ form: updated });
+
+      const result = await formsService.updateForm('f-1', {
+        title: 'Soporte Técnico 2026',
+        allowedResolutionStates: ['VALID', 'INVALID', 'OBSERVED'],
+        autoResolveWithAi: true,
+        externalTargetUrl: null,
+      });
+
+      expect(apiClient.patch).toHaveBeenCalledWith('/api/v1/forms/f-1', {
+        title: 'Soporte Técnico 2026',
+        allowedResolutionStates: ['VALID', 'INVALID', 'OBSERVED'],
+        autoResolveWithAi: true,
+        externalTargetUrl: null,
+      });
+      expect(result.title).toBe('Soporte Técnico 2026');
+      expect(result.autoResolveWithAi).toBe(true);
+      expect(result.externalTargetUrl).toBeNull();
+    });
+
+    it('debe eliminar el formulario y su tabla abierta vinculada con DELETE /api/v1/forms/:id', async () => {
+      vi.mocked(apiClient.delete).mockResolvedValueOnce({ deleted: true, id: 'f-1' });
+
+      const res = await formsService.deleteForm('f-1');
+      expect(apiClient.delete).toHaveBeenCalledWith('/api/v1/forms/f-1');
+      expect(res).toEqual({ deleted: true, id: 'f-1' });
     });
   });
 });

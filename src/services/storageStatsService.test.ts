@@ -49,5 +49,34 @@ describe('storageStatsService', () => {
     expect(getSpy).toHaveBeenCalledWith('/api/v1/stats/storage');
     expect(res).toEqual(mockStats);
   });
+
+  it('preserva disk.maxStorageBytes, disk.usagePercent y el bloque operativo summary', async () => {
+    const enrichedStats = {
+      isAdmin: true,
+      database: { totalCount: 15, totalSizeBytes: 2048000 },
+      disk: {
+        totalBytes: 850_000_000,
+        totalFilesCount: 40,
+        maxStorageBytes: 1_000_000_000,
+        usagePercent: 85,
+      },
+      topFolders: [],
+      summary: {
+        activeUsersCount: 9,
+        formsCount: 4,
+        pendingEntriesCount: 12,
+        resolvedEntriesCount: 38,
+      },
+      warning: true,
+      warningMessage: 'Capacidad al 85%',
+    };
+
+    vi.spyOn(apiClient, 'get').mockResolvedValueOnce(enrichedStats as never);
+
+    const res = await storageStatsService.fetchStorageStats();
+    expect(res.disk?.usagePercent).toBe(85);
+    expect(res.disk?.maxStorageBytes).toBe(1_000_000_000);
+    expect(res.summary).toEqual(enrichedStats.summary);
+  });
 });
 

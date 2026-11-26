@@ -113,5 +113,10 @@ export type ApiUserProfile = paths['/api/v1/auth/me']['get']['responses'][200]['
 export type ApiChatAnswer = paths['/api/v1/chat/ask']['post']['responses'][200]['content']['application/json'];
 /** Payload de consulta al asistente RAG tabular. */
 export type ApiChatAskInput = NonNullable<paths['/api/v1/chat/ask']['post']['requestBody']>['content']['application/json'];
-/** Respuesta de sugerencias públicas de preguntas analíticas. */
+/** Payload de sugerencias públicas de preguntas analíticas. */
 export type ApiChatSuggestionsResponse = paths['/api/v1/public/chat/suggestions']['get']['responses'][200]['content']['application/json'];
+
+/** Payload de actualización parcial de formulario (PATCH /api/v1/forms/:id). */
+export type ApiUpdateFormInput = NonNullable<paths['/api/v1/forms/{id}']['patch']['requestBody']>['content']['application/json'];
+/** Respuesta de eliminación en cascada de un formulario y su tabla vinculada (DELETE /api/v1/forms/:id). */
+export type ApiDeleteFormResponse = paths['/api/v1/forms/{id}']['delete']['responses'][200]['content']['application/json'];

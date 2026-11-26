@@ -1,0 +1,180 @@
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 190px;
+  flex: 1 1 210px;
+  max-width: 280px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 9px;
+  color: var(--ink-tertiary);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 6px 10px 6px 28px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--control-border);
+  background-color: var(--control-bg);
+  color: var(--ink-primary);
+  font-size: var(--text-xs);
+}
+
+.searchInput:focus,
+.dateInput:focus {
+  outline: none;
+  background-color: var(--control-bg-focus);
+  border-color: var(--control-border-focus);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.dateField {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+}
+
+.dateInput {
+  padding: 6px 8px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--control-border);
+  background-color: var(--control-bg);
+  color: var(--ink-primary);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+}
+
+.actionsCluster {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.statusCell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  background-color: var(--paper-well);
+  border: 1px solid var(--hairline);
+}
+
+.switchText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.switchTitle {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-primary);
+}
+
+.switchSub {
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+}
+
+.quotaBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background-color: var(--paper-well);
+  border: 1px solid var(--hairline);
+}
+
+.quotaMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+}
+
+.quotaPercent {
+  font-family: var(--font-code);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-primary);
+}
+
+.quotaProgress {
+  width: 100%;
+  height: 8px;
+  appearance: none;
+  border: none;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background-color: var(--paper-canvas);
+}
+
+.quotaProgress::-webkit-progress-bar {
+  background-color: var(--paper-canvas);
+  border-radius: var(--radius-pill);
+}
+
+.quotaProgress::-webkit-progress-value {
+  background-color: var(--accent-ink);
+  border-radius: var(--radius-pill);
+}
+
+.quotaProgress::-moz-progress-bar {
+  background-color: var(--accent-ink);
+  border-radius: var(--radius-pill);
+}
+
+.quotaWarn::-webkit-progress-value {
+  background-color: var(--status-warn);
+}
+
+.quotaWarn::-moz-progress-bar {
+  background-color: var(--status-warn);
+}
+
+.quotaDanger::-webkit-progress-value {
+  background-color: var(--status-danger);
+}
+
+.quotaDanger::-moz-progress-bar {
+  background-color: var(--status-danger);
+}
+
+.spineOk {
+  border-left-color: var(--status-ok);
+}
+
+.spineWarn {
+  border-left-color: var(--status-warn);
+}
+
+.spineForm {
+  border-left-color: var(--spine-form);
+}

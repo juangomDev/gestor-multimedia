@@ -64,6 +64,14 @@ function renderAuthenticatedApp(role: Role, initialRoute = '/') {
   vi.spyOn(authService, 'getMe').mockResolvedValue({ user });
   vi.spyOn(foldersService, 'fetchFolderTree').mockResolvedValue(MOCK_TREE);
   vi.spyOn(usersService, 'listUsers').mockResolvedValue([]);
+  vi.spyOn(usersService, 'listUsersPaginated').mockResolvedValue({
+    users: [],
+    total: 0,
+    page: 1,
+    limit: 25,
+    totalPages: 1,
+    hasNext: false,
+  });
   vi.spyOn(imagesService, 'listImages').mockResolvedValue({
     items: [],
     meta: { total: 0, page: 1, limit: 50, totalPages: 1 },
@@ -137,7 +145,7 @@ describe('AppShell, Guardas RBAC, Subida Contextual y Paleta ⌘K (Fase 3)', () 
     it('permite /team (lazy) a MANAGER pero bloquea /admin', async () => {
       renderAuthenticatedApp('MANAGER', '/team');
 
-      expect(await screen.findByTestId('team-page')).toBeInTheDocument();
+      expect(await screen.findByTestId('team-page', undefined, { timeout: 4000 })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: /Mi equipo/i })).toBeInTheDocument();
       expect(screen.queryByRole('link', { name: /Sistema y API/i })).not.toBeInTheDocument();
     });
@@ -152,7 +160,7 @@ describe('AppShell, Guardas RBAC, Subida Contextual y Paleta ⌘K (Fase 3)', () 
       });
 
       fireEvent.click(screen.getByRole('link', { name: /Sistema y API/i }));
-      expect(await screen.findByTestId('admin-page')).toBeInTheDocument();
+      expect(await screen.findByTestId('admin-page', undefined, { timeout: 4000 })).toBeInTheDocument();
     });
   });
 

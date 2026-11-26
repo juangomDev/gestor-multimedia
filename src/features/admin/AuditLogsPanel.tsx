@@ -1,13 +1,20 @@
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Eye, RefreshCw, ScrollText } from 'lucide-react';
+import React, { useDeferredValue, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight, Eye, ScrollText } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Dialog } from '../../components/ui/Dialog';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { useToast } from '../../context/useToast';
 import { useAuditLogsQuery } from '../../queries/useAdminQueries';
+import {
+  auditService,
+  type AuditLogFilterOptions,
+  type AuditLogItem,
+} from '../../services/auditService';
+import { triggerBlobDownload } from '../../utils/download';
 import { formatDate } from '../../utils/formatters';
-import type { AuditLogItem } from '../../services/auditService';
+import { AuditLogsToolbar } from './AuditLogsToolbar';
 import styles from './AdminShared.module.css';
 
 /**
@@ -22,122 +29,103 @@ export interface AuditLogsPanelProps {
   hideAdminFilters?: boolean;
 }
 
-const ACTION_OPTIONS = [
-  { value: '', label: 'Todas las acciones' },
-  { value: 'LOGIN', label: 'LOGIN' },
-  { value: 'USER_CREATE', label: 'USER_CREATE' },
-  { value: 'USER_UPDATE_STATUS', label: 'USER_UPDATE_STATUS' },
-  { value: 'USER_RESET_PASSWORD', label: 'USER_RESET_PASSWORD' },
-  { value: 'USER_DELETE', label: 'USER_DELETE' },
-  { value: 'FOLDER_CREATE', label: 'FOLDER_CREATE' },
-  { value: 'FOLDER_SHARE', label: 'FOLDER_SHARE' },
-  { value: 'FOLDER_DELETE', label: 'FOLDER_DELETE' },
-  { value: 'IMAGE_UPLOAD', label: 'IMAGE_UPLOAD' },
-  { value: 'TABLE_UPLOAD', label: 'TABLE_UPLOAD' },
-  { value: 'PDF_UPLOAD', label: 'PDF_UPLOAD' },
-  { value: 'FORM_CREATE', label: 'FORM_CREATE' },
-  { value: 'BULK_DELETE', label: 'BULK_DELETE' },
-  { value: 'BULK_MOVE', label: 'BULK_MOVE' },
-  { value: 'API_KEY_CREATE', label: 'API_KEY_CREATE', adminOnly: true },
-  { value: 'API_KEY_REVOKE', label: 'API_KEY_REVOKE', adminOnly: true },
-];
-
-const RESOURCE_OPTIONS = [
-  { value: '', label: 'Todos los recursos' },
-  { value: 'USER', label: 'Usuario (USER)' },
-  { value: 'FOLDER', label: 'Carpeta (FOLDER)' },
-  { value: 'IMAGE', label: 'Imagen (IMAGE)' },
-  { value: 'TABLE', label: 'Tabla (TABLE)' },
-  { value: 'PDF', label: 'PDF (PDF)' },
-  { value: 'FORM', label: 'Formulario (FORM)' },
-  { value: 'API_KEY', label: 'API Key (API_KEY)', adminOnly: true },
-];
-
 /**
- * Historial cronológico inmutable de auditoría (`GET /api/v1/audit-logs`) con filtros por acción
- * y tipo de recurso, paginación server-side e inspección modal de metadatos JSON.
- * Reutilizable tanto en `/admin/audit` (`ADMIN`) como en `/team` (`MANAGER`).
+ * Historial cronológico inmutable de auditoría (`GET /api/v1/audit-logs`) con filtros server-side
+ * por búsqueda libre, acción, recurso y rango de fechas, exportación CSV/XLSX (`/export`),
+ * paginación server-side e inspección modal de metadatos JSON.
  */
 export const AuditLogsPanel: React.FC<AuditLogsPanelProps> = ({
   enabled = true,
   pageSize = 25,
   hideAdminFilters = false,
 }) => {
+  const { showToast } = useToast();
+
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const deferredSearch = useDeferredValue(search);
   const [action, setAction] = useState('');
   const [resourceType, setResourceType] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [exportingFormat, setExportingFormat] = useState<'csv' | 'xlsx' | null>(null);
   const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
 
-  const visibleActions = hideAdminFilters
-    ? ACTION_OPTIONS.filter((opt) => !opt.adminOnly)
-    : ACTION_OPTIONS;
-  const visibleResources = hideAdminFilters
-    ? RESOURCE_OPTIONS.filter((opt) => !opt.adminOnly)
-    : RESOURCE_OPTIONS;
-
-  const logsQuery = useAuditLogsQuery(
-    {
-      page,
-      limit: pageSize,
+  const activeFilters = useMemo<AuditLogFilterOptions>(
+    () => ({
       action: action || undefined,
       resourceType: resourceType || undefined,
-    },
-    enabled
+      search: deferredSearch.trim() || undefined,
+      from: fromDate ? `${fromDate}T00:00:00.000Z` : undefined,
+      to: toDate ? `${toDate}T23:59:59.999Z` : undefined,
+    }),
+    [action, resourceType, deferredSearch, fromDate, toDate]
   );
+
+  const logsQuery = useAuditLogsQuery({ page, limit: pageSize, ...activeFilters }, enabled);
 
   const logs = logsQuery.data?.logs ?? [];
   const total = logsQuery.data?.total ?? 0;
   const totalPages = logsQuery.data?.totalPages ?? 1;
 
+  const handleExport = async (format: 'csv' | 'xlsx') => {
+    setExportingFormat(format);
+    try {
+      const result = await auditService.downloadExport(format, activeFilters);
+      triggerBlobDownload(result.blob, result.filename);
+      showToast(`Exportación ${format.toUpperCase()} de auditoría descargada.`, 'success');
+    } catch (err: unknown) {
+      const detail = (err as { detail?: string })?.detail;
+      showToast(detail || `No se pudo exportar la auditoría en .${format}.`, 'error');
+    } finally {
+      setExportingFormat(null);
+    }
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setAction('');
+    setResourceType('');
+    setFromDate('');
+    setToDate('');
+    setPage(1);
+  };
+
   return (
     <div className={styles.panel} data-testid="audit-logs-panel">
-      <div className={styles.toolbar}>
-        <div className={styles.filterCluster}>
-          <select
-            aria-label="Filtrar auditoría por acción"
-            className={styles.select}
-            value={action}
-            onChange={(e) => {
-              setAction(e.target.value);
-              setPage(1);
-            }}
-            data-testid="audit-action-filter"
-          >
-            {visibleActions.map((opt) => (
-              <option key={opt.value || 'all-act'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-
-          <select
-            aria-label="Filtrar auditoría por recurso"
-            className={styles.select}
-            value={resourceType}
-            onChange={(e) => {
-              setResourceType(e.target.value);
-              setPage(1);
-            }}
-            data-testid="audit-resource-filter"
-          >
-            {visibleResources.map((opt) => (
-              <option key={opt.value || 'all-res'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<RefreshCw size={14} />}
-          loading={logsQuery.isFetching}
-          onClick={() => void logsQuery.refetch()}
-        >
-          Actualizar
-        </Button>
-      </div>
+      <AuditLogsToolbar
+        search={search}
+        action={action}
+        resourceType={resourceType}
+        fromDate={fromDate}
+        toDate={toDate}
+        hideAdminFilters={hideAdminFilters}
+        isFetching={logsQuery.isFetching}
+        exportingFormat={exportingFormat}
+        onSearchChange={(val) => {
+          setSearch(val);
+          setPage(1);
+        }}
+        onActionChange={(val) => {
+          setAction(val);
+          setPage(1);
+        }}
+        onResourceTypeChange={(val) => {
+          setResourceType(val);
+          setPage(1);
+        }}
+        onFromDateChange={(val) => {
+          setFromDate(val);
+          setPage(1);
+        }}
+        onToDateChange={(val) => {
+          setToDate(val);
+          setPage(1);
+        }}
+        onClearFilters={handleClearFilters}
+        onExport={(fmt) => void handleExport(fmt)}
+        onRefresh={() => void logsQuery.refetch()}
+      />
 
       {logsQuery.isLoading ? (
         <Skeleton variant="card" height={220} />

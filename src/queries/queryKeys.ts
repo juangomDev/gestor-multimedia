@@ -7,6 +7,7 @@ import type { FetchPdfsOptions } from '../services/pdfsService';
 import type { FetchFormsOptions, ListEntriesOptions } from '../types/forms';
 import type { FetchNotificationsParams } from '../services/notificationsService';
 import type { FetchAuditLogsOptions } from '../services/auditService';
+import type { FetchUsersOptions } from '../services/usersService';
 
 /**
  * Parámetros tipados para consultar listados filtrados de carpetas (`GET /api/v1/folders`).
@@ -76,6 +77,7 @@ export const queryKeys = {
   users: {
     all: ['users'] as const,
     list: () => ['users', 'list'] as const,
+    paginated: (options: FetchUsersOptions = {}) => ['users', 'paginated', options] as const,
   },
   auditLogs: {
     all: ['auditLogs'] as const,

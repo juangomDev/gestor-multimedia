@@ -10,6 +10,7 @@ import {
   MoreHorizontal,
   Pencil,
   RefreshCw,
+  Settings2,
   Table2,
   Tags,
   Trash2,
@@ -43,6 +44,7 @@ export interface ExplorerListAssetRowProps {
   onRename?: (asset: ExplorerAsset) => void;
   onHotSwap?: (asset: ExplorerAsset) => void;
   onEditMetadata?: (asset: ExplorerAsset) => void;
+  onEditForm?: (asset: ExplorerAsset) => void;
   onMove: (asset: ExplorerAsset) => void;
   onDelete: (asset: ExplorerAsset) => void;
 }
@@ -61,6 +63,7 @@ export const ExplorerListAssetRow: React.FC<ExplorerListAssetRowProps> = ({
   onRename,
   onHotSwap,
   onEditMetadata,
+  onEditForm,
   onMove,
   onDelete,
 }) => {
@@ -150,66 +153,97 @@ export const ExplorerListAssetRow: React.FC<ExplorerListAssetRowProps> = ({
         {formatDate(asset.item.updatedAt || asset.item.createdAt)}
       </td>
       <td className={`${styles.cell} ${styles.actionsCell}`}>
-        {!isForm ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={styles.menuBtn}
-                aria-label={`Acciones de ${title}`}
-              >
-                <MoreHorizontal size={15} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem icon={<ExternalLink size={14} />} onSelect={() => onOpen(asset)}>
-                Abrir
-              </DropdownMenuItem>
-              {downloadUrl ? (
-                <DropdownMenuItem
-                  icon={<Download size={14} />}
-                  onSelect={() => window.open(downloadUrl, '_blank', 'noopener,noreferrer')}
-                >
-                  Descargar original
-                </DropdownMenuItem>
-              ) : null}
-              {canEditAssets && onRename ? (
-                <DropdownMenuItem icon={<Pencil size={14} />} onSelect={() => onRename(asset)}>
-                  Renombrar
-                </DropdownMenuItem>
-              ) : null}
-              {canEditAssets && onHotSwap ? (
-                <DropdownMenuItem icon={<RefreshCw size={14} />} onSelect={() => onHotSwap(asset)}>
-                  Reemplazar (Hot-Swap)
-                </DropdownMenuItem>
-              ) : null}
-              {canEditAssets &&
-              onEditMetadata &&
-              (asset.kind === 'image' || asset.kind === 'table' || asset.kind === 'pdf') ? (
-                <DropdownMenuItem icon={<Tags size={14} />} onSelect={() => onEditMetadata(asset)}>
-                  Ficha técnica
-                </DropdownMenuItem>
-              ) : null}
-              {canEditAssets ? (
-                <DropdownMenuItem icon={<FolderInput size={14} />} onSelect={() => onMove(asset)}>
-                  Mover a carpeta
-                </DropdownMenuItem>
-              ) : null}
-              {canEditAssets ? (
-                <>
-                  <DropdownMenuSeparator />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className={styles.menuBtn}
+              aria-label={`Acciones de ${title}`}
+            >
+              <MoreHorizontal size={15} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem icon={<ExternalLink size={14} />} onSelect={() => onOpen(asset)}>
+              {isForm ? 'Abrir bandeja' : 'Abrir'}
+            </DropdownMenuItem>
+            {isForm ? (
+              <>
+                {canEditAssets && onEditForm ? (
                   <DropdownMenuItem
-                    tone="danger"
-                    icon={<Trash2 size={14} />}
-                    onSelect={() => onDelete(asset)}
+                    icon={<Settings2 size={14} />}
+                    onSelect={() => onEditForm(asset)}
                   >
-                    Eliminar
+                    Configurar formulario
                   </DropdownMenuItem>
-                </>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
+                ) : null}
+                {canEditAssets ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      tone="danger"
+                      icon={<Trash2 size={14} />}
+                      onSelect={() => onDelete(asset)}
+                    >
+                      Eliminar formulario
+                    </DropdownMenuItem>
+                  </>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {downloadUrl ? (
+                  <DropdownMenuItem
+                    icon={<Download size={14} />}
+                    onSelect={() => window.open(downloadUrl, '_blank', 'noopener,noreferrer')}
+                  >
+                    Descargar original
+                  </DropdownMenuItem>
+                ) : null}
+                {canEditAssets && onRename ? (
+                  <DropdownMenuItem icon={<Pencil size={14} />} onSelect={() => onRename(asset)}>
+                    Renombrar
+                  </DropdownMenuItem>
+                ) : null}
+                {canEditAssets && onHotSwap ? (
+                  <DropdownMenuItem
+                    icon={<RefreshCw size={14} />}
+                    onSelect={() => onHotSwap(asset)}
+                  >
+                    Reemplazar (Hot-Swap)
+                  </DropdownMenuItem>
+                ) : null}
+                {canEditAssets &&
+                onEditMetadata &&
+                (asset.kind === 'image' || asset.kind === 'table' || asset.kind === 'pdf') ? (
+                  <DropdownMenuItem
+                    icon={<Tags size={14} />}
+                    onSelect={() => onEditMetadata(asset)}
+                  >
+                    Ficha técnica
+                  </DropdownMenuItem>
+                ) : null}
+                {canEditAssets ? (
+                  <DropdownMenuItem icon={<FolderInput size={14} />} onSelect={() => onMove(asset)}>
+                    Mover a carpeta
+                  </DropdownMenuItem>
+                ) : null}
+                {canEditAssets ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      tone="danger"
+                      icon={<Trash2 size={14} />}
+                      onSelect={() => onDelete(asset)}
+                    >
+                      Eliminar
+                    </DropdownMenuItem>
+                  </>
+                ) : null}
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </td>
     </tr>
   );

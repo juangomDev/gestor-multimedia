@@ -26,13 +26,14 @@ export interface ExplorerGridSectionsProps {
   onRenameAsset?: (asset: ExplorerAsset) => void;
   onHotSwapAsset?: (asset: ExplorerAsset) => void;
   onEditAssetMetadata?: (asset: ExplorerAsset) => void;
+  onEditFormAsset?: (asset: ExplorerAsset) => void;
   onMoveAsset: (asset: ExplorerAsset) => void;
   onDeleteAsset: (asset: ExplorerAsset) => void;
 }
 
 /**
  * Renderiza en modo cuadrícula las secciones de carpetas y activos tipados
- * con separación visual editorial y soporte de selección múltiple en `IMAGE` / `TABLE`.
+ * con separación visual editorial y soporte de selección múltiple en `IMAGE` / `TABLE` / `PDF`.
  */
 export const ExplorerGridSections: React.FC<ExplorerGridSectionsProps> = React.memo(({
   isInsideFolder,
@@ -53,6 +54,7 @@ export const ExplorerGridSections: React.FC<ExplorerGridSectionsProps> = React.m
   onRenameAsset,
   onHotSwapAsset,
   onEditAssetMetadata,
+  onEditFormAsset,
   onMoveAsset,
   onDeleteAsset,
 }) => (
@@ -111,6 +113,7 @@ export const ExplorerGridSections: React.FC<ExplorerGridSectionsProps> = React.m
                 onRename={onRenameAsset}
                 onHotSwap={onHotSwapAsset}
                 onEditMetadata={onEditAssetMetadata}
+                onEditForm={onEditFormAsset}
                 onMove={onMoveAsset}
                 onDelete={onDeleteAsset}
               />

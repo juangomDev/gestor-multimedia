@@ -14,7 +14,7 @@ export type UiArtifactDot = 'container' | 'image' | 'table' | 'pdf' | 'form';
 /**
  * Propiedades de la insignia editorial (`Badge`).
  */
-export interface UiBadgeProps {
+export interface UiBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   /** Contenido de la insignia */
   children: React.ReactNode;
   /** Tono semántico */
@@ -23,10 +23,6 @@ export interface UiBadgeProps {
   artifactDot?: UiArtifactDot;
   /** Aplica fuente monoespaciada con números tabulares */
   mono?: boolean;
-  /** Clase CSS adicional */
-  className?: string;
-  /** Tooltip nativo opcional */
-  title?: string;
 }
 
 const DOT_CLASS: Record<UiArtifactDot, string> = {
@@ -46,10 +42,10 @@ export const Badge: React.FC<UiBadgeProps> = ({
   artifactDot,
   mono = false,
   className,
-  title,
+  ...rest
 }) => (
   <span
-    title={title}
+    {...rest}
     className={`${styles.badge} ${styles[tone]} ${mono ? styles.mono : ''} ${className ?? ''}`}
   >
     {artifactDot ? <span className={`${styles.dot} ${DOT_CLASS[artifactDot]}`} aria-hidden="true" /> : null}

@@ -35,6 +35,7 @@ export interface ExplorerListTableProps {
   onRenameAsset?: (asset: ExplorerAsset) => void;
   onHotSwapAsset?: (asset: ExplorerAsset) => void;
   onEditAssetMetadata?: (asset: ExplorerAsset) => void;
+  onEditFormAsset?: (asset: ExplorerAsset) => void;
   onMoveAsset: (asset: ExplorerAsset) => void;
   onDeleteAsset: (asset: ExplorerAsset) => void;
 }
@@ -66,6 +67,7 @@ export const ExplorerListTable: React.FC<ExplorerListTableProps> = React.memo(({
   onRenameAsset,
   onHotSwapAsset,
   onEditAssetMetadata,
+  onEditFormAsset,
   onMoveAsset,
   onDeleteAsset,
 }) => (
@@ -177,6 +179,7 @@ export const ExplorerListTable: React.FC<ExplorerListTableProps> = React.memo(({
             onRename={onRenameAsset}
             onHotSwap={onHotSwapAsset}
             onEditMetadata={onEditAssetMetadata}
+            onEditForm={onEditFormAsset}
             onMove={onMoveAsset}
             onDelete={onDeleteAsset}
           />

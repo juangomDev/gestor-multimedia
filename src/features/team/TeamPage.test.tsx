@@ -36,6 +36,15 @@ const USERS_FIXTURE: User[] = [
   },
 ];
 
+const PAGINATED_USERS = {
+  users: USERS_FIXTURE,
+  total: USERS_FIXTURE.length,
+  page: 1,
+  limit: 25,
+  totalPages: 1,
+  hasNext: false,
+};
+
 function renderTeamPage(role: Role = 'MANAGER') {
   const user = {
     id: role === 'ADMIN' ? 'u-admin' : 'u-mgr',
@@ -64,7 +73,7 @@ describe('TeamPage y UsersDirectoryPanel (Fase 7.1 — RBAC, Colaboradores, Acti
   });
 
   it('protege ai_manager y auto-cuenta, crea COLLABORATOR como MANAGER, suspende, resetea clave y elimina', async () => {
-    vi.spyOn(usersService, 'listUsers').mockResolvedValue(USERS_FIXTURE);
+    vi.spyOn(usersService, 'listUsersPaginated').mockResolvedValue(PAGINATED_USERS);
     const createSpy = vi.spyOn(usersService, 'createUser').mockResolvedValue({
       user: {
         id: 'u-new',
@@ -136,7 +145,7 @@ describe('TeamPage y UsersDirectoryPanel (Fase 7.1 — RBAC, Colaboradores, Acti
   });
 
   it('permite a ADMIN elegir rol MANAGER o COLLABORATOR y carga Actividad y Cuota bajo demanda', async () => {
-    vi.spyOn(usersService, 'listUsers').mockResolvedValue(USERS_FIXTURE);
+    vi.spyOn(usersService, 'listUsersPaginated').mockResolvedValue(PAGINATED_USERS);
     const statsSpy = vi.spyOn(storageStatsService, 'fetchStorageStats').mockResolvedValue({
       isAdmin: false,
       database: {
@@ -196,7 +205,7 @@ describe('TeamPage y UsersDirectoryPanel (Fase 7.1 — RBAC, Colaboradores, Acti
   });
 
   it('oculta filtros exclusivos de ADMIN (API_KEY) en auditoría cuando accede un MANAGER', async () => {
-    vi.spyOn(usersService, 'listUsers').mockResolvedValue(USERS_FIXTURE);
+    vi.spyOn(usersService, 'listUsersPaginated').mockResolvedValue(PAGINATED_USERS);
     vi.spyOn(storageStatsService, 'fetchStorageStats').mockResolvedValue({
       isAdmin: false,
       database: {
@@ -228,5 +237,42 @@ describe('TeamPage y UsersDirectoryPanel (Fase 7.1 — RBAC, Colaboradores, Acti
     const resourceFilter = screen.getByTestId('audit-resource-filter');
     expect(actionFilter.textContent).not.toContain('API_KEY_CREATE');
     expect(resourceFilter.textContent).not.toContain('API_KEY');
+  });
+
+  it('filtra usuarios server-side por búsqueda, rol y estado, y pagina con Siguiente', async () => {
+    const paginatedSpy = vi.spyOn(usersService, 'listUsersPaginated').mockResolvedValue({
+      users: USERS_FIXTURE,
+      total: 40,
+      page: 1,
+      limit: 25,
+      totalPages: 2,
+      hasNext: true,
+    });
+
+    renderTeamPage('ADMIN');
+    expect(await screen.findByTestId('users-pagination')).toHaveTextContent('40 usuarios · Página 1 de 2');
+
+    fireEvent.change(screen.getByTestId('users-search-input'), { target: { value: 'ana' } });
+    fireEvent.change(screen.getByTestId('users-role-filter'), { target: { value: 'COLLABORATOR' } });
+    fireEvent.change(screen.getByTestId('users-status-filter'), { target: { value: 'active' } });
+
+    await waitFor(() => {
+      expect(paginatedSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          search: 'ana',
+          role: 'COLLABORATOR',
+          isActive: true,
+          page: 1,
+          limit: 25,
+        })
+      );
+    });
+
+    const nextBtn = screen.getByRole('button', { name: /Siguiente/i });
+    await waitFor(() => expect(nextBtn).toBeEnabled());
+    fireEvent.click(nextBtn);
+    await waitFor(() => {
+      expect(paginatedSpy).toHaveBeenCalledWith(expect.objectContaining({ page: 2 }));
+    });
   });
 });

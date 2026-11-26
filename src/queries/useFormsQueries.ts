@@ -3,6 +3,7 @@ import { formsService } from '../services/formsService';
 import { notificationsService } from '../services/notificationsService';
 import type {
   CreateFormInput,
+  UpdateFormInput,
   FetchFormsOptions,
   ListEntriesOptions,
   ResolveEntryInput,
@@ -81,6 +82,44 @@ export function useCreateFormMutation() {
         queryClient.invalidateQueries({ queryKey: queryKeys.forms.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tables.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.folders.all }),
+      ]);
+    },
+  });
+}
+
+/**
+ * Mutación para actualizar la configuración de un formulario (`PATCH /api/v1/forms/:id`).
+ * Invalida en paralelo el catálogo/detalle de formularios y las tablas vinculadas.
+ */
+export function useUpdateFormMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ formId, input }: { formId: string; input: UpdateFormInput }) =>
+      formsService.updateForm(formId, input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.forms.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tables.all }),
+      ]);
+    },
+  });
+}
+
+/**
+ * Mutación para eliminar un formulario junto con sus entradas y tabla abierta vinculada
+ * (`DELETE /api/v1/forms/:id`), invalidando en paralelo formularios, tablas, carpetas, chat y cuotas.
+ */
+export function useDeleteFormMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (formId: string) => formsService.deleteForm(formId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.forms.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tables.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.folders.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.chat.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.storageStats.all }),
       ]);
     },
   });

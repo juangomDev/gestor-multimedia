@@ -112,4 +112,42 @@ describe('UsersService (v2 Stateless RBAC User Administration)', () => {
     expect(deleteSpy).toHaveBeenCalledWith('/api/v1/users/col-50');
     expect(res.deleted).toBe(true);
   });
+
+  it('listUsersPaginated() envía search, role, isActive, page y limit y normaliza res.meta', async () => {
+    const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValueOnce({
+      users: [
+        {
+          id: 'col-22',
+          username: 'ana.colab',
+          role: 'COLLABORATOR',
+          isActive: true,
+          createdAt: '2026-11-10T00:00:00Z',
+        },
+      ],
+      meta: {
+        page: 2,
+        limit: 10,
+        total: 14,
+        totalPages: 2,
+        hasNext: false,
+      },
+    });
+
+    const pageRes = await usersService.listUsersPaginated({
+      search: '  ana  ',
+      role: 'COLLABORATOR',
+      isActive: true,
+      page: 2,
+      limit: 10,
+    });
+
+    expect(getSpy).toHaveBeenCalledWith(
+      '/api/v1/users?search=ana&role=COLLABORATOR&isActive=true&page=2&limit=10'
+    );
+    expect(pageRes.users).toHaveLength(1);
+    expect(pageRes.total).toBe(14);
+    expect(pageRes.page).toBe(2);
+    expect(pageRes.totalPages).toBe(2);
+    expect(pageRes.hasNext).toBe(false);
+  });
 });

@@ -62,4 +62,47 @@ describe('auditService', () => {
     expect(getSpy).toHaveBeenCalledWith('/api/v1/audit-logs');
     expect(result.logs).toEqual([]);
   });
+
+  it('soporta search, actorId y rango ISO from/to en fetchAuditLogs y descarga CSV/XLSX en downloadExport', async () => {
+    const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValueOnce({
+      logs: [],
+      total: 0,
+      page: 1,
+      limit: 25,
+      totalPages: 1,
+    } as never);
+
+    await auditService.fetchAuditLogs({
+      page: 1,
+      limit: 25,
+      actorId: 'u-7',
+      from: '2026-11-01T00:00:00.000Z',
+      to: '2026-11-25T23:59:59.999Z',
+      search: 'ventas',
+    });
+
+    expect(getSpy).toHaveBeenCalledWith(
+      '/api/v1/audit-logs?page=1&limit=25&actorId=u-7&from=2026-11-01T00%3A00%3A00.000Z&to=2026-11-25T23%3A59%3A59.999Z&search=ventas'
+    );
+
+    const blob = new Blob(['xlsx-bytes']);
+    const downloadSpy = vi.spyOn(apiClient, 'download').mockResolvedValueOnce({
+      blob,
+      filename: 'auditoria.xlsx',
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      sizeBytes: blob.size,
+    });
+
+    const exported = await auditService.downloadExport('xlsx', {
+      action: 'FORM_DELETE',
+      resourceType: 'FORM',
+      search: 'proveedores',
+    });
+
+    expect(downloadSpy).toHaveBeenCalledWith(
+      '/api/v1/audit-logs/export?format=xlsx&action=FORM_DELETE&resourceType=FORM&search=proveedores',
+      'auditoria.xlsx'
+    );
+    expect(exported.filename).toBe('auditoria.xlsx');
+  });
 });

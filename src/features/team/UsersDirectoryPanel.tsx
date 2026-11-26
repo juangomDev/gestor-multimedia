@@ -1,5 +1,5 @@
-import React, { useDeferredValue, useMemo, useState } from 'react';
-import { KeyRound, Search, Trash2, UserPlus, Users } from 'lucide-react';
+import React, { useDeferredValue, useState } from 'react';
+import { ChevronLeft, ChevronRight, KeyRound, Trash2, Users } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Switch } from '../../components/ui/Switch';
@@ -10,9 +10,10 @@ import { useAuth } from '../../context/useAuth';
 import { useToast } from '../../context/useToast';
 import {
   useUpdateUserStatusMutation,
-  useUsersQuery,
+  useUsersPaginatedQuery,
 } from '../../queries/useAdminQueries';
 import { formatDate } from '../../utils/formatters';
+import { UsersDirectoryToolbar } from './UsersDirectoryToolbar';
 import { CreateUserDialog } from './CreateUserDialog';
 import { ResetPasswordDialog } from './ResetPasswordDialog';
 import { DeleteUserDialog } from './DeleteUserDialog';
@@ -26,32 +27,46 @@ const ROLE_TONE: Record<Role, 'accent' | 'ok' | 'neutral'> = {
   COLLABORATOR: 'neutral',
 };
 
+const PAGE_LIMIT = 25;
+
 /**
  * Directorio RBAC reutilizable de usuarios (`GET /api/v1/users`) empleado en `/team` (`MANAGER`/`ADMIN`)
- * y `/admin/users` (`ADMIN`). Soporta alta jerárquica, toggle optimista Activar/Suspender,
- * reseteo de clave y borrado en cascada protegiendo cuentas de sistema (`ai_manager`) y auto-eliminación.
+ * y `/admin/users` (`ADMIN`). Soporta filtros server-side (`search`, `role`, `isActive`), paginación,
+ * alta jerárquica, toggle optimista Activar/Suspender, reseteo de clave y borrado en cascada.
  */
 export const UsersDirectoryPanel: React.FC = () => {
   const { user: currentUser } = useAuth();
   const { showToast } = useToast();
 
-  const usersQuery = useUsersQuery();
-  const updateStatus = useUpdateUserStatusMutation();
-
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
+  const [roleFilter, setRoleFilter] = useState<'' | Role>('');
+  const [statusFilter, setStatusFilter] = useState<'' | 'active' | 'inactive'>('');
+  const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [resetTarget, setResetTarget] = useState<User | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
-  const visibleUsers = useMemo(() => {
-    const list = usersQuery.data ?? [];
-    const q = deferredSearch.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter(
-      (u) => u.username.toLowerCase().includes(q) || u.role.toLowerCase().includes(q)
-    );
-  }, [usersQuery.data, deferredSearch]);
+  const usersQuery = useUsersPaginatedQuery({
+    search: deferredSearch.trim() || undefined,
+    role: roleFilter || undefined,
+    isActive: statusFilter === '' ? undefined : statusFilter === 'active',
+    page,
+    limit: PAGE_LIMIT,
+  });
+  const updateStatus = useUpdateUserStatusMutation();
+
+  const visibleUsers = usersQuery.data?.users ?? [];
+  const total = usersQuery.data?.total ?? visibleUsers.length;
+  const totalPages = usersQuery.data?.totalPages ?? 1;
+  const hasFilters = Boolean(search || roleFilter || statusFilter);
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setRoleFilter('');
+    setStatusFilter('');
+    setPage(1);
+  };
 
   const handleToggleStatus = async (target: User, nextActive: boolean) => {
     try {
@@ -70,29 +85,26 @@ export const UsersDirectoryPanel: React.FC = () => {
 
   return (
     <div className={styles.panel} data-testid="users-directory-panel">
-      <div className={styles.toolbar}>
-        <div className={styles.searchWrap}>
-          <Search size={14} className={styles.searchIcon} aria-hidden="true" />
-          <input
-            type="search"
-            className={styles.searchInput}
-            placeholder="Filtrar por usuario o rol..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Filtrar usuarios"
-          />
-        </div>
-
-        <Button
-          variant="primary"
-          size="sm"
-          icon={<UserPlus size={14} />}
-          onClick={() => setCreateOpen(true)}
-          data-testid="open-create-user-btn"
-        >
-          {currentUser?.role === 'ADMIN' ? 'Nuevo usuario' : 'Nuevo colaborador'}
-        </Button>
-      </div>
+      <UsersDirectoryToolbar
+        search={search}
+        roleFilter={roleFilter}
+        statusFilter={statusFilter}
+        isAdmin={currentUser?.role === 'ADMIN'}
+        onSearchChange={(val) => {
+          setSearch(val);
+          setPage(1);
+        }}
+        onRoleFilterChange={(val) => {
+          setRoleFilter(val);
+          setPage(1);
+        }}
+        onStatusFilterChange={(val) => {
+          setStatusFilter(val);
+          setPage(1);
+        }}
+        onClearFilters={handleClearFilters}
+        onOpenCreate={() => setCreateOpen(true)}
+      />
 
       {usersQuery.isLoading ? (
         <Skeleton variant="card" height={220} />
@@ -105,10 +117,10 @@ export const UsersDirectoryPanel: React.FC = () => {
       ) : visibleUsers.length === 0 ? (
         <EmptyState
           icon={<Users size={22} />}
-          title={deferredSearch ? 'Sin coincidencias' : 'Aún no hay colaboradores registrados'}
+          title={hasFilters ? 'Sin coincidencias' : 'Aún no hay colaboradores registrados'}
           description={
-            deferredSearch
-              ? `Ningún usuario coincide con "${deferredSearch}".`
+            hasFilters
+              ? 'Ningún usuario coincide con los criterios de búsqueda y filtro activos.'
               : 'Crea tu primer colaborador para compartir carpetas y asignar permisos.'
           }
         />
@@ -204,6 +216,33 @@ export const UsersDirectoryPanel: React.FC = () => {
               })}
             </tbody>
           </table>
+
+          <div className={styles.paginationBar} data-testid="users-pagination">
+            <span>
+              {total} {total === 1 ? 'usuario' : 'usuarios'} · Página {page} de{' '}
+              {Math.max(1, totalPages)}
+            </span>
+            <div className={styles.paginationBtns}>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<ChevronLeft size={14} />}
+                disabled={page <= 1 || usersQuery.isFetching}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                iconRight={<ChevronRight size={14} />}
+                disabled={page >= totalPages || usersQuery.isFetching}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router';
-import { ArrowLeft, ClipboardCheck, Code2, Download, X } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router';
+import { ClipboardCheck, X } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useToast } from '../../context/useToast';
@@ -13,8 +12,10 @@ import {
 } from '../../queries/useFormsQueries';
 import { formsService } from '../../services/formsService';
 import { useFolderWriteAccess } from '../explorer/useFolderWriteAccess';
-import { FormSubscriptionControl } from './FormSubscriptionControl';
+import { FormInboxHeader } from './FormInboxHeader';
 import { FormEmbedDialog } from './FormEmbedDialog';
+import { EditFormDialog } from './EditFormDialog';
+import { DeleteFormDialog } from './DeleteFormDialog';
 import { ResolveEntryDialog } from './ResolveEntryDialog';
 import { FormEntriesTable } from './FormEntriesTable';
 import { countEntryStatuses, triggerBlobDownload } from './formHelpers';
@@ -31,11 +32,12 @@ const STATUS_TABS: Array<{ value: StatusFilter; label: string }> = [
 ];
 
 /**
- * Bandeja mensual y resolución **Write-Once** de Formularios Dinámicos
- * (`/folder/:folderId/forms/:formId`), cargada con `React.lazy`.
+ * Bandeja mensual, gestión (`PATCH`/`DELETE /api/v1/forms/:id`) y resolución **Write-Once**
+ * de Formularios Dinámicos (`/folder/:folderId/forms/:formId`), cargada con `React.lazy`.
  */
 export const FormInboxPage: React.FC = () => {
   const { folderId, formId = '' } = useParams<{ folderId: string; formId: string }>();
+  const navigate = useNavigate();
   const { showToast } = useToast();
 
   const [trackedFormId, setTrackedFormId] = useState(formId);
@@ -43,6 +45,8 @@ export const FormInboxPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [page, setPage] = useState<number>(1);
   const [embedOpen, setEmbedOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [activeEntry, setActiveEntry] = useState<FormEntry | null>(null);
   const [exportingFormat, setExportingFormat] = useState<'xlsx' | 'csv' | null>(null);
 
@@ -52,6 +56,8 @@ export const FormInboxPage: React.FC = () => {
     setStatusFilter('ALL');
     setPage(1);
     setEmbedOpen(false);
+    setEditOpen(false);
+    setDeleteOpen(false);
     setActiveEntry(null);
   }
 
@@ -119,59 +125,17 @@ export const FormInboxPage: React.FC = () => {
 
   return (
     <div className={styles.page} data-testid="form-inbox-page">
-      <header className={styles.header}>
-        <div className={styles.headingCluster}>
-          <div className={styles.titleRow}>
-            <Link to={backHref}>
-              <Button variant="ghost" size="sm" icon={<ArrowLeft size={14} />}>
-                Carpeta
-              </Button>
-            </Link>
-            <h1 className={styles.title}>{form?.title || `Formulario · ${formId}`}</h1>
-            {form?.slug ? (
-              <Badge artifactDot="form" mono>
-                /{form.slug}
-              </Badge>
-            ) : null}
-          </div>
-          {form?.description ? <p className={styles.description}>{form.description}</p> : null}
-        </div>
-
-        <div className={styles.actionsCluster}>
-          {formId ? <FormSubscriptionControl formId={formId} /> : null}
-          {form ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Code2 size={14} />}
-              onClick={() => setEmbedOpen(true)}
-              data-testid="form-embed-btn"
-            >
-              Integrar en web
-            </Button>
-          ) : null}
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={<Download size={14} />}
-            loading={exportingFormat === 'xlsx'}
-            onClick={() => void handleExport('xlsx')}
-            data-testid="form-export-xlsx-btn"
-          >
-            .xlsx
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={<Download size={14} />}
-            loading={exportingFormat === 'csv'}
-            onClick={() => void handleExport('csv')}
-            data-testid="form-export-csv-btn"
-          >
-            .csv
-          </Button>
-        </div>
-      </header>
+      <FormInboxHeader
+        backHref={backHref}
+        formId={formId}
+        form={form}
+        canManage={canResolve}
+        exportingFormat={exportingFormat}
+        onOpenEmbed={() => setEmbedOpen(true)}
+        onExport={(format) => void handleExport(format)}
+        onOpenEdit={() => setEditOpen(true)}
+        onOpenDelete={() => setDeleteOpen(true)}
+      />
 
       <section className={styles.statsGrid} aria-label="Resumen numérico de entradas">
         <div className={styles.statCard} data-testid="stat-total">
@@ -276,7 +240,22 @@ export const FormInboxPage: React.FC = () => {
         />
       )}
 
-      {form && embedOpen ? <FormEmbedDialog open={embedOpen} onOpenChange={setEmbedOpen} form={form} /> : null}
+      {form && embedOpen ? (
+        <FormEmbedDialog open={embedOpen} onOpenChange={setEmbedOpen} form={form} />
+      ) : null}
+
+      {form && editOpen ? (
+        <EditFormDialog open={editOpen} onOpenChange={setEditOpen} form={form} />
+      ) : null}
+
+      {form && deleteOpen ? (
+        <DeleteFormDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          form={{ ...form, entriesCount: breakdown.total }}
+          onDeleted={() => navigate(backHref, { replace: true })}
+        />
+      ) : null}
 
       {form && activeEntry ? (
         <ResolveEntryDialog

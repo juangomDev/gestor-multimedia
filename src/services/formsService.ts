@@ -2,6 +2,8 @@ import { apiClient, type DownloadResult } from './apiClient';
 import type {
   FormDefinition,
   CreateFormInput,
+  UpdateFormInput,
+  DeleteFormResult,
   FetchFormsOptions,
   FormEntry,
   ListEntriesOptions,
@@ -75,6 +77,41 @@ export class FormsService {
     if ('data' in res && res.data) return res.data;
     if ('form' in res && res.form) return res.form;
     return res as FormDefinition;
+  }
+
+  /**
+   * Actualiza la configuración editable de un formulario existente (`PATCH /api/v1/forms/:id`):
+   * título, estados permitidos, bandera `autoResolveWithAi` y URL webhook `externalTargetUrl`.
+   *
+   * @param formId UUID del formulario a actualizar.
+   * @param input Campos parciales validados por el contrato OpenAPI.
+   * @returns Definición actualizada devuelta por el servidor.
+   */
+  async updateForm(formId: string, input: UpdateFormInput): Promise<FormDefinition> {
+    const res = await apiClient.patch<
+      FormDefinition | { data?: FormDefinition; form?: FormDefinition }
+    >(`/api/v1/forms/${encodeURIComponent(formId)}`, input);
+    if ('data' in res && res.data) return res.data;
+    if ('form' in res && res.form) return res.form;
+    return res as FormDefinition;
+  }
+
+  /**
+   * Elimina permanentemente un formulario, sus entradas en cascada y la tabla abierta vinculada
+   * junto a su artefacto físico `.data.json.gz` (`DELETE /api/v1/forms/:id`).
+   *
+   * @param formId UUID del formulario a eliminar.
+   * @returns Confirmación `{ deleted, id }`.
+   */
+  async deleteForm(formId: string): Promise<DeleteFormResult> {
+    const res = await apiClient.delete<
+      DeleteFormResult | { data?: DeleteFormResult } | undefined
+    >(`/api/v1/forms/${encodeURIComponent(formId)}`);
+    const payload = res && 'data' in res && res.data ? res.data : (res as DeleteFormResult | undefined);
+    return {
+      deleted: payload?.deleted ?? true,
+      id: payload?.id || formId,
+    };
   }
 
   /**

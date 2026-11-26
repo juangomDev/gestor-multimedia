@@ -14,6 +14,8 @@ import { ImageMetadataDialog } from '../images/ImageMetadataDialog';
 import { TableMetadataDialog } from '../data-studio/TableMetadataDialog';
 import { PdfMetadataDialog } from '../pdfs/PdfMetadataDialog';
 import { CreateFormDialog } from '../forms/CreateFormDialog';
+import { EditFormDialog } from '../forms/EditFormDialog';
+import { DeleteFormDialog } from '../forms/DeleteFormDialog';
 import type { FolderItem } from '../../types/media';
 import type { ExplorerAsset } from './AssetItemCard';
 import styles from './ExplorerPage.module.css';
@@ -22,7 +24,7 @@ import styles from './ExplorerPage.module.css';
  * Acción modal activa sobre un activo del Explorador.
  */
 export interface ExplorerAssetModalState {
-  type: 'move' | 'delete' | 'rename' | 'hotswap' | 'metadata';
+  type: 'move' | 'delete' | 'rename' | 'hotswap' | 'metadata' | 'editForm';
   asset: ExplorerAsset;
 }
 
@@ -210,6 +212,27 @@ export const ExplorerModals: React.FC<ExplorerModalsProps> = ({
           pdfId={modalAsset.item.id}
           pdfName={modalAsset.item.originalName}
           initialMetadata={modalAsset.item.metadataCard}
+        />
+      ) : null}
+
+      {assetModal?.type === 'editForm' && modalAsset?.kind === 'form' ? (
+        <EditFormDialog
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) onCloseAssetModal();
+          }}
+          form={modalAsset.item}
+          hydrateDetail={true}
+        />
+      ) : null}
+
+      {assetModal?.type === 'delete' && modalAsset?.kind === 'form' ? (
+        <DeleteFormDialog
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) onCloseAssetModal();
+          }}
+          form={modalAsset.item}
         />
       ) : null}
 

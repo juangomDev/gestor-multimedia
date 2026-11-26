@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Check,
-  ClipboardCheck,
   Download,
   ExternalLink,
   FileText,
@@ -26,6 +25,7 @@ import { imagesService } from '../../services/imagesService';
 import { tablesService } from '../../services/tablesService';
 import { pdfsService } from '../../services/pdfsService';
 import { formatBytes } from '../../utils/formatters';
+import { FormAssetCard } from './FormAssetCard';
 import type { ImageItem, PdfItem, TableItem } from '../../types/media';
 import type { FormDefinition } from '../../types/forms';
 import styles from './AssetItemCard.module.css';
@@ -53,6 +53,7 @@ export interface AssetItemCardProps {
   onRename?: (asset: ExplorerAsset) => void;
   onHotSwap?: (asset: ExplorerAsset) => void;
   onEditMetadata?: (asset: ExplorerAsset) => void;
+  onEditForm?: (asset: ExplorerAsset) => void;
   onMove?: (asset: ExplorerAsset) => void;
   onDelete?: (asset: ExplorerAsset) => void;
 }
@@ -79,34 +80,21 @@ export const AssetItemCard: React.FC<AssetItemCardProps> = ({
   onRename,
   onHotSwap,
   onEditMetadata,
+  onEditForm,
   onMove,
   onDelete,
 }) => {
   const id = asset.item.id;
 
   if (asset.kind === 'form') {
-    const entriesTotal = asset.item._count?.entries ?? asset.item.entriesCount ?? 0;
     return (
-      <article className={`${styles.card} ${styles.spineForm}`} data-testid={`form-card-${id}`}>
-        <div className={styles.headerRow}>
-          <button type="button" className={styles.titleBtn} onClick={() => onOpen(asset)}>
-            <ClipboardCheck size={15} aria-hidden="true" />
-            <span className={styles.titleText} title={asset.item.title}>
-              {asset.item.title}
-            </span>
-          </button>
-          <Badge artifactDot="form" mono>
-            FORM
-          </Badge>
-        </div>
-
-        <div className={styles.footerRow}>
-          <span className={styles.metaText}>/{asset.item.slug}</span>
-          <span className={styles.metaText}>
-            {entriesTotal} {entriesTotal === 1 ? 'entrada' : 'entradas'}
-          </span>
-        </div>
-      </article>
+      <FormAssetCard
+        form={asset.item}
+        canEdit={canEdit}
+        onOpen={() => onOpen(asset)}
+        onEditForm={onEditForm ? () => onEditForm(asset) : undefined}
+        onDelete={onDelete ? () => onDelete(asset) : undefined}
+      />
     );
   }
 

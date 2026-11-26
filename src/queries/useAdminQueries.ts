@@ -1,7 +1,16 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { usersService } from '../services/usersService';
+import {
+  usersService,
+  type FetchUsersOptions,
+  type PaginatedUsersResponse,
+} from '../services/usersService';
 import { auditService, type FetchAuditLogsOptions } from '../services/auditService';
-import { apiKeysService, type CreateApiKeyInput } from '../services/apiKeysService';
+import {
+  apiKeysService,
+  type ApiKeyItem,
+  type CreateApiKeyInput,
+  type UpdateApiKeyInput,
+} from '../services/apiKeysService';
 import { storageStatsService } from '../services/storageStatsService';
 import { healthService } from '../services/healthService';
 import type { CreateUserInput, User } from '../types/auth';
@@ -14,6 +23,22 @@ export function useUsersQuery(enabled: boolean = true) {
   return useQuery({
     queryKey: queryKeys.users.list(),
     queryFn: () => usersService.listUsers(),
+    enabled,
+  });
+}
+
+/**
+ * Lista usuarios con filtrado (`search`, `role`, `isActive`) y paginación server-side
+ * (`GET /api/v1/users`).
+ */
+export function useUsersPaginatedQuery(
+  options: FetchUsersOptions = {},
+  enabled: boolean = true
+) {
+  return useQuery({
+    queryKey: queryKeys.users.paginated(options),
+    queryFn: () => usersService.listUsersPaginated(options),
+    placeholderData: keepPreviousData,
     enabled,
   });
 }
@@ -89,20 +114,33 @@ export function useUpdateUserStatusMutation() {
     mutationFn: ({ userId, isActive }: { userId: string; isActive: boolean }) =>
       usersService.updateUserStatus(userId, isActive),
     onMutate: async ({ userId, isActive }) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.users.list() });
+      await queryClient.cancelQueries({ queryKey: queryKeys.users.all });
       const previous = queryClient.getQueryData<User[]>(queryKeys.users.list());
+      const previousPaginated = queryClient.getQueriesData<PaginatedUsersResponse>({
+        queryKey: ['users', 'paginated'],
+      });
       if (previous) {
         queryClient.setQueryData<User[]>(
           queryKeys.users.list(),
           previous.map((u) => (u.id === userId ? { ...u, isActive } : u))
         );
       }
-      return { previous };
+      previousPaginated.forEach(([key, pageData]) => {
+        if (!pageData) return;
+        queryClient.setQueryData<PaginatedUsersResponse>(key, {
+          ...pageData,
+          users: pageData.users.map((u) => (u.id === userId ? { ...u, isActive } : u)),
+        });
+      });
+      return { previous, previousPaginated };
     },
     onError: (_err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKeys.users.list(), context.previous);
       }
+      context?.previousPaginated.forEach(([key, pageData]) => {
+        queryClient.setQueryData(key, pageData);
+      });
     },
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
@@ -149,6 +187,37 @@ export function useCreateApiKeyMutation() {
   return useMutation({
     mutationFn: (payload: CreateApiKeyInput) => apiKeysService.createApiKey(payload),
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys.all });
+    },
+  });
+}
+
+/**
+ * Mutación optimista para actualizar nombre, descripción, cuota o estado activo de una API Key
+ * sin revocar su secreto (`PATCH /api/v1/api-keys/:id`).
+ */
+export function useUpdateApiKeyMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateApiKeyInput }) =>
+      apiKeysService.updateApiKey(id, payload),
+    onMutate: async ({ id, payload }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.apiKeys.all });
+      const previous = queryClient.getQueryData<ApiKeyItem[]>(queryKeys.apiKeys.list());
+      if (previous) {
+        queryClient.setQueryData<ApiKeyItem[]>(
+          queryKeys.apiKeys.list(),
+          previous.map((item) => (item.id === id ? { ...item, ...payload } : item))
+        );
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.apiKeys.list(), context.previous);
+      }
+    },
+    onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys.all });
     },
   });

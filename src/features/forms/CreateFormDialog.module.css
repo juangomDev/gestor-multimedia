@@ -168,6 +168,73 @@
   font-size: var(--text-xs);
 }
 
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  background-color: var(--paper-well);
+  border: 1px solid var(--hairline);
+}
+
+.switchText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.switchTitle {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-primary);
+}
+
+.switchSub {
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+}
+
+.fieldHint {
+  font-size: var(--text-xs);
+  color: var(--ink-tertiary);
+}
+
+.dangerNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background-color: var(--status-danger-bg);
+  border: 1px solid var(--status-danger-border);
+  color: var(--status-danger);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.dangerIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.impactList {
+  margin: var(--space-2) 0 0;
+  padding-left: 18px;
+  font-size: var(--text-xs);
+  color: var(--ink-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.impactMono {
+  font-family: var(--font-code);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-primary);
+}
+
 .footerActions {
   display: flex;
   align-items: center;

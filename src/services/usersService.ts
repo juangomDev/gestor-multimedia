@@ -21,19 +21,94 @@ function normalizeUser(raw: Partial<ApiUser> & { id?: string; username?: string 
 }
 
 /**
+ * Parámetros de filtrado y paginación server-side para `GET /api/v1/users`.
+ */
+export interface FetchUsersOptions {
+  /** Búsqueda por nombre de usuario (`search`). */
+  search?: string;
+  /** Filtrar por rol (`ADMIN`, `MANAGER`, `COLLABORATOR`). */
+  role?: Role;
+  /** Filtrar por estado activo (`true`) o suspendido (`false`). */
+  isActive?: boolean;
+  /** Número de página (1-indexed). */
+  page?: number;
+  /** Límite de registros por página. */
+  limit?: number;
+}
+
+/**
+ * Respuesta paginada normalizada de usuarios (`GET /api/v1/users`).
+ */
+export interface PaginatedUsersResponse {
+  users: User[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+}
+
+function buildUsersEndpoint(options?: FetchUsersOptions): string {
+  const params = new URLSearchParams();
+  if (options?.search && options.search.trim()) params.set('search', options.search.trim());
+  if (options?.role) params.set('role', options.role);
+  if (options?.isActive !== undefined) params.set('isActive', String(options.isActive));
+  if (options?.page !== undefined) params.set('page', String(options.page));
+  if (options?.limit !== undefined) params.set('limit', String(options.limit));
+  const qs = params.toString();
+  return qs ? `/api/v1/users?${qs}` : '/api/v1/users';
+}
+
+/**
  * Servicio sin estado de administración jerárquica de usuarios RBAC (`monolith-backend`).
- * Cubre las 5 rutas de `/api/v1/users`.
+ * Cubre las 5 rutas de `/api/v1/users` con soporte de filtrado y paginación server-side.
  */
 export class UsersService {
   /**
-   * Obtiene la lista de usuarios visibles según la jerarquía del usuario en sesión (`GET /api/v1/users`).
-   * `ADMIN` visualiza todos los usuarios; `MANAGER` visualiza sus colaboradores vinculados.
+   * Obtiene el listado paginado y filtrado server-side de usuarios según la jerarquía del usuario
+   * en sesión (`GET /api/v1/users`).
    *
+   * @param options Filtros opcionales (`search`, `role`, `isActive`, `page`, `limit`).
+   * @returns Usuarios normalizados y metadatos de paginación.
+   */
+  async listUsersPaginated(options?: FetchUsersOptions): Promise<PaginatedUsersResponse> {
+    const endpoint = buildUsersEndpoint(options);
+    const res = await apiClient.get<{
+      users?: ApiUser[];
+      total?: number;
+      page?: number;
+      limit?: number;
+      totalPages?: number;
+      meta?: {
+        total?: number;
+        page?: number;
+        limit?: number;
+        totalPages?: number;
+        hasNext?: boolean;
+      };
+    }>(endpoint);
+
+    const users = (res.users || []).map((u) => normalizeUser(u));
+    const total = res.meta?.total ?? res.total ?? users.length;
+    const page = res.meta?.page ?? res.page ?? options?.page ?? 1;
+    const limit = res.meta?.limit ?? res.limit ?? options?.limit ?? Math.max(users.length, 25);
+    const totalPages =
+      res.meta?.totalPages ?? res.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, limit)));
+    const hasNext = res.meta?.hasNext ?? page < totalPages;
+
+    return { users, total, page, limit, totalPages, hasNext };
+  }
+
+  /**
+   * Obtiene la lista plana de usuarios visibles según la jerarquía del usuario en sesión
+   * (`GET /api/v1/users`), útil en selectores de compartición y vistas resumidas.
+   *
+   * @param options Filtros opcionales.
    * @returns Lista de usuarios registrados en PostgreSQL.
    */
-  async listUsers(): Promise<User[]> {
-    const res = await apiClient.get<{ users?: ApiUser[] }>('/api/v1/users');
-    return (res.users || []).map((u) => normalizeUser(u));
+  async listUsers(options?: FetchUsersOptions): Promise<User[]> {
+    const { users } = await this.listUsersPaginated(options);
+    return users;
   }
 
   /**

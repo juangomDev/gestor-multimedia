@@ -71,6 +71,8 @@ export interface FormDefinition {
   resolutionFieldsSchema: FormSchemaField[];
   /** Estados de resolución permitidos (por defecto ['VALID', 'INVALID']) */
   allowedResolutionStates: string[];
+  /** Indica si las entradas nuevas intentan resolución automática asistida por IA */
+  autoResolveWithAi?: boolean;
   /** URL webhook opcional para despachar automáticamente o a demanda el registro sellado */
   externalTargetUrl?: string | null;
   /** Total de respuestas/entradas registradas */
@@ -109,6 +111,28 @@ export interface CreateFormInput {
   externalTargetUrl?: string;
   /** Habilita resolución asistida automáticamente por IA cuando lo soporta el backend. */
   autoResolveWithAi?: boolean;
+}
+
+/**
+ * Payload parcial para actualizar la configuración de un formulario (`PATCH /api/v1/forms/:id`).
+ */
+export interface UpdateFormInput {
+  /** Nuevo título visible del formulario. */
+  title?: string;
+  /** Lista actualizada de estados de resolución permitidos. */
+  allowedResolutionStates?: string[];
+  /** Activa o desactiva la resolución asistida automáticamente por IA. */
+  autoResolveWithAi?: boolean;
+  /** URL webhook externa al sellar (`null` limpia el webhook configurado). */
+  externalTargetUrl?: string | null;
+}
+
+/**
+ * Resultado devuelto al eliminar un formulario y su tabla vinculada (`DELETE /api/v1/forms/:id`).
+ */
+export interface DeleteFormResult {
+  deleted: boolean;
+  id: string;
 }
 
 /**

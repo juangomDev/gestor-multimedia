@@ -31,6 +31,17 @@ export interface CreateApiKeyInput {
 }
 
 /**
+ * Payload parcial para actualizar una API Key existente sin revocar su secreto
+ * (`PATCH /api/v1/api-keys/:id`).
+ */
+export interface UpdateApiKeyInput {
+  name?: string;
+  description?: string | null;
+  rateLimit?: number;
+  isActive?: boolean;
+}
+
+/**
  * Servicio para la administración dinámica de claves de integración API (`/api/v1/api-keys`)
  * exclusivo para usuarios con rol `ADMIN`.
  */
@@ -54,6 +65,24 @@ export class ApiKeysService {
    */
   async createApiKey(payload: CreateApiKeyInput): Promise<ApiKeyCreatedResponse> {
     return apiClient.post<ApiKeyCreatedResponse>('/api/v1/api-keys', payload);
+  }
+
+  /**
+   * Actualiza configuración o estado activo/pausado de una API Key sin revocar la llave criptográfica
+   * (`PATCH /api/v1/api-keys/:id`).
+   *
+   * @param id UUID de la clave a actualizar.
+   * @param payload Campos parciales (`name`, `description`, `rateLimit`, `isActive`).
+   * @returns Registro actualizado de la API Key.
+   */
+  async updateApiKey(id: string, payload: UpdateApiKeyInput): Promise<ApiKeyItem> {
+    const res = await apiClient.patch<ApiKeyItem | { key?: ApiKeyItem; data?: ApiKeyItem }>(
+      `/api/v1/api-keys/${encodeURIComponent(id)}`,
+      payload
+    );
+    if ('data' in res && res.data) return res.data;
+    if ('key' in res && res.key && typeof res.key === 'object') return res.key;
+    return res as ApiKeyItem;
   }
 
   /**

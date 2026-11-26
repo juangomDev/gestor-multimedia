@@ -23,6 +23,20 @@ export interface DiskStorageStats {
   pdfsFilesCount?: number;
   totalBytes?: number;
   totalFilesCount?: number;
+  /** Cuota máxima configurada en bytes del volumen de almacenamiento. */
+  maxStorageBytes?: number;
+  /** Porcentaje ocupado del volumen físico respecto a `maxStorageBytes`. */
+  usagePercent?: number;
+}
+
+/**
+ * Resumen operativo consolidado del espacio devuelto por `GET /api/v1/stats/storage`.
+ */
+export interface OperationalStorageSummary {
+  activeUsersCount?: number;
+  formsCount?: number;
+  pendingEntriesCount?: number;
+  resolvedEntriesCount?: number;
 }
 
 /**
@@ -44,6 +58,8 @@ export interface StorageStatsResponse {
   database: DatabaseStorageStats;
   disk?: DiskStorageStats | null;
   topFolders: FolderStorageStats[];
+  /** Resumen operativo global/alcance (usuarios activos, formularios y entradas). */
+  summary?: OperationalStorageSummary;
   /** Bandera preventiva activada por el backend cuando el espacio físico es crítico. */
   warning?: boolean;
   /** Mensaje descriptivo de alerta de disco cuando `warning` es `true`. */

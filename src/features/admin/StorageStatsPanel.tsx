@@ -7,6 +7,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { useStorageStatsQuery } from '../../queries/useAdminQueries';
 import { formatBytes } from '../../utils/formatters';
 import styles from './AdminShared.module.css';
+import controls from './AdminControls.module.css';
 
 /**
  * Propiedades del monitor de almacenamiento y cuota (`StorageStatsPanel`).
@@ -51,8 +52,22 @@ export const StorageStatsPanel: React.FC<StorageStatsPanelProps> = ({ enabled = 
 
   const db = stats.database;
   const disk = stats.disk;
+  const summary = stats.summary;
   const topFolders = stats.topFolders ?? [];
   const maxFolderBytes = Math.max(...topFolders.map((f) => f.totalBytes ?? 0), 1);
+  const rawDiskPct =
+    typeof disk?.usagePercent === 'number'
+      ? disk.usagePercent
+      : disk?.maxStorageBytes && disk.maxStorageBytes > 0
+      ? ((disk.totalBytes ?? 0) / disk.maxStorageBytes) * 100
+      : null;
+  const clampedDiskPct = rawDiskPct !== null ? Math.min(100, Math.max(0, rawDiskPct)) : null;
+  const quotaToneClass =
+    clampedDiskPct !== null && clampedDiskPct >= 90
+      ? controls.quotaDanger
+      : (clampedDiskPct !== null && clampedDiskPct >= 75) || stats.warning
+      ? controls.quotaWarn
+      : '';
 
   return (
     <div className={styles.panel} data-testid="storage-stats-panel">
@@ -121,6 +136,27 @@ export const StorageStatsPanel: React.FC<StorageStatsPanelProps> = ({ enabled = 
               {formatBytes(disk.totalBytes ?? 0)} · {disk.totalFilesCount ?? 0} ficheros
             </Badge>
           </div>
+          {clampedDiskPct !== null ? (
+            <div className={controls.quotaBox} data-testid="storage-disk-quota-meter">
+              <div className={controls.quotaMeta}>
+                <span>
+                  Ocupación del volumen:{' '}
+                  <strong className={controls.quotaPercent}>{clampedDiskPct.toFixed(1)}%</strong>
+                </span>
+                {disk.maxStorageBytes ? (
+                  <span className={styles.mono}>
+                    {formatBytes(disk.totalBytes ?? 0)} / {formatBytes(disk.maxStorageBytes)}
+                  </span>
+                ) : null}
+              </div>
+              <progress
+                className={`${controls.quotaProgress} ${quotaToneClass}`}
+                value={clampedDiskPct}
+                max={100}
+                aria-label="Porcentaje de ocupación del volumen físico"
+              />
+            </div>
+          ) : null}
           <div className={styles.cardGrid}>
             <div className={styles.metricCard}>
               <span className={styles.metricLabel}>Disco · Imágenes</span>
@@ -136,6 +172,38 @@ export const StorageStatsPanel: React.FC<StorageStatsPanelProps> = ({ enabled = 
               <span className={styles.metricLabel}>Disco · PDFs</span>
               <span className={styles.metricValue}>{formatBytes(disk.pdfsBytes ?? 0)}</span>
               <span className={styles.metricSub}>{disk.pdfsFilesCount ?? 0} archivos físicos</span>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {summary ? (
+        <section className={styles.sectionCard} data-testid="storage-operational-summary">
+          <h3 className={styles.sectionTitle}>Resumen operativo del espacio</h3>
+          <div className={styles.cardGrid}>
+            <div className={`${styles.metricCard} ${styles.spineAccent}`}>
+              <span className={styles.metricLabel}>Usuarios activos</span>
+              <span className={styles.metricValue}>{summary.activeUsersCount ?? 0}</span>
+              <span className={styles.metricSub}>cuentas habilitadas</span>
+            </div>
+            <div className={`${styles.metricCard} ${controls.spineForm}`}>
+              <span className={styles.metricLabel}>Formularios</span>
+              <span className={styles.metricValue}>{summary.formsCount ?? 0}</span>
+              <span className={styles.metricSub}>canales activos</span>
+            </div>
+            <div
+              className={`${styles.metricCard} ${
+                (summary.pendingEntriesCount ?? 0) > 0 ? controls.spineWarn : ''
+              }`}
+            >
+              <span className={styles.metricLabel}>Entradas pendientes</span>
+              <span className={styles.metricValue}>{summary.pendingEntriesCount ?? 0}</span>
+              <span className={styles.metricSub}>en espera de dictamen</span>
+            </div>
+            <div className={`${styles.metricCard} ${controls.spineOk}`}>
+              <span className={styles.metricLabel}>Entradas dictaminadas</span>
+              <span className={styles.metricValue}>{summary.resolvedEntriesCount ?? 0}</span>
+              <span className={styles.metricSub}>selladas write-once</span>
             </div>
           </div>
         </section>

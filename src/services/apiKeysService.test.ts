@@ -74,4 +74,34 @@ describe('apiKeysService', () => {
     expect(delSpy).toHaveBeenCalledWith('/api/v1/api-keys/key-1');
     expect(res).toBeUndefined();
   });
+
+  it('actualiza nombre, descripción, cuota y estado con PATCH /api/v1/api-keys/:id', async () => {
+    const updatedKey = {
+      id: 'key-1',
+      name: 'Pipeline BI V2',
+      description: null,
+      keyPrefix: 'gm_live_1234',
+      rateLimit: 300,
+      isActive: false,
+      lastUsedAt: null,
+      createdAt: '2026-11-08T00:00:00Z',
+    };
+    const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValueOnce(updatedKey as never);
+
+    const res = await apiKeysService.updateApiKey('key-1', {
+      name: 'Pipeline BI V2',
+      description: null,
+      rateLimit: 300,
+      isActive: false,
+    });
+
+    expect(patchSpy).toHaveBeenCalledWith('/api/v1/api-keys/key-1', {
+      name: 'Pipeline BI V2',
+      description: null,
+      rateLimit: 300,
+      isActive: false,
+    });
+    expect(res.isActive).toBe(false);
+    expect(res.rateLimit).toBe(300);
+  });
 });

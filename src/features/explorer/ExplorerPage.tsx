@@ -168,6 +168,7 @@ export const ExplorerPage: React.FC = () => {
     onRenameAsset: (asset: ExplorerAsset) => setAssetModal({ type: 'rename', asset }),
     onHotSwapAsset: (asset: ExplorerAsset) => setAssetModal({ type: 'hotswap', asset }),
     onEditAssetMetadata: (asset: ExplorerAsset) => setAssetModal({ type: 'metadata', asset }),
+    onEditFormAsset: (asset: ExplorerAsset) => setAssetModal({ type: 'editForm', asset }),
     onMoveAsset: (asset: ExplorerAsset) => setAssetModal({ type: 'move', asset }),
     onDeleteAsset: (asset: ExplorerAsset) => setAssetModal({ type: 'delete', asset }),
   };
