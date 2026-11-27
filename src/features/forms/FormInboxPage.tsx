@@ -12,13 +12,15 @@ import {
 } from '../../queries/useFormsQueries';
 import { formsService } from '../../services/formsService';
 import { useFolderWriteAccess } from '../explorer/useFolderWriteAccess';
+import { useFolderOwnerAccess } from '../explorer/useFolderOwnerAccess';
 import { FormInboxHeader } from './FormInboxHeader';
 import { FormEmbedDialog } from './FormEmbedDialog';
 import { EditFormDialog } from './EditFormDialog';
 import { DeleteFormDialog } from './DeleteFormDialog';
+import { DeleteFormEntryDialog } from './DeleteFormEntryDialog';
 import { ResolveEntryDialog } from './ResolveEntryDialog';
 import { FormEntriesTable } from './FormEntriesTable';
-import { countEntryStatuses, triggerBlobDownload } from './formHelpers';
+import { countEntryStatuses, formatPayloadValue, triggerBlobDownload } from './formHelpers';
 import type { FormEntry, FormEntryStatus } from '../../types/forms';
 import styles from './FormInboxPage.module.css';
 
@@ -48,6 +50,7 @@ export const FormInboxPage: React.FC = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [activeEntry, setActiveEntry] = useState<FormEntry | null>(null);
+  const [entryToDelete, setEntryToDelete] = useState<FormEntry | null>(null);
   const [exportingFormat, setExportingFormat] = useState<'xlsx' | 'csv' | null>(null);
 
   if (trackedFormId !== formId) {
@@ -59,6 +62,7 @@ export const FormInboxPage: React.FC = () => {
     setEditOpen(false);
     setDeleteOpen(false);
     setActiveEntry(null);
+    setEntryToDelete(null);
   }
 
   const formQuery = useFormDetailQuery(formId);
@@ -78,7 +82,9 @@ export const FormInboxPage: React.FC = () => {
     needsSummaryFetch
   );
   const dispatchMutation = useDispatchFormEntryMutation(resolvedFormId);
-  const canResolve = useFolderWriteAccess(folderId || form?.folderId || null);
+  const targetFolderId = folderId || form?.folderId || null;
+  const canResolve = useFolderWriteAccess(targetFolderId);
+  const canDeleteEntry = useFolderOwnerAccess(targetFolderId);
 
   const entries = useMemo(() => entriesQuery.data?.entries ?? [], [entriesQuery.data?.entries]);
   const breakdown = useMemo(
@@ -234,19 +240,16 @@ export const FormInboxPage: React.FC = () => {
           totalEntries={entriesQuery.data?.total ?? entries.length}
           isDispatching={dispatchMutation.isPending}
           canResolve={canResolve}
+          canDeleteEntry={canDeleteEntry}
           onSelectEntry={setActiveEntry}
           onQuickDispatch={(entryId) => void handleQuickDispatch(entryId)}
+          onDeleteEntry={setEntryToDelete}
           onPageChange={setPage}
         />
       )}
 
-      {form && embedOpen ? (
-        <FormEmbedDialog open={embedOpen} onOpenChange={setEmbedOpen} form={form} />
-      ) : null}
-
-      {form && editOpen ? (
-        <EditFormDialog open={editOpen} onOpenChange={setEditOpen} form={form} />
-      ) : null}
+      {form && embedOpen ? <FormEmbedDialog open={embedOpen} onOpenChange={setEmbedOpen} form={form} /> : null}
+      {form && editOpen ? <EditFormDialog open={editOpen} onOpenChange={setEditOpen} form={form} /> : null}
 
       {form && deleteOpen ? (
         <DeleteFormDialog
@@ -260,14 +263,27 @@ export const FormInboxPage: React.FC = () => {
       {form && activeEntry ? (
         <ResolveEntryDialog
           open={Boolean(activeEntry)}
-          onOpenChange={(next) => {
-            if (!next) setActiveEntry(null);
-          }}
+          onOpenChange={(next) => { if (!next) setActiveEntry(null); }}
           form={form}
           entry={activeEntry}
           canResolve={canResolve}
           onConflictRefresh={() => {
             void entriesQuery.refetch();
+            if (needsSummaryFetch) void summaryQuery.refetch();
+          }}
+        />
+      ) : null}
+
+      {entryToDelete ? (
+        <DeleteFormEntryDialog
+          open={Boolean(entryToDelete)}
+          onOpenChange={(next) => { if (!next) setEntryToDelete(null); }}
+          entryId={entryToDelete.id}
+          formId={resolvedFormId}
+          status={entryToDelete.status}
+          summaryLabel={Object.values(entryToDelete.entryPayload).slice(0, 2).map(formatPayloadValue).join(' · ') || null}
+          onDeleted={(res) => {
+            if (activeEntry?.id === res.id) setActiveEntry(null);
             if (needsSummaryFetch) void summaryQuery.refetch();
           }}
         />

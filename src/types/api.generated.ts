@@ -7325,20 +7325,38 @@ export interface paths {
                         title: string;
                         /** Format: uuid */
                         folderId: string;
-                        entryFieldsSchema: {
+                        entryFieldsSchema: ({
                             name: string;
-                            type?: string;
+                            /** @enum {string} */
+                            type?: "string" | "number" | "boolean" | "date" | "array" | "object";
                             required?: boolean;
                             label?: string;
-                        }[] | {
+                            itemsSchema?: {
+                                [key: string]: unknown;
+                            }[];
+                            resolutionItemsSchema?: {
+                                [key: string]: unknown;
+                            }[];
+                        } & {
+                            [key: string]: unknown;
+                        })[] | {
                             [key: string]: unknown;
                         };
-                        resolutionFieldsSchema?: {
+                        resolutionFieldsSchema?: ({
                             name: string;
-                            type?: string;
+                            /** @enum {string} */
+                            type?: "string" | "number" | "boolean" | "date" | "array" | "object";
                             required?: boolean;
                             label?: string;
-                        }[] | {
+                            itemsSchema?: {
+                                [key: string]: unknown;
+                            }[];
+                            resolutionItemsSchema?: {
+                                [key: string]: unknown;
+                            }[];
+                        } & {
+                            [key: string]: unknown;
+                        })[] | {
                             [key: string]: unknown;
                         };
                         /**
@@ -7891,6 +7909,282 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v1/forms/entries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obtiene una entrada individual de formulario con su mergedPayload listo para responder o generar PDF */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id?: string;
+                            /** Format: uuid */
+                            formId?: string;
+                            status?: string;
+                            entryPayload?: {
+                                [key: string]: unknown;
+                            };
+                            resolutionPayload?: null | {
+                                [key: string]: unknown;
+                            };
+                            mergedPayload?: {
+                                [key: string]: unknown;
+                            };
+                            /** Format: uuid */
+                            resolvedById?: null | string;
+                            /** Format: date-time */
+                            resolvedAt?: null | string;
+                            /** Format: date-time */
+                            createdAt?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Elimina una entrada individual de formulario y limpia sus filas sincronizadas en la tabla abierta
+         * @description Permite al propietario de la carpeta (MANAGER) o ADMIN eliminar una entrada en cualquier estado (NEW, VALID, INVALID), removiendo todas sus filas asociadas del artefacto .data.json.gz y registrando auditoría FORM_ENTRY_DELETE.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            deleted: boolean;
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            formId: string;
+                            removedTableRows: number;
+                        };
+                    };
+                };
+                /** @description Petición inválida o validación fallida */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/400 */
+                            type: string;
+                            /** @example Petición inválida o validación fallida */
+                            title: string;
+                            /** @example 400 */
+                            status: number;
+                            /** @example Petición inválida o validación fallida */
+                            detail: string;
+                            /** @example BAD_REQUEST */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description No autenticado o token/API Key inválido o revocado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/401 */
+                            type: string;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            title: string;
+                            /** @example 401 */
+                            status: number;
+                            /** @example No autenticado o token/API Key inválido o revocado */
+                            detail: string;
+                            /** @example UNAUTHORIZED */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Acceso prohibido o permisos insuficientes */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/403 */
+                            type: string;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            title: string;
+                            /** @example 403 */
+                            status: number;
+                            /** @example Acceso prohibido o permisos insuficientes */
+                            detail: string;
+                            /** @example FORBIDDEN */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example https://httpstatuses.com/404 */
+                            type: string;
+                            /** @example Recurso no encontrado */
+                            title: string;
+                            /** @example 404 */
+                            status: number;
+                            /** @example Recurso no encontrado */
+                            detail: string;
+                            /** @example NOT_FOUND */
+                            code: string;
+                            /** @example /api/v1/resource */
+                            instance?: string;
+                            invalidParams?: {
+                                name: string;
+                                reason: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/forms/entries/{id}/resolve": {
         parameters: {
             query?: never;
@@ -7906,7 +8200,7 @@ export interface paths {
         head?: never;
         /**
          * Endpoint 2: Completar respuesta única inmutable (Write-Once)
-         * @description Completa la respuesta y sella status a VALID/INVALID una sola vez. Reintentos retornan 409 CONFLICT.
+         * @description Completa la respuesta y sella status a VALID/INVALID una sola vez. Retorna mergedPayload con las filas combinadas listas para emitir PDF.
          */
         patch: {
             parameters: {
@@ -7939,14 +8233,23 @@ export interface paths {
                             /** Format: uuid */
                             id?: string;
                             status?: string;
-                            entryPayload?: Record<string, never>;
-                            resolutionPayload?: Record<string, never>;
+                            entryPayload?: {
+                                [key: string]: unknown;
+                            };
+                            resolutionPayload?: {
+                                [key: string]: unknown;
+                            };
+                            mergedPayload?: {
+                                [key: string]: unknown;
+                            };
                             /** Format: uuid */
                             resolvedById?: null | string;
                             /** Format: date-time */
                             resolvedAt?: null | string;
                             /** Format: date-time */
                             createdAt?: string;
+                        } & {
+                            [key: string]: unknown;
                         };
                     };
                 };
@@ -8279,17 +8582,30 @@ export interface paths {
                                 totalPages?: number;
                                 hasNext?: boolean;
                             };
-                            entries?: {
+                            entries?: ({
                                 /** Format: uuid */
                                 id?: string;
                                 status?: string;
-                                entryPayload?: Record<string, never>;
-                                resolutionPayload?: null | Record<string, never>;
+                                entryPayload?: {
+                                    [key: string]: unknown;
+                                };
+                                resolutionPayload?: null | {
+                                    [key: string]: unknown;
+                                };
+                                resolvedBy?: null | ({
+                                    /** Format: uuid */
+                                    id?: string;
+                                    username?: string;
+                                } & {
+                                    [key: string]: unknown;
+                                });
                                 /** Format: date-time */
                                 resolvedAt?: null | string;
                                 /** Format: date-time */
                                 createdAt?: string;
-                            }[];
+                            } & {
+                                [key: string]: unknown;
+                            })[];
                         };
                     };
                 };

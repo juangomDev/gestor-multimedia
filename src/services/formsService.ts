@@ -4,6 +4,7 @@ import type {
   CreateFormInput,
   UpdateFormInput,
   DeleteFormResult,
+  DeleteFormEntryResult,
   FetchFormsOptions,
   FormEntry,
   ListEntriesOptions,
@@ -184,6 +185,28 @@ export class FormsService {
       {}
     );
     return 'data' in res ? res.data : res;
+  }
+
+  /**
+   * Elimina permanentemente una entrada individual de formulario (en cualquier estado `NEW`, `VALID`
+   * o `INVALID`) y sincroniza la tabla abierta vinculada eliminando todas sus filas asociadas
+   * (`DELETE /api/v1/forms/entries/:entryId`). Exclusivo del propietario de la carpeta o `ADMIN`.
+   *
+   * @param entryId UUID de la entrada a eliminar.
+   * @returns Confirmación `{ deleted, id, formId, removedTableRows }`.
+   */
+  async deleteEntry(entryId: string): Promise<DeleteFormEntryResult> {
+    const res = await apiClient.delete<
+      DeleteFormEntryResult | { data?: DeleteFormEntryResult } | undefined
+    >(`/api/v1/forms/entries/${encodeURIComponent(entryId)}`);
+    const payload =
+      res && 'data' in res && res.data ? res.data : (res as DeleteFormEntryResult | undefined);
+    return {
+      deleted: payload?.deleted ?? true,
+      id: payload?.id || entryId,
+      formId: payload?.formId || '',
+      removedTableRows: payload?.removedTableRows ?? 0,
+    };
   }
 
   /**

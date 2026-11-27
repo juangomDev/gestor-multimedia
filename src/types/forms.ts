@@ -136,6 +136,21 @@ export interface DeleteFormResult {
 }
 
 /**
+ * Resultado devuelto al eliminar una entrada individual de formulario (`DELETE /api/v1/forms/entries/:id`),
+ * incluyendo el conteo de filas removidas del artefacto `.data.json.gz` de su tabla abierta vinculada.
+ */
+export interface DeleteFormEntryResult {
+  /** Confirmación explícita de eliminación. */
+  deleted: boolean;
+  /** UUID de la entrada eliminada. */
+  id: string;
+  /** UUID del formulario propietario de la entrada. */
+  formId: string;
+  /** Cantidad de filas eliminadas de la tabla abierta vinculada (puede ser >1 en maestro-detalle). */
+  removedTableRows: number;
+}
+
+/**
  * Entrada registrada para un formulario específico.
  */
 export interface FormEntry {

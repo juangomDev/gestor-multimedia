@@ -13,10 +13,12 @@ import { buildPublicAssetUrl } from '../../utils/formatters';
 import { useFolderWriteAccess } from '../explorer/useFolderWriteAccess';
 import { RenameAssetDialog } from '../images/RenameAssetDialog';
 import { HotSwapAssetDialog } from '../images/HotSwapAssetDialog';
+import { DeleteFormEntryDialog } from '../forms/DeleteFormEntryDialog';
 import { DataGrid } from './DataGrid';
 import { filterAndSortRows, resolveFatherHierarchyConfig, type HierarchyCrumb } from './dataGridHelpers';
 import { TableDynamicFilterBar } from './TableDynamicFilterBar';
 import { TableMetadataDialog } from './TableMetadataDialog';
+import { useOpenTableEntryDelete } from './useOpenTableEntryDelete';
 import type { MetadataCard, TableDataQueryOptions } from '../../types/api';
 import styles from './DataStudioPage.module.css';
 
@@ -78,7 +80,7 @@ export const DataStudioPage: React.FC = () => {
   );
 
   const dataQuery = useTableDataQuery(shortCode, page, limit, filterOptions);
-  const needsCatalogLookup = Boolean(shortCode && (!routeState?.tableId || routeState?.canEdit === undefined));
+  const needsCatalogLookup = Boolean(shortCode && (!routeState?.tableId || !routeState?.folderId || routeState?.canEdit === undefined));
   const lookupQuery = useTablesQuery({ search: shortCode, limit: 20 }, needsCatalogLookup);
   const matchedCatalogItem = useMemo(
     () => lookupQuery.data?.items.find((t) => t.shortCode === shortCode),
@@ -93,24 +95,16 @@ export const DataStudioPage: React.FC = () => {
 
   const tableName = dataQuery.data?.tableName || matchedCatalogItem?.tableName || `Tabla ${shortCode}`;
   const rawRows = useMemo(() => dataQuery.data?.data ?? [], [dataQuery.data?.data]);
-  const gridColumns = useMemo(
-    () => dataQuery.data?.columns ?? (rawRows[0] ? Object.keys(rawRows[0]) : []),
-    [dataQuery.data?.columns, rawRows]
-  );
+  const gridColumns = useMemo(() => dataQuery.data?.columns ?? (rawRows[0] ? Object.keys(rawRows[0]) : []), [dataQuery.data?.columns, rawRows]);
   const allColumns = useMemo(() => {
     const base = matchedCatalogItem?.columns?.length ? matchedCatalogItem.columns : gridColumns;
     return Array.from(new Set([...base, ...gridColumns]));
   }, [matchedCatalogItem?.columns, gridColumns]);
 
   const metadataCard = (dataQuery.data?.metadataCard ?? matchedCatalogItem?.metadataCard ?? null) as MetadataCard | null;
-  const hierarchyConfig = useMemo(
-    () => resolveFatherHierarchyConfig(allColumns, metadataCard?.columnsMeta),
-    [allColumns, metadataCard?.columnsMeta]
-  );
-  const visibleRows = useMemo(
-    () => filterAndSortRows(rawRows, gridColumns, deferredSearch, sortCol, sortDir),
-    [rawRows, gridColumns, deferredSearch, sortCol, sortDir]
-  );
+  const entryDelete = useOpenTableEntryDelete({ shortCode, folderId: resolvedFolderId, metadataCard, allColumns });
+  const hierarchyConfig = useMemo(() => resolveFatherHierarchyConfig(allColumns, metadataCard?.columnsMeta), [allColumns, metadataCard?.columnsMeta]);
+  const visibleRows = useMemo(() => filterAndSortRows(rawRows, gridColumns, deferredSearch, sortCol, sortDir), [rawRows, gridColumns, deferredSearch, sortCol, sortDir]);
 
   const canonicalUrl = buildPublicAssetUrl(storageService.getApiBaseUrl(), 't', shortCode);
   const downloadUrl = tablesService.getDownloadUrl(shortCode);
@@ -278,6 +272,8 @@ export const DataStudioPage: React.FC = () => {
           onLimitChange={(nextLimit) => { setLimit(nextLimit); setPage(1); }}
           canDrillDownChildren={Boolean(hierarchyConfig)}
           onDrillDownRow={handleDrillDownRow}
+          canDeleteRow={entryDelete.canDeleteEntries ? entryDelete.canDeleteRow : undefined}
+          onDeleteRow={entryDelete.canDeleteEntries ? entryDelete.openDeleteForRow : undefined}
         />
       )}
 
@@ -289,6 +285,9 @@ export const DataStudioPage: React.FC = () => {
       ) : null}
       {resolvedTableId && renameOpen ? (
         <RenameAssetDialog open={renameOpen} onOpenChange={setRenameOpen} kind="table" assetId={resolvedTableId} shortCode={shortCode} currentName={tableName} onRenamed={() => void dataQuery.refetch()} />
+      ) : null}
+      {entryDelete.targetEntry ? (
+        <DeleteFormEntryDialog open={Boolean(entryDelete.targetEntry)} onOpenChange={(next) => { if (!next) entryDelete.clearTarget(); }} entryId={entryDelete.targetEntry.entryId} status={entryDelete.targetEntry.status} summaryLabel={entryDelete.targetEntry.summaryLabel} isMasterDetailTable={entryDelete.isMasterDetailTable} onDeleted={() => void dataQuery.refetch()} />
       ) : null}
     </div>
   );

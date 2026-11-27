@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Combine } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Combine, Trash2 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import {
@@ -48,6 +48,10 @@ export interface DataGridProps {
   canDrillDownChildren?: boolean;
   /** Callback al pulsar "Ver hijos" sobre una fila padre. */
   onDrillDownRow?: (row: Record<string, unknown>) => void;
+  /** Evalúa por fila si es elegible para eliminación (exclusivo de tablas abiertas de formularios). */
+  canDeleteRow?: (row: Record<string, unknown>) => boolean;
+  /** Callback al pulsar eliminar sobre una fila vinculada a una entrada de formulario. */
+  onDeleteRow?: (row: Record<string, unknown>) => void;
 }
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
@@ -75,7 +79,12 @@ export const DataGrid: React.FC<DataGridProps> = React.memo(({
   onLimitChange,
   canDrillDownChildren = false,
   onDrillDownRow,
+  canDeleteRow,
+  onDeleteRow,
 }) => {
+  const showDrillDown = Boolean(canDrillDownChildren && onDrillDownRow);
+  const showDelete = Boolean(canDeleteRow && onDeleteRow);
+  const showActionCol = showDrillDown || showDelete;
   const extraHeaderRows =
     headers && headers.length > 1 ? headers.slice(0, headers.length - 1) : [];
   const startRowNumber = (meta.page - 1) * meta.limit + 1;
@@ -122,7 +131,7 @@ export const DataGrid: React.FC<DataGridProps> = React.memo(({
                         {grp.label}
                       </th>
                     ))}
-                    {canDrillDownChildren && onDrillDownRow ? (
+                    {showActionCol ? (
                       <th className={styles.thAction} aria-hidden="true" />
                     ) : null}
                   </tr>
@@ -155,8 +164,8 @@ export const DataGrid: React.FC<DataGridProps> = React.memo(({
                     </th>
                   );
                 })}
-                {canDrillDownChildren && onDrillDownRow ? (
-                  <th className={styles.thAction}>Jerarquía</th>
+                {showActionCol ? (
+                  <th className={styles.thAction}>{showDelete ? 'Acciones' : 'Jerarquía'}</th>
                 ) : null}
               </tr>
             </thead>
@@ -190,16 +199,32 @@ export const DataGrid: React.FC<DataGridProps> = React.memo(({
                         </td>
                       );
                     })}
-                    {canDrillDownChildren && onDrillDownRow ? (
+                    {showActionCol ? (
                       <td className={styles.tdAction}>
-                        <button
-                          type="button"
-                          className={styles.drillDownBtn}
-                          onClick={() => onDrillDownRow(row)}
-                          data-testid={`drilldown-row-${rowIdx}`}
-                        >
-                          Ver hijos →
-                        </button>
+                        <div className={styles.actionCell}>
+                          {showDrillDown && onDrillDownRow ? (
+                            <button
+                              type="button"
+                              className={styles.drillDownBtn}
+                              onClick={() => onDrillDownRow(row)}
+                              data-testid={`drilldown-row-${rowIdx}`}
+                            >
+                              Ver hijos →
+                            </button>
+                          ) : null}
+                          {showDelete && onDeleteRow && canDeleteRow?.(row) ? (
+                            <button
+                              type="button"
+                              className={styles.deleteRowBtn}
+                              onClick={() => onDeleteRow(row)}
+                              aria-label={`Eliminar entrada de fila ${startRowNumber + originalIdx}`}
+                              title="Eliminar entrada y filas sincronizadas"
+                              data-testid={`delete-table-row-${rowIdx}`}
+                            >
+                              <Trash2 size={13} aria-hidden="true" />
+                            </button>
+                          ) : null}
+                        </div>
                       </td>
                     ) : null}
                   </tr>

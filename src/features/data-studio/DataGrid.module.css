@@ -169,6 +169,13 @@
   white-space: nowrap;
 }
 
+.actionCell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
 .drillDownBtn {
   padding: 3px 8px;
   border-radius: var(--radius-chip);
@@ -183,6 +190,26 @@
 .drillDownBtn:hover {
   background-color: var(--accent-ink);
   color: var(--accent-on-solid);
+}
+
+.deleteRowBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: var(--radius-chip);
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: var(--ink-tertiary);
+  cursor: pointer;
+}
+
+.deleteRowBtn:hover {
+  color: var(--status-danger);
+  background-color: var(--status-danger-bg);
+  border-color: var(--status-danger-border);
 }
 
 .footer {

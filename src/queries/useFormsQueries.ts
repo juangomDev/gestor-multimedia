@@ -158,6 +158,33 @@ export function useDispatchFormEntryMutation(formId: string) {
 }
 
 /**
+ * Mutación para eliminar permanentemente una entrada individual de formulario y sus filas
+ * sincronizadas en la tabla abierta vinculada (`DELETE /api/v1/forms/entries/:id`).
+ * Invalida en paralelo formularios, tablas abiertas, caché de chat y estadísticas de almacenamiento.
+ *
+ * @param formId UUID opcional del formulario activo para refresco específico de su bandeja.
+ */
+export function useDeleteFormEntryMutation(formId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (entryId: string) => formsService.deleteEntry(entryId),
+    onSuccess: async (result) => {
+      const targetFormId = formId || result.formId;
+      const tasks: Promise<void>[] = [
+        queryClient.invalidateQueries({ queryKey: queryKeys.forms.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tables.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.chat.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.storageStats.all }),
+      ];
+      if (targetFormId) {
+        tasks.push(queryClient.invalidateQueries({ queryKey: ['forms', 'entries', targetFormId] }));
+      }
+      await Promise.all(tasks);
+    },
+  });
+}
+
+/**
  * Mutación para suscribirse o actualizar preferencias de alerta de un formulario
  * (`POST /api/v1/forms/:id/subscribe`).
  */

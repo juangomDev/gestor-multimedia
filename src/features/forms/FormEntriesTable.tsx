@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Lock, Send } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Lock, Send, Trash2 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { formatDate } from '../../utils/formatters';
@@ -18,8 +18,12 @@ export interface FormEntriesTableProps {
   totalEntries: number;
   isDispatching: boolean;
   canResolve?: boolean;
+  /** Habilita la eliminación individual de entradas (solo propietario de carpeta o `ADMIN`). */
+  canDeleteEntry?: boolean;
   onSelectEntry: (entry: FormEntry) => void;
   onQuickDispatch: (entryId: string) => void;
+  /** Callback al pulsar eliminar sobre una entrada individual. */
+  onDeleteEntry?: (entry: FormEntry) => void;
   onPageChange: (nextPage: number) => void;
 }
 
@@ -35,8 +39,10 @@ export const FormEntriesTable: React.FC<FormEntriesTableProps> = ({
   totalEntries,
   isDispatching,
   canResolve = true,
+  canDeleteEntry = false,
   onSelectEntry,
   onQuickDispatch,
+  onDeleteEntry,
   onPageChange,
 }) => (
   <div className={styles.tableWrap}>
@@ -134,6 +140,18 @@ export const FormEntriesTable: React.FC<FormEntriesTableProps> = ({
                       ) : null}
                     </>
                   )}
+                  {canDeleteEntry && onDeleteEntry ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={styles.deleteEntryBtn}
+                      icon={<Trash2 size={13} />}
+                      onClick={() => onDeleteEntry(entry)}
+                      aria-label={`Eliminar entrada ${entry.id}`}
+                      title="Eliminar entrada permanentemente"
+                      data-testid={`delete-entry-btn-${entry.id}`}
+                    />
+                  ) : null}
                 </div>
               </td>
             </tr>

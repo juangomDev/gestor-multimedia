@@ -221,6 +221,15 @@
   white-space: nowrap;
 }
 
+.deleteEntryBtn {
+  color: var(--ink-tertiary);
+}
+
+.deleteEntryBtn:hover {
+  color: var(--status-danger);
+  background-color: var(--status-danger-bg);
+}
+
 .paginationBar {
   display: flex;
   align-items: center;
